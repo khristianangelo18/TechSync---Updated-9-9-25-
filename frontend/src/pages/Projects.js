@@ -81,7 +81,7 @@ function Projects() {
       // TODO: Implement star/unstar project API
       console.log('Star/unstar project:', projectId);
       // For now, just show alert
-      alert('Star functionality will be implemented soon!');
+      alert('gawin mo na to bes ano ka dyan');
     } catch (err) {
       console.error('Error starring project:', err);
     }
