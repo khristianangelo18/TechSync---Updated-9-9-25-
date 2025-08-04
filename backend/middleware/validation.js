@@ -102,7 +102,7 @@ const validationSchemas = {
       .notEmpty()
       .withMessage('Username or email is required')
       .isLength({ min: 3, max: 255 })
-      .withMessage('Identifier must be between 3 and 255 characters'),
+      .withMessage('Identifier must be between atleast 3 and 255 characters'),
     body('password')
       .notEmpty()
       .withMessage('Password is required')
