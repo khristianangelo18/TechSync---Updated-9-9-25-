@@ -10,6 +10,7 @@ dotenv.config();
 // import routes
 const authRoutes = require('./routes/auth');
 const onboardingRoutes = require('./routes/onboarding');
+const projectRoutes = require('./routes/projects');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -56,6 +57,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // API routes
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/projects', projectRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
