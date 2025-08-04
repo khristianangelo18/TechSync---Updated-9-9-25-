@@ -2,9 +2,18 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './pages/Layout';
+import ProjectLayout from './pages/ProjectLayout'; // New import
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
+import Projects from './pages/Projects';
+
+// Project workspace components (new imports)
+import ProjectDashboard from './pages/project/ProjectDashboard';
+import ProjectTasks from './pages/project/ProjectTasks';
+import ProjectChats from './pages/project/ProjectChats';
+import ProjectFiles from './pages/project/ProjectFiles';
+import ProjectMembers from './pages/project/ProjectMembers';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -35,7 +44,7 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Public Route Component (redirects to dashboard if already authenticated)
+// Public Route Component
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading, user } = useAuth();
   
@@ -53,19 +62,16 @@ const PublicRoute = ({ children }) => {
   }
   
   if (isAuthenticated) {
-    // If user needs onboarding, redirect to onboarding
     if (user?.needsOnboarding) {
       return <Navigate to="/onboarding" replace />;
     }
-    // Otherwise redirect to dashboard
     return <Navigate to="/" replace />;
   }
 
   return children;
 };
 
-// Placeholder components for other routes
-const Projects = () => <div style={{ padding: '30px' }}><h2>Projects</h2><p>Your projects will appear here.</p></div>;
+// Placeholder components for main app routes
 const Friends = () => <div style={{ padding: '30px' }}><h2>Friends</h2><p>Your friends and connections will appear here.</p></div>;
 const Learns = () => <div style={{ padding: '30px' }}><h2>Learns</h2><p>Your learning modules and progress will appear here.</p></div>;
 const Help = () => <div style={{ padding: '30px' }}><h2>Help Center</h2><p>Frequently asked questions and support resources.</p></div>;
@@ -87,7 +93,7 @@ function App() {
               } 
             />
             
-            {/* Onboarding Route (special case - no sidebar) */}
+            {/* Onboarding Route */}
             <Route 
               path="/onboarding" 
               element={
@@ -97,7 +103,7 @@ function App() {
               } 
             />
             
-            {/* Protected Routes with Layout (sidebar) */}
+            {/* Main App Routes with Regular Layout */}
             <Route 
               path="/" 
               element={
@@ -162,6 +168,79 @@ function App() {
                   </Layout>
                 </ProtectedRoute>
               } 
+            />
+
+            {/* Project Workspace Routes with Project Layout */}
+            <Route 
+              path="/project/:projectId/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <ProjectLayout>
+                    <ProjectDashboard />
+                  </ProjectLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/project/:projectId/tasks" 
+              element={
+                <ProtectedRoute>
+                  <ProjectLayout>
+                    <ProjectTasks />
+                  </ProjectLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/project/:projectId/chats" 
+              element={
+                <ProtectedRoute>
+                  <ProjectLayout>
+                    <ProjectChats />
+                  </ProjectLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/project/:projectId/files" 
+              element={
+                <ProtectedRoute>
+                  <ProjectLayout>
+                    <ProjectFiles />
+                  </ProjectLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/project/:projectId/members" 
+              element={
+                <ProtectedRoute>
+                  <ProjectLayout>
+                    <ProjectMembers />
+                  </ProjectLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/project/:projectId/help" 
+              element={
+                <ProtectedRoute>
+                  <ProjectLayout>
+                    <Help />
+                  </ProjectLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Redirect /project/:id to /project/:id/dashboard */}
+            <Route 
+              path="/project/:projectId" 
+              element={<Navigate to="dashboard" replace />} 
             />
             
             {/* Catch all route */}

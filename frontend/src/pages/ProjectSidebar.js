@@ -1,33 +1,55 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { projectService } from '../services/projectService';
 
-function Sidebar() {
+function ProjectSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { projectId } = useParams();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const mainNavItems = [
-    { id: 'home', label: 'Home', path: '/', icon: '🏠' },
-    { id: 'projects', label: 'Projects', path: '/projects', icon: '📁' },
-    { id: 'friends', label: 'Friends', path: '/friends', icon: '👥' },
-    { id: 'learns', label: 'Learns', path: '/learns', icon: '📚' }
+  // Project navigation items
+  const projectNavItems = [
+    { id: 'dashboard', label: 'Dashboard', path: `/project/${projectId}/dashboard`, icon: '📊' },
+    { id: 'tasks', label: 'Tasks', path: `/project/${projectId}/tasks`, icon: '✅' },
+    { id: 'chats', label: 'Chats', path: `/project/${projectId}/chats`, icon: '💬' },
+    { id: 'files', label: 'Files', path: `/project/${projectId}/files`, icon: '📁' },
+    { id: 'members', label: 'Members', path: `/project/${projectId}/members`, icon: '👥' }
   ];
 
   const bottomNavItems = [
-    { id: 'help', label: 'Help Center', path: '/help', icon: '❓' }
+    { id: 'help', label: 'Help Center', path: `/project/${projectId}/help`, icon: '❓' }
   ];
+
+  // Fetch project details
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        setLoading(true);
+        const response = await projectService.getProjectById(projectId);
+        setProject(response.data.project);
+      } catch (error) {
+        console.error('Error fetching project:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (projectId) {
+      fetchProject();
+    }
+  }, [projectId]);
 
   const handleNavigation = (path) => {
     navigate(path);
   };
 
   const isActive = (path) => {
-    if (path === '/') {
-      return location.pathname === '/';
-    }
-    return location.pathname.startsWith(path);
+    return location.pathname === path;
   };
 
   const handleThreeDotsClick = (e) => {
@@ -37,6 +59,11 @@ function Sidebar() {
 
   const handleLogout = () => {
     logout();
+    setShowUserMenu(false);
+  };
+
+  const handleExitProject = () => {
+    navigate('/projects');
     setShowUserMenu(false);
   };
 
@@ -52,6 +79,17 @@ function Sidebar() {
     }
   }, [showUserMenu]);
 
+  const getStatusColor = (status) => {
+    const colors = {
+      recruiting: '#28a745',
+      active: '#007bff',
+      completed: '#6c757d',
+      paused: '#ffc107',
+      cancelled: '#dc3545'
+    };
+    return colors[status] || '#6c757d';
+  };
+
   const styles = {
     sidebar: {
       width: '250px',
@@ -65,17 +103,30 @@ function Sidebar() {
       top: 0,
       zIndex: 1000
     },
-    logo: {
+    projectHeader: {
       padding: '20px',
       borderBottom: '1px solid #dee2e6',
-      textAlign: 'center',
       backgroundColor: 'white'
     },
-    logoText: {
-      fontSize: '18px',
+    projectTitle: {
+      fontSize: '16px',
       fontWeight: 'bold',
+      margin: '0 0 8px 0',
       color: '#333',
-      margin: 0
+      wordBreak: 'break-word'
+    },
+    projectMeta: {
+      fontSize: '12px',
+      color: '#6c757d'
+    },
+    statusBadge: {
+      display: 'inline-block',
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      color: 'white',
+      textTransform: 'uppercase'
     },
     nav: {
       flex: 1,
@@ -109,18 +160,13 @@ function Sidebar() {
       backgroundColor: '#e9ecef',
       borderRadius: '8px'
     },
-    icon: {
-      fontSize: '16px',
+    navIcon: {
       marginRight: '12px',
-      minWidth: '20px'
+      fontSize: '16px'
     },
-    label: {
+    navLabel: {
       fontSize: '14px',
       fontWeight: '500'
-    },
-    bottomNav: {
-      borderTop: '1px solid #dee2e6',
-      padding: '15px 0'
     },
     userSection: {
       padding: '20px',
@@ -128,12 +174,12 @@ function Sidebar() {
       backgroundColor: 'white',
       position: 'relative'
     },
-    userItem: {
+    userInfo: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between'
     },
-    userInfo: {
+    userDetails: {
       display: 'flex',
       alignItems: 'center',
       flex: 1
@@ -156,7 +202,7 @@ function Sidebar() {
       fontWeight: '500',
       color: '#333'
     },
-    threeDots: {
+    threeDotsButton: {
       background: 'none',
       border: 'none',
       color: '#6c757d',
@@ -166,7 +212,7 @@ function Sidebar() {
       borderRadius: '4px',
       transition: 'all 0.2s ease'
     },
-    threeDotsHover: {
+    threeDotsButtonHover: {
       backgroundColor: '#e9ecef',
       color: '#333'
     },
@@ -179,49 +225,88 @@ function Sidebar() {
       borderRadius: '8px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       zIndex: 1001,
-      minWidth: '180px',
+      minWidth: '200px',
       overflow: 'hidden'
     },
     menuItem: {
       padding: '12px 16px',
       cursor: 'pointer',
       fontSize: '14px',
-      color: '#dc3545',
+      color: '#333',
+      borderBottom: '1px solid #f8f9fa',
       transition: 'background-color 0.2s ease',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      fontWeight: '500'
+      gap: '10px'
+    },
+    menuItemLast: {
+      borderBottom: 'none'
     },
     menuItemHover: {
-      backgroundColor: '#fff5f5'
+      backgroundColor: '#f8f9fa'
     },
     menuItemIcon: {
       fontSize: '16px',
       width: '16px'
+    },
+    exitMenuItem: {
+      color: '#dc3545',
+      fontWeight: '500'
+    },
+    exitMenuItemHover: {
+      backgroundColor: '#fff5f5'
+    },
+    logoutMenuItem: {
+      color: '#dc3545',
+      fontWeight: '500'
+    },
+    logoutMenuItemHover: {
+      backgroundColor: '#fff5f5'
+    },
+    loadingText: {
+      fontSize: '14px',
+      color: '#6c757d'
     }
   };
 
   return (
     <div style={styles.sidebar}>
-      {/* Logo/Brand */}
-      <div style={styles.logo}>
-        <h3 style={styles.logoText}>TechSync</h3>
+      {/* Project Header */}
+      <div style={styles.projectHeader}>
+        {loading ? (
+          <div style={styles.loadingText}>Loading project...</div>
+        ) : project ? (
+          <>
+            <h3 style={styles.projectTitle}>{project.title}</h3>
+            <div style={styles.projectMeta}>
+              <span 
+                style={{
+                  ...styles.statusBadge,
+                  backgroundColor: getStatusColor(project.status)
+                }}
+              >
+                {project.status?.toUpperCase() || 'ACTIVE'}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div style={styles.loadingText}>Project not found</div>
+        )}
       </div>
 
-      {/* Main Navigation */}
+      {/* Navigation */}
       <nav style={styles.nav}>
         <div style={styles.navSection}>
-          {mainNavItems.map(item => {
+          {projectNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
             return (
               <div
                 key={item.id}
-                onClick={() => handleNavigation(item.path)}
                 style={{
                   ...styles.navItem,
                   ...(isActiveItem ? styles.navItemActive : {})
                 }}
+                onClick={() => handleNavigation(item.path)}
                 onMouseEnter={(e) => {
                   if (!isActiveItem) {
                     Object.assign(e.target.style, styles.navItemHover);
@@ -234,25 +319,24 @@ function Sidebar() {
                   }
                 }}
               >
-                <span style={styles.icon}>{item.icon}</span>
-                <span style={styles.label}>{item.label}</span>
+                <span style={styles.navIcon}>{item.icon}</span>
+                <span style={styles.navLabel}>{item.label}</span>
               </div>
             );
           })}
         </div>
 
-        {/* Bottom Navigation */}
         <div style={styles.navSection}>
-          {bottomNavItems.map(item => {
+          {bottomNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
             return (
               <div
                 key={item.id}
-                onClick={() => handleNavigation(item.path)}
                 style={{
                   ...styles.navItem,
                   ...(isActiveItem ? styles.navItemActive : {})
                 }}
+                onClick={() => handleNavigation(item.path)}
                 onMouseEnter={(e) => {
                   if (!isActiveItem) {
                     Object.assign(e.target.style, styles.navItemHover);
@@ -265,18 +349,18 @@ function Sidebar() {
                   }
                 }}
               >
-                <span style={styles.icon}>{item.icon}</span>
-                <span style={styles.label}>{item.label}</span>
+                <span style={styles.navIcon}>{item.icon}</span>
+                <span style={styles.navLabel}>{item.label}</span>
               </div>
             );
           })}
         </div>
       </nav>
 
-      {/* User Section with Three Dots Menu */}
+      {/* User Section */}
       <div style={styles.userSection}>
-        <div style={styles.userItem}>
-          <div style={styles.userInfo}>
+        <div style={styles.userInfo}>
+          <div style={styles.userDetails}>
             <div style={styles.userAvatar}>
               {user?.full_name?.charAt(0)?.toUpperCase() || 
                user?.username?.charAt(0)?.toUpperCase() || 'U'}
@@ -286,10 +370,10 @@ function Sidebar() {
             </span>
           </div>
           <button
-            style={styles.threeDots}
+            style={styles.threeDotsButton}
             onClick={handleThreeDotsClick}
             onMouseEnter={(e) => {
-              Object.assign(e.target.style, styles.threeDotsHover);
+              Object.assign(e.target.style, styles.threeDotsButtonHover);
             }}
             onMouseLeave={(e) => {
               e.target.style.backgroundColor = 'transparent';
@@ -303,18 +387,38 @@ function Sidebar() {
         {/* User Menu */}
         {showUserMenu && (
           <div style={styles.userMenu}>
-            <div
-              style={styles.menuItem}
-              onClick={handleLogout}
+            <div 
+              style={{
+                ...styles.menuItem,
+                ...styles.exitMenuItem
+              }}
+              onClick={handleExitProject}
               onMouseEnter={(e) => {
-                Object.assign(e.target.style, styles.menuItemHover);
+                Object.assign(e.target.style, styles.exitMenuItemHover);
               }}
               onMouseLeave={(e) => {
                 e.target.style.backgroundColor = 'white';
               }}
             >
               <span style={styles.menuItemIcon}>🚪</span>
-              Log out @{user?.username}
+              Exit Project Workspace
+            </div>
+            <div 
+              style={{
+                ...styles.menuItem, 
+                ...styles.menuItemLast,
+                ...styles.logoutMenuItem
+              }}
+              onClick={handleLogout}
+              onMouseEnter={(e) => {
+                Object.assign(e.target.style, styles.logoutMenuItemHover);
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'white';
+              }}
+            >
+              <span style={styles.menuItemIcon}>🚪</span>
+              Logout
             </div>
           </div>
         )}
@@ -323,4 +427,4 @@ function Sidebar() {
   );
 }
 
-export default Sidebar;
+export default ProjectSidebar;
