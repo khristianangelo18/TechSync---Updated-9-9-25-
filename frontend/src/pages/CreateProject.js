@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { projectService } from '../services/projectService';
+import { suggestionsService } from '../services/suggestionsService';
+import AutocompleteInput from '../components/AutocompleteInput';
 
 function CreateProject({ onClose }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState([]);
+  const [topicSuggestions, setTopicSuggestions] = useState([]);
+  const [languageSuggestions, setLanguageSuggestions] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -19,6 +23,24 @@ function CreateProject({ onClose }) {
     deadline: '',
     termsAccepted: null
   });
+
+  // Load suggestions when component mounts
+  useEffect(() => {
+    const loadSuggestions = async () => {
+      try {
+        const [topics, languages] = await Promise.all([
+          suggestionsService.getTopics(),
+          suggestionsService.getProgrammingLanguages()
+        ]);
+        setTopicSuggestions(topics);
+        setLanguageSuggestions(languages);
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+      }
+    };
+
+    loadSuggestions();
+  }, []);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -51,8 +73,8 @@ function CreateProject({ onClose }) {
         maximum_members: formData.maximum_members ? parseInt(formData.maximum_members) : null,
         estimated_duration_weeks: formData.estimated_duration_weeks ? parseInt(formData.estimated_duration_weeks) : null,
         difficulty_level: formData.difficulty_level || null,
-        github_repo_url: formData.github_repo_url?.trim() || null,
-        deadline: formData.deadline || null,
+        github_repo_url: formData.github_repo_url?.trim() || undefined,
+        deadline: formData.deadline || undefined,
         programming_languages: formData.programmingLanguage ? [formData.programmingLanguage.trim()] : [],
         topics: formData.topic ? [formData.topic.trim()] : []
       };
@@ -79,10 +101,20 @@ function CreateProject({ onClose }) {
         // Handle validation errors
         setErrors(error.response.data.errors);
         console.log('Validation errors:', error.response.data.errors);
+        
+        // Log each error for debugging
+        error.response.data.errors.forEach((err, index) => {
+          console.log(`Error ${index + 1}:`, {
+            field: err.param || err.field,
+            message: err.msg || err.message,
+            value: err.value
+          });
+        });
       }
       
       const errorMessage = error.response?.data?.message || error.message;
-      alert('Error creating project: ' + errorMessage);
+      // Don't show alert, let the UI show the errors instead
+      console.error('Full error:', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -142,7 +174,7 @@ function CreateProject({ onClose }) {
             value={formData.description}
             onChange={(e) => handleInputChange('description', e.target.value)}
             rows="3"
-            placeholder="Brief description of your project (10-1000 characters)"
+            placeholder="Brief description of your project"
             required
             style={{ width: '100%', padding: '8px', marginTop: '5px' }}
           />
@@ -193,27 +225,23 @@ function CreateProject({ onClose }) {
       <div>
         <h2>Project Details</h2>
         
-        <div style={{ marginBottom: '15px' }}>
-          <label>Topic</label>
-          <input
-            type="text"
-            value={formData.topic}
-            onChange={(e) => handleInputChange('topic', e.target.value)}
-            placeholder="e.g., Web Development, Mobile App, Data Science"
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
+        <AutocompleteInput
+          label="Topic"
+          value={formData.topic}
+          onChange={(value) => handleInputChange('topic', value)}
+          placeholder="e.g., Web Development, Mobile App, Data Science"
+          suggestions={topicSuggestions}
+          style={{ marginBottom: '15px' }}
+        />
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Programming Language</label>
-          <input
-            type="text"
-            value={formData.programmingLanguage}
-            onChange={(e) => handleInputChange('programmingLanguage', e.target.value)}
-            placeholder="e.g., JavaScript, Python, Java"
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
+        <AutocompleteInput
+          label="Programming Language"
+          value={formData.programmingLanguage}
+          onChange={(value) => handleInputChange('programmingLanguage', value)}
+          placeholder="e.g., JavaScript, Python, Java"
+          suggestions={languageSuggestions}
+          style={{ marginBottom: '15px' }}
+        />
 
         <div style={{ marginBottom: '15px' }}>
           <label>Required Experience Level</label>
@@ -269,17 +297,6 @@ function CreateProject({ onClose }) {
             <option value="hard">Hard</option>
             <option value="expert">Expert</option>
           </select>
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>GitHub Repository URL (optional)</label>
-          <input
-            type="url"
-            value={formData.github_repo_url}
-            onChange={(e) => handleInputChange('github_repo_url', e.target.value)}
-            placeholder="https://github.com/username/repo"
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
         </div>
 
         <div style={{ marginBottom: '15px' }}>

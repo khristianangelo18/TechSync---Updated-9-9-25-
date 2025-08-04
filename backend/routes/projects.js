@@ -37,8 +37,8 @@ const createProjectValidation = [
   body('description')
     .notEmpty()
     .withMessage('Project description is required')
-    .isLength({ min: 10, max: 1000 })
-    .withMessage('Project description must be between 10 and 1000 characters'),
+    .isLength({ min: 1, max: 5000 })
+    .withMessage('Project description must be between 1 and 5000 characters'),
   
   body('detailed_description')
     .optional()
@@ -66,12 +66,12 @@ const createProjectValidation = [
     .withMessage('Invalid difficulty level'),
   
   body('github_repo_url')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isURL()
     .withMessage('GitHub repository URL must be a valid URL'),
   
   body('deadline')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isISO8601()
     .withMessage('Deadline must be a valid date'),
   
