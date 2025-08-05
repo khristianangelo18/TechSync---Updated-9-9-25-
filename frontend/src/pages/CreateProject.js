@@ -1,7 +1,184 @@
 import React, { useState, useEffect } from 'react';
 import { projectService } from '../services/projectService';
 import { suggestionsService } from '../services/suggestionsService';
-import AutocompleteInput from '../components/AutocompleteInput';
+
+// Multi-select component for programming languages and topics
+function MultiSelectInput({ label, selectedItems, onSelectionChange, suggestions, placeholder }) {
+  const [inputValue, setInputValue] = useState('');
+  const [filteredSuggestions, setFilteredSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (inputValue.trim()) {
+      const filtered = suggestions.filter(item => 
+        item && 
+        item.name && 
+        typeof item.name === 'string' &&
+        item.name.toLowerCase().includes(inputValue.toLowerCase()) &&
+        !selectedItems.some(selected => selected && selected.name === item.name)
+      );
+      setFilteredSuggestions(filtered);
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  }, [inputValue, suggestions, selectedItems]);
+
+  const handleAddItem = (item) => {
+    if (item && item.name && !selectedItems.some(selected => selected && selected.name === item.name)) {
+      onSelectionChange([...selectedItems, item]);
+      setInputValue('');
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleRemoveItem = (itemToRemove) => {
+    onSelectionChange(selectedItems.filter(item => item && itemToRemove && item.name !== itemToRemove.name));
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault();
+      // Add custom item if it doesn't exist
+      const customItem = { name: inputValue.trim(), id: `custom_${Date.now()}` };
+      handleAddItem(customItem);
+    }
+  };
+
+  const styles = {
+    container: {
+      marginBottom: '15px'
+    },
+    label: {
+      display: 'block',
+      marginBottom: '5px',
+      fontWeight: 'bold'
+    },
+    inputContainer: {
+      position: 'relative'
+    },
+    input: {
+      width: '100%',
+      padding: '8px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: '14px'
+    },
+    selectedItems: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '8px',
+      marginTop: '8px',
+      marginBottom: '8px'
+    },
+    selectedItem: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      padding: '4px 8px',
+      borderRadius: '16px',
+      fontSize: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px'
+    },
+    removeButton: {
+      background: 'none',
+      border: 'none',
+      color: 'white',
+      cursor: 'pointer',
+      fontSize: '16px',
+      padding: '0',
+      marginLeft: '4px'
+    },
+    suggestions: {
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      backgroundColor: 'white',
+      border: '1px solid #ddd',
+      borderTop: 'none',
+      borderRadius: '0 0 4px 4px',
+      maxHeight: '200px',
+      overflowY: 'auto',
+      zIndex: 1000
+    },
+    suggestion: {
+      padding: '8px 12px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      borderBottom: '1px solid #f0f0f0'
+    },
+    suggestionHover: {
+      backgroundColor: '#f8f9fa'
+    },
+    helper: {
+      fontSize: '12px',
+      color: '#666',
+      marginTop: '4px'
+    }
+  };
+
+  return (
+    <div style={styles.container}>
+      <label style={styles.label}>{label}</label>
+      
+      {/* Selected Items */}
+      {selectedItems.length > 0 && (
+        <div style={styles.selectedItems}>
+          {selectedItems.filter(item => item && item.name).map((item, index) => (
+            <span key={item.id || index} style={styles.selectedItem}>
+              {item.name}
+              <button
+                type="button"
+                style={styles.removeButton}
+                onClick={() => handleRemoveItem(item)}
+                title="Remove"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Input */}
+      <div style={styles.inputContainer}>
+        <input
+          type="text"
+          style={styles.input}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder={selectedItems.length === 0 ? placeholder : "Add more..."}
+          onFocus={() => inputValue && setShowSuggestions(true)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+        />
+        
+        {/* Suggestions Dropdown */}
+        {showSuggestions && filteredSuggestions.length > 0 && (
+          <div style={styles.suggestions}>
+            {filteredSuggestions.map((suggestion, index) => (
+              <div
+                key={suggestion.id || index}
+                style={styles.suggestion}
+                onClick={() => handleAddItem(suggestion)}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+              >
+                {suggestion.name || 'Unnamed item'}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <div style={styles.helper}>
+        Type to search or press Enter to add custom items. Selected: {selectedItems.filter(item => item && item.name).length}
+      </div>
+    </div>
+  );
+}
 
 function CreateProject({ onClose }) {
   const [currentStep, setCurrentStep] = useState(1);
@@ -13,8 +190,8 @@ function CreateProject({ onClose }) {
     title: '',
     description: '',
     detailed_description: '',
-    topic: '',
-    programmingLanguage: '',
+    selectedTopics: [], // Changed to array
+    selectedLanguages: [], // Changed to array
     required_experience_level: '',
     maximum_members: '',
     estimated_duration_weeks: '',
@@ -47,7 +224,6 @@ function CreateProject({ onClose }) {
       ...prev,
       [field]: value
     }));
-    // Clear errors when user starts typing
     setErrors([]);
   };
 
@@ -64,7 +240,7 @@ function CreateProject({ onClose }) {
     setErrors([]);
     
     try {
-      // Prepare data for API - ensure we're sending the right data types
+      // Prepare data for API
       const projectData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -75,8 +251,8 @@ function CreateProject({ onClose }) {
         difficulty_level: formData.difficulty_level || null,
         github_repo_url: formData.github_repo_url?.trim() || undefined,
         deadline: formData.deadline || undefined,
-        programming_languages: formData.programmingLanguage ? [formData.programmingLanguage.trim()] : [],
-        topics: formData.topic ? [formData.topic.trim()] : []
+        programming_languages: formData.selectedLanguages.filter(lang => lang && lang.name).map(lang => lang.name), // Convert to array of names
+        topics: formData.selectedTopics.filter(topic => topic && topic.name).map(topic => topic.name) // Convert to array of names
       };
 
       console.log('Submitting project data:', projectData);
@@ -84,137 +260,182 @@ function CreateProject({ onClose }) {
       const response = await projectService.createProject(projectData);
       
       if (response.success) {
-        console.log('Project created successfully:', response.data);
-        alert('Project created successfully!');
         onClose();
-      } else {
-        console.error('Project creation failed:', response.message);
-        if (response.errors) {
-          setErrors(response.errors);
-        }
-        alert('Failed to create project: ' + response.message);
+        window.location.reload(); // Refresh to show new project
       }
     } catch (error) {
-      console.error('Error creating project:', error);
+      console.error('Project creation error:', error);
       
       if (error.response?.data?.errors) {
-        // Handle validation errors
-        setErrors(error.response.data.errors);
-        console.log('Validation errors:', error.response.data.errors);
-        
-        // Log each error for debugging
-        error.response.data.errors.forEach((err, index) => {
-          console.log(`Error ${index + 1}:`, {
-            field: err.param || err.field,
-            message: err.msg || err.message,
-            value: err.value
-          });
-        });
+        setErrors(error.response.data.errors.map(err => err.msg));
+      } else if (error.response?.data?.message) {
+        setErrors([error.response.data.message]);
+      } else {
+        setErrors(['Failed to create project. Please try again.']);
       }
-      
-      const errorMessage = error.response?.data?.message || error.message;
-      // Don't show alert, let the UI show the errors instead
-      console.error('Full error:', errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Helper function to display validation errors
-  const getFieldError = (fieldName) => {
-    const error = errors.find(err => err.param === fieldName || err.field === fieldName);
-    return error ? error.msg || error.message : null;
+  const styles = {
+    container: {
+      maxWidth: '500px',
+      margin: '0 auto'
+    },
+    header: {
+      textAlign: 'center',
+      marginBottom: '20px'
+    },
+    step: {
+      fontSize: '14px',
+      color: '#666',
+      marginBottom: '10px'
+    },
+    title: {
+      margin: '0 0 20px 0',
+      color: '#333'
+    },
+    form: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '15px'
+    },
+    inputGroup: {
+      display: 'flex',
+      flexDirection: 'column'
+    },
+    label: {
+      marginBottom: '5px',
+      fontWeight: 'bold'
+    },
+    input: {
+      padding: '8px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: '14px'
+    },
+    textarea: {
+      padding: '8px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: '14px',
+      minHeight: '100px',
+      resize: 'vertical'
+    },
+    select: {
+      padding: '8px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: '14px'
+    },
+    buttonContainer: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      marginTop: '20px'
+    },
+    button: {
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px'
+    },
+    primaryButton: {
+      backgroundColor: '#007bff',
+      color: 'white'
+    },
+    secondaryButton: {
+      backgroundColor: '#6c757d',
+      color: 'white'
+    },
+    disabledButton: {
+      backgroundColor: '#ccc',
+      cursor: 'not-allowed'
+    },
+    errorContainer: {
+      backgroundColor: '#f8d7da',
+      color: '#721c24',
+      padding: '10px',
+      borderRadius: '4px',
+      marginBottom: '15px'
+    }
   };
 
-  // Step 1: Project Title
+  // Step 1: Basic Info
   if (currentStep === 1) {
     return (
-      <div>
-        <h2>Create Project</h2>
-        
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <div style={styles.step}>Step 1 of 3</div>
+          <h2 style={styles.title}>Basic Information</h2>
+        </div>
+
         {errors.length > 0 && (
-          <div style={{ 
-            backgroundColor: '#fee', 
-            border: '1px solid #fcc', 
-            padding: '10px', 
-            marginBottom: '20px',
-            borderRadius: '4px'
-          }}>
-            <h4>Validation Errors:</h4>
-            <ul>
+          <div style={styles.errorContainer}>
+            <ul style={{ margin: 0, paddingLeft: '20px' }}>
               {errors.map((error, index) => (
-                <li key={index}>
-                  <strong>{error.param || error.field}:</strong> {error.msg || error.message}
-                </li>
+                <li key={index}>{error}</li>
               ))}
             </ul>
           </div>
         )}
-        
-        <div style={{ marginBottom: '15px' }}>
-          <label>Project Title *</label>
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) => handleInputChange('title', e.target.value)}
-            placeholder="Enter your project title (3-255 characters)"
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-          {getFieldError('title') && (
-            <div style={{ color: 'red', fontSize: '12px', marginTop: '2px' }}>
-              {getFieldError('title')}
-            </div>
-          )}
+
+        <div style={styles.form}>
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Project Title *</label>
+            <input
+              type="text"
+              style={styles.input}
+              value={formData.title}
+              onChange={(e) => handleInputChange('title', e.target.value)}
+              placeholder="Give your project a catchy title"
+              maxLength="255"
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Short Description *</label>
+            <textarea
+              style={styles.textarea}
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Briefly describe what your project is about"
+              maxLength="500"
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Detailed Description (Optional)</label>
+            <textarea
+              style={styles.textarea}
+              value={formData.detailed_description}
+              onChange={(e) => handleInputChange('detailed_description', e.target.value)}
+              placeholder="Provide more details about goals, requirements, and expectations"
+              maxLength="5000"
+            />
+          </div>
         </div>
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Project Description *</label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => handleInputChange('description', e.target.value)}
-            rows="3"
-            placeholder="Brief description of your project"
-            required
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-          {getFieldError('description') && (
-            <div style={{ color: 'red', fontSize: '12px', marginTop: '2px' }}>
-              {getFieldError('description')}
-            </div>
-          )}
+        <div style={styles.buttonContainer}>
+          <button
+            style={{ ...styles.button, ...styles.secondaryButton }}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            style={{
+              ...styles.button,
+              ...styles.primaryButton,
+              ...((!formData.title.trim() || !formData.description.trim()) ? styles.disabledButton : {})
+            }}
+            onClick={handleNext}
+            disabled={!formData.title.trim() || !formData.description.trim()}
+          >
+            Continue
+          </button>
         </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>Detailed Description</label>
-          <textarea
-            value={formData.detailed_description}
-            onChange={(e) => handleInputChange('detailed_description', e.target.value)}
-            rows="5"
-            placeholder="Detailed project requirements, goals, and expectations (max 5000 characters)"
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-          {getFieldError('detailed_description') && (
-            <div style={{ color: 'red', fontSize: '12px', marginTop: '2px' }}>
-              {getFieldError('detailed_description')}
-            </div>
-          )}
-        </div>
-
-        <button 
-          onClick={handleNext}
-          disabled={!formData.title.trim() || !formData.description.trim()}
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: (!formData.title.trim() || !formData.description.trim()) ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: (!formData.title.trim() || !formData.description.trim()) ? 'not-allowed' : 'pointer'
-          }}
-        >
-          Continue
-        </button>
       </div>
     );
   }
@@ -222,106 +443,138 @@ function CreateProject({ onClose }) {
   // Step 2: Project Details
   if (currentStep === 2) {
     return (
-      <div>
-        <h2>Project Details</h2>
-        
-        <AutocompleteInput
-          label="Topic"
-          value={formData.topic}
-          onChange={(value) => handleInputChange('topic', value)}
-          placeholder="e.g., Web Development, Mobile App, Data Science"
-          suggestions={topicSuggestions}
-          style={{ marginBottom: '15px' }}
-        />
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <div style={styles.step}>Step 2 of 3</div>
+          <h2 style={styles.title}>Project Details</h2>
+        </div>
 
-        <AutocompleteInput
-          label="Programming Language"
-          value={formData.programmingLanguage}
-          onChange={(value) => handleInputChange('programmingLanguage', value)}
-          placeholder="e.g., JavaScript, Python, Java"
-          suggestions={languageSuggestions}
-          style={{ marginBottom: '15px' }}
-        />
+        {errors.length > 0 && (
+          <div style={styles.errorContainer}>
+            <ul style={{ margin: 0, paddingLeft: '20px' }}>
+              {errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
-        <div style={{ marginBottom: '15px' }}>
-          <label>Required Experience Level</label>
-          <select
-            value={formData.required_experience_level}
-            onChange={(e) => handleInputChange('required_experience_level', e.target.value)}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+        <div style={styles.form}>
+          {/* Multiple Topics Selection */}
+          <MultiSelectInput
+            label="Topics *"
+            selectedItems={formData.selectedTopics}
+            onSelectionChange={(topics) => handleInputChange('selectedTopics', topics)}
+            suggestions={topicSuggestions}
+            placeholder="e.g., Web Development, Mobile App, Data Science"
+          />
+
+          {/* Multiple Programming Languages Selection */}
+          <MultiSelectInput
+            label="Programming Languages *"
+            selectedItems={formData.selectedLanguages}
+            onSelectionChange={(languages) => handleInputChange('selectedLanguages', languages)}
+            suggestions={languageSuggestions}
+            placeholder="e.g., JavaScript, Python, Java"
+          />
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Required Experience Level</label>
+            <select
+              style={styles.select}
+              value={formData.required_experience_level}
+              onChange={(e) => handleInputChange('required_experience_level', e.target.value)}
+            >
+              <option value="">Select experience level</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+              <option value="expert">Expert</option>
+            </select>
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Maximum Members</label>
+            <input
+              type="number"
+              style={styles.input}
+              min="1"
+              max="50"
+              value={formData.maximum_members}
+              onChange={(e) => handleInputChange('maximum_members', e.target.value)}
+              placeholder="Maximum team size (1-50)"
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Estimated Duration (weeks)</label>
+            <input
+              type="number"
+              style={styles.input}
+              min="1"
+              max="104"
+              value={formData.estimated_duration_weeks}
+              onChange={(e) => handleInputChange('estimated_duration_weeks', e.target.value)}
+              placeholder="How many weeks will this project take?"
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Difficulty Level</label>
+            <select
+              style={styles.select}
+              value={formData.difficulty_level}
+              onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
+            >
+              <option value="">Select difficulty</option>
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+              <option value="expert">Expert</option>
+            </select>
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>GitHub Repository (optional)</label>
+            <input
+              type="url"
+              style={styles.input}
+              value={formData.github_repo_url}
+              onChange={(e) => handleInputChange('github_repo_url', e.target.value)}
+              placeholder="https://github.com/username/repository"
+            />
+          </div>
+
+          <div style={styles.inputGroup}>
+            <label style={styles.label}>Project Deadline (optional)</label>
+            <input
+              type="date"
+              style={styles.input}
+              value={formData.deadline}
+              onChange={(e) => handleInputChange('deadline', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div style={styles.buttonContainer}>
+          <button
+            style={{ ...styles.button, ...styles.secondaryButton }}
+            onClick={() => setCurrentStep(1)}
           >
-            <option value="">Select experience level</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-            <option value="expert">Expert</option>
-          </select>
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>Maximum Members</label>
-          <input
-            type="number"
-            min="1"
-            max="50"
-            value={formData.maximum_members}
-            onChange={(e) => handleInputChange('maximum_members', e.target.value)}
-            placeholder="Maximum team size (1-50)"
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>Estimated Duration (weeks)</label>
-          <input
-            type="number"
-            min="1"
-            max="104"
-            value={formData.estimated_duration_weeks}
-            onChange={(e) => handleInputChange('estimated_duration_weeks', e.target.value)}
-            placeholder="How many weeks will this project take? (1-104)"
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>Difficulty Level</label>
-          <select
-            value={formData.difficulty_level}
-            onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            Back
+          </button>
+          <button
+            style={{
+              ...styles.button,
+              ...styles.primaryButton,
+              ...(formData.selectedTopics.length === 0 || formData.selectedLanguages.length === 0 ? styles.disabledButton : {})
+            }}
+            onClick={handleNext}
+            disabled={formData.selectedTopics.length === 0 || formData.selectedLanguages.length === 0}
           >
-            <option value="">Select difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-            <option value="expert">Expert</option>
-          </select>
+            Continue
+          </button>
         </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label>Project Deadline (optional)</label>
-          <input
-            type="date"
-            value={formData.deadline}
-            onChange={(e) => handleInputChange('deadline', e.target.value)}
-            style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-          />
-        </div>
-
-        <button 
-          onClick={handleNext}
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Continue
-        </button>
       </div>
     );
   }
@@ -329,11 +582,25 @@ function CreateProject({ onClose }) {
   // Step 3: Terms and Conditions
   if (currentStep === 3) {
     return (
-      <div>
-        <h2>Terms and Condition</h2>
-        
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <div style={styles.step}>Step 3 of 3</div>
+          <h2 style={styles.title}>Terms and Conditions</h2>
+        </div>
+
+        {errors.length > 0 && (
+          <div style={styles.errorContainer}>
+            <ul style={{ margin: 0, paddingLeft: '20px' }}>
+              {errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <textarea
           readOnly
+          style={{ ...styles.textarea, minHeight: '200px', marginBottom: '15px' }}
           value="By creating this project, you agree to:
 
 1. Provide accurate and complete project information
@@ -349,57 +616,43 @@ You understand that:
 - TechSync is not responsible for project outcomes
 
 Please read these terms carefully before proceeding."
-          rows="10"
-          style={{ width: '100%', resize: 'none', padding: '8px', marginBottom: '20px' }}
         />
 
-        <div style={{ margin: '20px 0' }}>
-          <div style={{ marginBottom: '10px' }}>
-            <label>
-              <input
-                type="radio"
-                name="terms"
-                value="accept"
-                checked={formData.termsAccepted === true}
-                onChange={() => handleInputChange('termsAccepted', true)}
-                style={{ marginRight: '8px' }}
-              />
-              I hereby accept the terms and conditions
-            </label>
-          </div>
-
-          <div>
-            <label>
-              <input
-                type="radio"
-                name="terms"
-                value="decline"
-                checked={formData.termsAccepted === false}
-                onChange={() => handleInputChange('termsAccepted', false)}
-                style={{ marginRight: '8px' }}
-              />
-              I decline
-            </label>
-          </div>
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={formData.termsAccepted === true}
+              onChange={(e) => handleInputChange('termsAccepted', e.target.checked)}
+            />
+            I have read and agree to the terms and conditions
+          </label>
         </div>
 
-        <button 
-          onClick={handleSubmit}
-          disabled={formData.termsAccepted !== true || isSubmitting}
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: (formData.termsAccepted !== true || isSubmitting) ? '#ccc' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: (formData.termsAccepted !== true || isSubmitting) ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isSubmitting ? 'Creating Project...' : 'Submit'}
-        </button>
+        <div style={styles.buttonContainer}>
+          <button
+            style={{ ...styles.button, ...styles.secondaryButton }}
+            onClick={() => setCurrentStep(2)}
+          >
+            Back
+          </button>
+          <button
+            style={{
+              ...styles.button,
+              ...styles.primaryButton,
+              ...((!formData.termsAccepted || isSubmitting) ? styles.disabledButton : {})
+            }}
+            onClick={handleSubmit}
+            disabled={!formData.termsAccepted || isSubmitting}
+          >
+            {isSubmitting ? 'Creating Project...' : 'Create Project'}
+          </button>
+        </div>
       </div>
     );
   }
+
+  return null;
 }
 
 export default CreateProject;

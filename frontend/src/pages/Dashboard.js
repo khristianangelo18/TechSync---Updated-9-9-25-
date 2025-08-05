@@ -1,11 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import CreateProject from './CreateProject';
+import SkillMatchingAPI from '../services/skillMatchingAPI';
 
 function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [recommendedProjects, setRecommendedProjects] = useState([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+
+  // Fetch recommended projects when component mounts
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoadingRecommendations(true);
+        const recommendations = await SkillMatchingAPI.getRecommendations(user.id);
+        setRecommendedProjects(recommendations.slice(0, 6)); // Show top 6 recommendations
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        setRecommendedProjects([]);
+      } finally {
+        setLoadingRecommendations(false);
+      }
+    };
+
+    fetchRecommendations();
+  }, [user?.id]);
 
   const handleCreateClick = () => {
     setShowCreateProject(true);
@@ -17,6 +42,41 @@ function Dashboard() {
 
   const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
+  };
+
+  const handleProjectClick = async (project) => {
+    try {
+      // Update recommendation feedback
+      await SkillMatchingAPI.updateRecommendationFeedback(
+        project.recommendationId, 
+        'viewed'
+      );
+      
+      // Navigate to project details or join page
+      navigate(`/projects/${project.projectId}`);
+    } catch (error) {
+      console.error('Error updating recommendation feedback:', error);
+      // Still navigate even if feedback update fails
+      navigate(`/projects/${project.projectId}`);
+    }
+  };
+
+  const handleJoinProject = async (project, event) => {
+    event.stopPropagation(); // Prevent triggering the card click
+
+    try {
+      // Update recommendation feedback
+      await SkillMatchingAPI.updateRecommendationFeedback(
+        project.recommendationId, 
+        'applied'
+      );
+      
+      // Navigate to challenge page or join flow
+      navigate(`/projects/${project.projectId}/join`);
+    } catch (error) {
+      console.error('Error updating recommendation feedback:', error);
+      navigate(`/projects/${project.projectId}/join`);
+    }
   };
 
   // Close notifications when clicking outside
@@ -136,6 +196,29 @@ function Dashboard() {
       padding: '20px',
       marginBottom: '20px'
     },
+    statsContainer: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '20px',
+      marginBottom: '30px'
+    },
+    statCard: {
+      backgroundColor: 'white',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      padding: '20px',
+      textAlign: 'center'
+    },
+    statValue: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      color: '#007bff',
+      marginBottom: '5px'
+    },
+    statLabel: {
+      color: '#666',
+      fontSize: '14px'
+    },
     profileSection: {
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
@@ -148,23 +231,194 @@ function Dashboard() {
       marginBottom: '15px',
       fontSize: '18px'
     },
-    languageTag: {
-      display: 'inline-block',
-      backgroundColor: '#007bff',
-      color: 'white',
-      padding: '4px 8px',
-      borderRadius: '4px',
-      margin: '2px',
-      fontSize: '12px'
+    recommendationsGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+      gap: '20px',
+      marginTop: '15px'
     },
-    topicTag: {
-      display: 'inline-block',
+    projectCard: {
+      backgroundColor: 'white',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      padding: '20px',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      position: 'relative'
+    },
+    projectCardHover: {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+      border: '1px solid #007bff'
+    },
+    projectTitle: {
+      fontSize: '16px',
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: '8px'
+    },
+    projectDescription: {
+      color: '#666',
+      fontSize: '14px',
+      marginBottom: '12px',
+      lineHeight: '1.4',
+      display: '-webkit-box',
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: 'vertical',
+      overflow: 'hidden'
+    },
+    matchScore: {
+      position: 'absolute',
+      top: '15px',
+      right: '15px',
       backgroundColor: '#28a745',
       color: 'white',
       padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: 'bold'
+    },
+    projectMeta: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '12px'
+    },
+    difficultyBadge: {
+      padding: '2px 8px',
       borderRadius: '4px',
-      margin: '2px',
+      fontSize: '12px',
+      fontWeight: 'bold'
+    },
+    memberCount: {
+      color: '#666',
       fontSize: '12px'
+    },
+    tagsContainer: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '4px',
+      marginBottom: '12px'
+    },
+    tag: {
+      backgroundColor: '#e9ecef',
+      color: '#495057',
+      padding: '2px 6px',
+      borderRadius: '4px',
+      fontSize: '11px'
+    },
+    joinButton: {
+      width: '100%',
+      padding: '8px 12px',
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'background-color 0.2s ease'
+    },
+    loadingSpinner: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '200px',
+      color: '#666'
+    },
+    emptyState: {
+      textAlign: 'center',
+      color: '#666',
+      fontSize: '14px',
+      padding: '40px 20px'
+    },
+    userInfoContainer: {
+      marginTop: '20px',
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+      gap: '20px'
+    },
+    userInfoSection: {
+      backgroundColor: 'white',
+      border: '1px solid #e9ecef',
+      borderRadius: '8px',
+      padding: '16px'
+    },
+    userInfoTitle: {
+      margin: '0 0 12px 0',
+      fontSize: '16px',
+      fontWeight: 'bold',
+      color: '#333'
+    },
+    userInfoGrid: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '8px',
+      marginBottom: '12px'
+    },
+    userInfoItem: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px'
+    },
+    userInfoLabel: {
+      fontSize: '12px',
+      color: '#666',
+      fontWeight: '500'
+    },
+    userInfoValue: {
+      fontSize: '14px',
+      color: '#333',
+      fontWeight: '400'
+    },
+    bioSection: {
+      marginTop: '12px',
+      paddingTop: '12px',
+      borderTop: '1px solid #f1f3f4'
+    },
+    bioText: {
+      margin: '4px 0 0 0',
+      fontSize: '14px',
+      color: '#333',
+      lineHeight: '1.4'
+    },
+    skillsContainer: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '6px'
+    },
+    languageTag: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      backgroundColor: '#007bff',
+      color: 'white',
+      padding: '4px 8px',
+      borderRadius: '16px',
+      fontSize: '12px',
+      fontWeight: '500',
+      gap: '4px'
+    },
+    topicTag: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      backgroundColor: '#28a745',
+      color: 'white',
+      padding: '4px 8px',
+      borderRadius: '16px',
+      fontSize: '12px',
+      fontWeight: '500',
+      gap: '4px'
+    },
+    skillLevel: {
+      fontSize: '10px',
+      opacity: 0.8,
+      fontWeight: '400'
+    },
+    emptySkills: {
+      color: '#666',
+      fontSize: '13px',
+      fontStyle: 'italic',
+      margin: 0
     },
     modal: {
       position: 'fixed',
@@ -198,48 +452,50 @@ function Dashboard() {
 
   const unreadCount = notifications.filter(n => n.unread).length;
 
+  // Helper function to get difficulty badge style
+  const getDifficultyStyle = (difficulty) => {
+    const baseStyle = styles.difficultyBadge;
+    switch (difficulty?.toLowerCase()) {
+      case 'easy':
+        return { ...baseStyle, backgroundColor: '#d4edda', color: '#155724' };
+      case 'medium':
+        return { ...baseStyle, backgroundColor: '#fff3cd', color: '#856404' };
+      case 'hard':
+        return { ...baseStyle, backgroundColor: '#f8d7da', color: '#721c24' };
+      case 'expert':
+        return { ...baseStyle, backgroundColor: '#d1ecf1', color: '#0c5460' };
+      default:
+        return { ...baseStyle, backgroundColor: '#e9ecef', color: '#495057' };
+    }
+  };
+
   return (
     <div style={styles.container}>
       <header style={styles.header}>
         <h1 style={styles.title}>Welcome back, {user?.full_name || user?.username}!</h1>
-        
         <div style={styles.headerActions}>
-          {/* Create Button */}
-          <button 
-            style={styles.createButton}
-            onClick={handleCreateClick}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#218838'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#28a745'}
-          >
+          <button style={styles.createButton} onClick={handleCreateClick}>
             <span>➕</span>
-            Create
+            Create Project
           </button>
-
-          {/* Notification Button */}
+          
           <div style={{ position: 'relative' }}>
-            <button
-              style={styles.iconButton}
+            <button 
+              style={styles.iconButton} 
               onClick={handleNotificationClick}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#e9ecef';
-                e.target.style.borderColor = '#adb5bd';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#f8f9fa';
-                e.target.style.borderColor = '#dee2e6';
-              }}
             >
               🔔
               {unreadCount > 0 && (
-                <span style={styles.notificationBadge}>{unreadCount}</span>
+                <span style={styles.notificationBadge}>
+                  {unreadCount}
+                </span>
               )}
             </button>
-
-            {/* Notification Dropdown */}
+            
             {showNotifications && (
-              <div style={styles.notificationDropdown}>
+              <div style={styles.notificationDropdown} onClick={(e) => e.stopPropagation()}>
                 <div style={styles.notificationHeader}>
-                  Notifications ({unreadCount} unread)
+                  Notifications
                 </div>
                 {notifications.length > 0 ? (
                   notifications.map(notification => (
@@ -284,95 +540,188 @@ function Dashboard() {
           Great to see you back! Here's your personalized dashboard where you can track your projects,
           connect with fellow developers, and continue learning.
         </p>
-      </div>
 
-      {/* User Profile Summary */}
-      <div style={styles.profileSection}>
-        <h3 style={styles.sectionTitle}>Your Profile Summary</h3>
-        
-        <div style={{ marginBottom: '15px' }}>
-          <strong>Years of Experience:</strong> {user?.years_experience || 0} years
+        {/* User Profile Information */}
+        <div style={styles.userInfoContainer}>
+          <div style={styles.userInfoSection}>
+            <h4 style={styles.userInfoTitle}>👤 Profile Info</h4>
+            <div style={styles.userInfoGrid}>
+              <div style={styles.userInfoItem}>
+                <span style={styles.userInfoLabel}>Experience:</span>
+                <span style={styles.userInfoValue}>{user?.years_experience || 0} years</span>
+              </div>
+              <div style={styles.userInfoItem}>
+                <span style={styles.userInfoLabel}>Username:</span>
+                <span style={styles.userInfoValue}>@{user?.username}</span>
+              </div>
+              <div style={styles.userInfoItem}>
+                <span style={styles.userInfoLabel}>Email:</span>
+                <span style={styles.userInfoValue}>{user?.email}</span>
+              </div>
+              {user?.github_username && (
+                <div style={styles.userInfoItem}>
+                  <span style={styles.userInfoLabel}>GitHub:</span>
+                  <span style={styles.userInfoValue}>@{user.github_username}</span>
+                </div>
+              )}
+            </div>
+            
+            {user?.bio && (
+              <div style={styles.bioSection}>
+                <span style={styles.userInfoLabel}>Bio:</span>
+                <p style={styles.bioText}>{user.bio}</p>
+              </div>
+            )}
+          </div>
+
+          <div style={styles.userInfoSection}>
+            <h4 style={styles.userInfoTitle}>💻 Programming Languages</h4>
+            {user?.programming_languages && user.programming_languages.length > 0 ? (
+              <div style={styles.skillsContainer}>
+                {user.programming_languages.map(lang => (
+                  <span key={lang.id} style={styles.languageTag}>
+                    {lang.programming_languages?.name || lang.name}
+                    <span style={styles.skillLevel}>({lang.proficiency_level})</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p style={styles.emptySkills}>No programming languages added yet</p>
+            )}
+          </div>
+
+          <div style={styles.userInfoSection}>
+            <h4 style={styles.userInfoTitle}>🎯 Areas of Interest</h4>
+            {user?.topics && user.topics.length > 0 ? (
+              <div style={styles.skillsContainer}>
+                {user.topics.map(topic => (
+                  <span key={topic.id} style={styles.topicTag}>
+                    {topic.topics?.name || topic.name}
+                    <span style={styles.skillLevel}>({topic.interest_level})</span>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p style={styles.emptySkills}>No topics selected yet</p>
+            )}
+          </div>
         </div>
-
-        {user?.programming_languages && user.programming_languages.length > 0 && (
-          <div style={{ marginBottom: '15px' }}>
-            <strong>Programming Languages:</strong>
-            <div style={{ marginTop: '5px' }}>
-              {user.programming_languages.map(lang => (
-                <span key={lang.id} style={styles.languageTag}>
-                  {lang.programming_languages.name} ({lang.proficiency_level})
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {user?.topics && user.topics.length > 0 && (
-          <div style={{ marginBottom: '15px' }}>
-            <strong>Areas of Interest:</strong>
-            <div style={{ marginTop: '5px' }}>
-              {user.topics.map(topic => (
-                <span key={topic.id} style={styles.topicTag}>
-                  {topic.topics.name} ({topic.interest_level} interest)
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {user?.bio && (
-          <div style={{ marginBottom: '15px' }}>
-            <strong>Bio:</strong> {user.bio}
-          </div>
-        )}
-
-        {user?.github_username && (
-          <div style={{ marginBottom: '15px' }}>
-            <strong>GitHub:</strong> @{user.github_username}
-          </div>
-        )}
       </div>
 
       {/* Quick Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-        <div style={styles.profileSection}>
-          <h3 style={styles.sectionTitle}>📊 Quick Stats</h3>
-          <div style={{ color: '#666' }}>
-            <div>Active Projects: 0</div>
-            <div>Completed Projects: 0</div>
-            <div>Friends: 0</div>
-            <div>Learning Modules: 0</div>
-          </div>
+      <div style={styles.statsContainer}>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>0</div>
+          <div style={styles.statLabel}>Active Projects</div>
         </div>
-        
-        <div style={styles.profileSection}>
-          <h3 style={styles.sectionTitle}>🎯 Recent Activity</h3>
-          <p style={{ color: '#666', margin: 0 }}>
-            No recent activity yet. Start by joining a project or connecting with other developers!
-          </p>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>0</div>
+          <div style={styles.statLabel}>Completed Projects</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>0</div>
+          <div style={styles.statLabel}>Friends</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statValue}>0</div>
+          <div style={styles.statLabel}>Learning Modules</div>
         </div>
       </div>
 
-      {/* Placeholder sections for future features */}
+      {/* Recent Activity */}
+      <div style={styles.profileSection}>
+        <h3 style={styles.sectionTitle}>🎯 Recent Activity</h3>
+        <div style={styles.emptyState}>
+          No recent activity yet. Start by joining a project or connecting with other developers!
+        </div>
+      </div>
+
+      {/* Recommended Projects Section */}
       <div style={styles.profileSection}>
         <h3 style={styles.sectionTitle}>🚀 Recommended Projects</h3>
-        <p style={{ color: '#666' }}>
-          Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics.name).join(', ')}, we'll recommend relevant projects here.
+        <p style={{ color: '#666', marginBottom: '15px' }}>
+          Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, we'll recommend relevant projects here.
         </p>
-        <div style={{ marginTop: '15px' }}>
-          <button style={{ 
-            padding: '10px 20px', 
-            backgroundColor: '#007bff', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px', 
-            cursor: 'pointer' 
-          }}>
-            Browse All Projects
-          </button>
-        </div>
+        
+        {loadingRecommendations ? (
+          <div style={styles.loadingSpinner}>
+            <div>Loading recommendations...</div>
+          </div>
+        ) : recommendedProjects.length > 0 ? (
+          <div style={styles.recommendationsGrid}>
+            {recommendedProjects.map((project, index) => (
+              <div
+                key={index}
+                style={styles.projectCard}
+                onClick={() => handleProjectClick(project)}
+                onMouseEnter={(e) => {
+                  Object.assign(e.target.style, styles.projectCardHover);
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'none';
+                  e.target.style.boxShadow = 'none';
+                  e.target.style.border = '1px solid #dee2e6';
+                }}
+              >
+                <div style={styles.matchScore}>
+                  {Math.round(project.score)}% match
+                </div>
+                
+                <div style={styles.projectTitle}>
+                  {project.title}
+                </div>
+                
+                <div style={styles.projectDescription}>
+                  {project.description}
+                </div>
+                
+                <div style={styles.projectMeta}>
+                  <span style={getDifficultyStyle(project.difficulty_level)}>
+                    {project.difficulty_level?.toUpperCase() || 'MEDIUM'}
+                  </span>
+                  <span style={styles.memberCount}>
+                    {project.current_members || 0}/{project.maximum_members || 10} members
+                  </span>
+                </div>
+                
+                {project.technologies && project.technologies.length > 0 && (
+                  <div style={styles.tagsContainer}>
+                    {project.technologies.slice(0, 3).map((tech, techIndex) => (
+                      <span key={techIndex} style={styles.tag}>
+                        {tech}
+                      </span>
+                    ))}
+                    {project.technologies.length > 3 && (
+                      <span style={styles.tag}>
+                        +{project.technologies.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                )}
+                
+                <button
+                  style={styles.joinButton}
+                  onClick={(e) => handleJoinProject(project, e)}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#0056b3';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#007bff';
+                  }}
+                >
+                  Join Project
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={styles.emptyState}>
+            No project recommendations available yet. Complete more of your profile to get personalized recommendations!
+          </div>
+        )}
       </div>
 
+      {/* Continue Learning Section */}
       <div style={styles.profileSection}>
         <h3 style={styles.sectionTitle}>📚 Continue Learning</h3>
         <p style={{ color: '#666' }}>
