@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const onboardingRoutes = require('./routes/onboarding');
 const projectRoutes = require('./routes/projects');
 const suggestionsRoutes = require('./routes/suggestions');
+const skillMatchingRoutes = require('./routes/skillMatching'); 
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -60,6 +61,7 @@ app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/suggestions', suggestionsRoutes);
+app.use('/api/skill-matching', skillMatchingRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
