@@ -14,6 +14,7 @@ const projectRoutes = require('./routes/projects');
 const suggestionsRoutes = require('./routes/suggestions');
 const skillMatchingRoutes = require('./routes/skillMatching'); 
 const challengeRoutes = require('./routes/challenges');
+const adminRoutes = require('./routes/admin');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -64,6 +65,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/suggestions', suggestionsRoutes);
 app.use('/api/skill-matching', skillMatchingRoutes);
 app.use('/api/challenges', challengeRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

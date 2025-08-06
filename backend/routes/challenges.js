@@ -151,31 +151,42 @@ const getChallengesValidation = [
   
   query('difficulty_level')
     .optional()
-    .isIn(['easy', 'medium', 'hard', 'expert'])
+    .custom((value) => {
+      if (value === '') return true; // Allow empty string
+      return ['easy', 'medium', 'hard', 'expert'].includes(value);
+    })
     .withMessage('Invalid difficulty level'),
   
   query('programming_language_id')
     .optional()
-    .isInt({ min: 1 })
+    .custom((value) => {
+      if (value === '' || value === undefined) return true; // Allow empty string
+      return Number.isInteger(parseInt(value)) && parseInt(value) > 0;
+    })
     .withMessage('Programming language ID must be a positive integer'),
   
   query('created_by')
     .optional()
-    .isUUID()
+    .custom((value) => {
+      if (value === '') return true; // Allow empty string
+      return value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    })
     .withMessage('Created by must be a valid UUID'),
   
   query('project_id')
     .optional()
     .custom((value) => {
-      if (value !== 'null' && !value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)) {
-        throw new Error('Project ID must be a valid UUID or "null"');
-      }
-      return true;
-    }),
+      if (value === '' || value === 'null') return true; // Allow empty string or 'null'
+      return value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    })
+    .withMessage('Project ID must be a valid UUID or "null"'),
   
   query('search')
     .optional()
-    .isLength({ min: 1, max: 100 })
+    .custom((value) => {
+      if (value === '') return true; // Allow empty string
+      return value.length >= 1 && value.length <= 100;
+    })
     .withMessage('Search term must be between 1 and 100 characters')
 ];
 

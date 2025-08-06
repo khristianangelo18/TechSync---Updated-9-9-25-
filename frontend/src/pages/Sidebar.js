@@ -1,3 +1,4 @@
+// frontend/src/pages/Sidebar.js
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,17 +9,27 @@ function Sidebar() {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
+  // Main navigation items
   const mainNavItems = [
-  { id: 'home', label: 'Home', path: '/', icon: '🏠' },
-  { id: 'projects', label: 'Projects', path: '/projects', icon: '📁' },
-  { id: 'challenges', label: 'Challenges', path: '/challenges', icon: '🧩' }, // Add this line
-  { id: 'friends', label: 'Friends', path: '/friends', icon: '👥' },
-  { id: 'learns', label: 'Learns', path: '/learns', icon: '📚' }
-];
+    { id: 'home', label: 'Home', path: '/', icon: '🏠' },
+    { id: 'projects', label: 'Projects', path: '/projects', icon: '📁' },
+    { id: 'challenges', label: 'Challenges', path: '/challenges', icon: '🧩' },
+    { id: 'friends', label: 'Friends', path: '/friends', icon: '👥' },
+    { id: 'learns', label: 'Learns', path: '/learns', icon: '📚' }
+  ];
 
+  // Admin navigation items (only visible to admin/moderator users)
+  const adminNavItems = user?.role === 'admin' || user?.role === 'moderator' ? [
+    { id: 'admin', label: 'Admin Panel', path: '/admin', icon: '🛡️' }
+  ] : [];
+
+  // Bottom navigation items
   const bottomNavItems = [
     { id: 'help', label: 'Help Center', path: '/help', icon: '❓' }
   ];
+
+  // Combine all navigation items
+  const allNavItems = [...mainNavItems, ...adminNavItems];
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -115,6 +126,31 @@ function Sidebar() {
       backgroundColor: '#e9ecef',
       borderRadius: '8px'
     },
+    // Special styling for admin items
+    adminNavItem: {
+      display: 'flex',
+      alignItems: 'center',
+      padding: '12px 20px',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      textDecoration: 'none',
+      color: '#333',
+      borderRadius: '0',
+      margin: '0 10px',
+      marginBottom: '2px',
+      borderTop: '1px solid #dee2e6',
+      marginTop: '10px',
+      paddingTop: '15px'
+    },
+    adminNavItemActive: {
+      backgroundColor: '#dc3545', // Red background for admin
+      color: 'white',
+      borderRadius: '8px'
+    },
+    adminNavItemHover: {
+      backgroundColor: '#f8d7da', // Light red hover
+      borderRadius: '8px'
+    },
     icon: {
       fontSize: '16px',
       marginRight: '12px',
@@ -126,7 +162,7 @@ function Sidebar() {
     },
     bottomNav: {
       borderTop: '1px solid #dee2e6',
-      padding: '15px 0'
+      paddingTop: '15px'
     },
     userSection: {
       padding: '20px',
@@ -143,7 +179,7 @@ function Sidebar() {
       display: 'flex',
       alignItems: 'center',
       flex: 1,
-      cursor: 'pointer', // Make profile clickable
+      cursor: 'pointer',
       padding: '4px',
       borderRadius: '6px',
       transition: 'all 0.2s ease'
@@ -168,6 +204,11 @@ function Sidebar() {
       fontSize: '14px',
       fontWeight: '500',
       color: '#333'
+    },
+    userRole: {
+      fontSize: '12px',
+      color: '#6c757d',
+      marginTop: '2px'
     },
     threeDots: {
       background: 'none',
@@ -227,6 +268,7 @@ function Sidebar() {
       {/* Navigation */}
       <nav style={styles.nav}>
         <div style={styles.navSection}>
+          {/* Main Navigation Items */}
           {mainNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
             return (
@@ -251,6 +293,46 @@ function Sidebar() {
               >
                 <span style={styles.icon}>{item.icon}</span>
                 <span style={styles.label}>{item.label}</span>
+              </div>
+            );
+          })}
+
+          {/* Admin Navigation Items (only for admin/moderator) */}
+          {adminNavItems.map((item) => {
+            const isActiveItem = isActive(item.path);
+            return (
+              <div
+                key={item.id}
+                style={{
+                  ...styles.adminNavItem,
+                  ...(isActiveItem ? styles.adminNavItemActive : {})
+                }}
+                onClick={() => handleNavigation(item.path)}
+                onMouseEnter={(e) => {
+                  if (!isActiveItem) {
+                    Object.assign(e.target.style, styles.adminNavItemHover);
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActiveItem) {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.borderRadius = '0';
+                  }
+                }}
+              >
+                <span style={styles.icon}>{item.icon}</span>
+                <span style={styles.label}>{item.label}</span>
+                {user?.role === 'admin' && (
+                  <span style={{
+                    marginLeft: 'auto',
+                    fontSize: '10px',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    padding: '2px 6px',
+                    borderRadius: '10px'
+                  }}>
+                    ADMIN
+                  </span>
+                )}
               </div>
             );
           })}
@@ -305,9 +387,17 @@ function Sidebar() {
               {user?.full_name?.charAt(0)?.toUpperCase() || 
                user?.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <span style={styles.userName}>
-              {user?.full_name || user?.username || 'User'}
-            </span>
+            <div>
+              <div style={styles.userName}>
+                {user?.full_name || user?.username || 'User'}
+              </div>
+              {/* Show user role if admin or moderator */}
+              {(user?.role === 'admin' || user?.role === 'moderator') && (
+                <div style={styles.userRole}>
+                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                </div>
+              )}
+            </div>
           </div>
           <button
             style={styles.threeDots}
@@ -334,27 +424,43 @@ function Sidebar() {
                 Object.assign(e.target.style, styles.menuItemHover);
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
+                e.target.style.backgroundColor = 'transparent';
               }}
             >
               <span style={styles.menuItemIcon}>👤</span>
-              View Profile
+              Profile Settings
             </div>
+            {/* Admin menu item (only for admins) */}
+            {(user?.role === 'admin' || user?.role === 'moderator') && (
+              <div
+                style={styles.menuItem}
+                onClick={() => {
+                  navigate('/admin');
+                  setShowUserMenu(false);
+                }}
+                onMouseEnter={(e) => {
+                  Object.assign(e.target.style, styles.menuItemHover);
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                }}
+              >
+                <span style={styles.menuItemIcon}>🛡️</span>
+                Admin Dashboard
+              </div>
+            )}
             <div
-              style={{
-                ...styles.menuItem,
-                ...styles.menuItemLast
-              }}
+              style={{ ...styles.menuItem, ...styles.menuItemLast }}
               onClick={handleLogout}
               onMouseEnter={(e) => {
                 Object.assign(e.target.style, styles.menuItemHover);
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
+                e.target.style.backgroundColor = 'transparent';
               }}
             >
               <span style={styles.menuItemIcon}>🚪</span>
-              Log out @{user?.username}
+              Logout
             </div>
           </div>
         )}

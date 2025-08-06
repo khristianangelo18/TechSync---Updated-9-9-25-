@@ -16,7 +16,6 @@ const ChallengeManagement = () => {
   });
   const [languages, setLanguages] = useState([]);
 
-  const loadChallenges = async () => {
   const loadChallenges = useCallback(async () => {
     try {
       setLoading(true);
@@ -30,19 +29,22 @@ const ChallengeManagement = () => {
     }
   }, [filters]);
 
-  const loadLanguages = async () => {
+  const loadLanguages = useCallback(async () => {
     try {
       const response = await ChallengeAPI.getProgrammingLanguages();
       setLanguages(response.data || []);
     } catch (error) {
       console.error('Error loading languages:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadChallenges();
-    loadLanguages();
   }, [loadChallenges]);
+
+  useEffect(() => {
+    loadLanguages();
+  }, [loadLanguages]);
 
   const handleCreateSuccess = (challenge) => {
     setChallenges([challenge, ...challenges]);
@@ -159,10 +161,6 @@ const ChallengeManagement = () => {
       padding: '20px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-    },
-    challengeCardHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
     },
     challengeTitle: {
       fontSize: '18px',
@@ -404,5 +402,5 @@ const ChallengeManagement = () => {
     </div>
   );
 };
-}
+
 export default ChallengeManagement;

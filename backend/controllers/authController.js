@@ -1,64 +1,76 @@
+// backend/controllers/authController.js
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../config/supabase');
 
 // Generate JWT token
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
-  });
+  return jwt.sign(
+    { 
+      userId: userId,
+      id: userId // Include both for compatibility
+    }, 
+    process.env.JWT_SECRET, 
+    { 
+      expiresIn: process.env.JWT_EXPIRE || '7d' 
+    }
+  );
 };
 
-// Validation functions
+// Validate registration data
 const validateRegistrationData = (data) => {
   const errors = {};
-  const { username, email, password, full_name, github_username, linkedin_url } = data;
+  const { username, email, password, full_name, bio, github_username, linkedin_url } = data;
 
   // Username validation
-  if (!username) {
-    errors.username = 'Username is required';
-  } else if (username.length < 3 || username.length > 50) {
-    errors.username = 'Username must be between 3-50 characters';
-  } else if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    errors.username = 'Username can only contain letters, numbers, and underscores';
+  if (!username || username.trim().length < 3) {
+    errors.username = 'Username must be at least 3 characters long';
+  } else if (username.trim().length > 50) {
+    errors.username = 'Username must be less than 50 characters';
+  } else if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
+    errors.username = 'Username can only contain letters, numbers, hyphens, and underscores';
   }
 
   // Email validation
-  if (!email) {
-    errors.email = 'Email is required';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
     errors.email = 'Please enter a valid email address';
   }
 
   // Password validation
-  if (!password) {
-    errors.password = 'Password is required';
-  } else if (password.length < 8) {
+  if (!password || password.length < 8) {
     errors.password = 'Password must be at least 8 characters long';
   } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
     errors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
   }
 
   // Full name validation
-  if (!full_name) {
-    errors.full_name = 'Full name is required';
-  } else if (full_name.length < 2) {
-    errors.full_name = 'Full name must be at least 2 characters';
+  if (!full_name || full_name.trim().length < 2) {
+    errors.full_name = 'Full name must be at least 2 characters long';
+  } else if (full_name.trim().length > 100) {
+    errors.full_name = 'Full name must be less than 100 characters';
   }
 
-  // Optional fields validation
-  if (github_username && !/^[a-zA-Z0-9-_]+$/.test(github_username)) {
-    errors.github_username = 'GitHub username can only contain letters, numbers, hyphens, and underscores';
+  // Bio validation (optional)
+  if (bio && bio.trim().length > 500) {
+    errors.bio = 'Bio must be less than 500 characters';
   }
 
-  if (linkedin_url && !/^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-_]+\/?$/.test(linkedin_url)) {
+  // GitHub username validation (optional)
+  if (github_username && (github_username.trim().length < 1 || github_username.trim().length > 39)) {
+    errors.github_username = 'GitHub username must be between 1 and 39 characters';
+  } else if (github_username && !/^[a-zA-Z0-9]([a-zA-Z0-9-])*[a-zA-Z0-9]$|^[a-zA-Z0-9]$/.test(github_username.trim())) {
+    errors.github_username = 'Please enter a valid GitHub username';
+  }
+
+  // LinkedIn URL validation (optional)
+  if (linkedin_url && !/^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-_]+\/?$/.test(linkedin_url)) {
     errors.linkedin_url = 'Please enter a valid LinkedIn profile URL';
   }
 
   return errors;
 };
 
-// Register user - IMPROVED based on your existing structure
+// Register user
 const register = async (req, res) => {
   try {
     const { password, ...safeRequestData } = req.body;
@@ -77,7 +89,7 @@ const register = async (req, res) => {
 
     const { username, email, full_name, bio, github_username, linkedin_url } = req.body;
 
-    // Check if user already exists - use your existing method
+    // Check if user already exists
     const { data: existingUser } = await supabase
       .from('users')
       .select('id, username, email')
@@ -87,7 +99,6 @@ const register = async (req, res) => {
     if (existingUser) {
       console.log('User already exists:', username);
       
-      // Provide specific error message
       if (existingUser.username === username && existingUser.email === email) {
         return res.status(400).json({
           success: false,
@@ -111,7 +122,7 @@ const register = async (req, res) => {
     const password_hash = await bcrypt.hash(password, saltRounds);
     console.log('Password hashed successfully for user:', username);
 
-    // Create user in database - use your existing structure
+    // Create user in database
     const { data: user, error } = await supabase
       .from('users')
       .insert([{
@@ -122,15 +133,16 @@ const register = async (req, res) => {
         bio: bio ? bio.trim() : null,
         github_username: github_username ? github_username.trim() : null,
         linkedin_url: linkedin_url ? linkedin_url.trim() : null,
-        years_experience: 0 // Default value, will be set during onboarding
+        years_experience: 0,
+        role: 'user', // Default role
+        is_active: true
       }])
-      .select('id, username, email, full_name, bio, github_username, linkedin_url, years_experience, created_at')
+      .select('id, username, email, full_name, bio, github_username, linkedin_url, years_experience, role, created_at')
       .single();
 
     if (error) {
       console.error('Database error during registration:', error);
       
-      // Handle specific database errors
       if (error.code === '23505') { // Unique constraint violation
         if (error.message.includes('username')) {
           return res.status(400).json({
@@ -163,7 +175,7 @@ const register = async (req, res) => {
       data: {
         user: {
           ...user,
-          needsOnboarding: true // Flag to indicate user needs onboarding
+          needsOnboarding: true
         },
         token
       }
@@ -179,12 +191,11 @@ const register = async (req, res) => {
   }
 };
 
-// Login user - IMPROVED to match your table structure
+// Login user
 const login = async (req, res) => {
   try {
     const { identifier, password } = req.body;
     
-    // Input validation
     if (!identifier || !password) {
       return res.status(400).json({
         success: false,
@@ -194,10 +205,10 @@ const login = async (req, res) => {
 
     console.log('Login attempt for user:', identifier);
     
-    // Find user by username or email - match your existing method
+    // Find user by username or email - include role
     const { data: user, error } = await supabase
       .from('users')
-      .select('*')
+      .select('*') // Select all fields including role
       .or(`username.eq.${identifier.trim()},email.eq.${identifier.toLowerCase().trim()}`)
       .eq('is_active', true)
       .single();
@@ -208,6 +219,34 @@ const login = async (req, res) => {
         success: false,
         message: 'Invalid credentials'
       });
+    }
+
+    // Check if user is suspended
+    if (user.is_suspended) {
+      const suspendedUntil = user.suspended_until ? new Date(user.suspended_until) : null;
+      const now = new Date();
+      
+      if (!suspendedUntil || now < suspendedUntil) {
+        return res.status(403).json({
+          success: false,
+          message: user.suspension_reason || 'Your account has been suspended',
+          suspended_until: user.suspended_until
+        });
+      } else {
+        // Suspension expired, automatically unsuspend
+        await supabase
+          .from('users')
+          .update({
+            is_suspended: false,
+            suspended_until: null,
+            suspension_reason: null
+          })
+          .eq('id', user.id);
+        
+        user.is_suspended = false;
+        user.suspended_until = null;
+        user.suspension_reason = null;
+      }
     }
 
     // Check password
@@ -223,7 +262,13 @@ const login = async (req, res) => {
 
     console.log('User authenticated successfully:', user.username);
 
-    // Get user's programming languages - match your existing table name
+    // Update last login time
+    await supabase
+      .from('users')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', user.id);
+
+    // Get user's programming languages
     const { data: userLanguages } = await supabase
       .from('user_programming_languages')
       .select(`
@@ -245,7 +290,7 @@ const login = async (req, res) => {
       `)
       .eq('user_id', user.id);
 
-    // Check if user has completed onboarding by checking if they have any programming languages
+    // Check if user has completed onboarding
     const needsOnboarding = !userLanguages || userLanguages.length === 0;
 
     // Generate JWT token
@@ -278,15 +323,18 @@ const login = async (req, res) => {
   }
 };
 
-// Get user profile - updated to match your existing structure
+// Get user profile
 const getProfile = async (req, res) => {
   try {
-    const userId = req.user.userId; // Changed from req.user.id to match your JWT structure
+    const userId = req.user.id;
     
-    // Get user basic info - match your existing method
+    // Get user basic info
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, username, email, full_name, bio, github_username, linkedin_url, years_experience, created_at, updated_at')
+      .select(`
+        id, username, email, full_name, bio, github_username, linkedin_url, 
+        years_experience, role, created_at, updated_at, avatar_url
+      `)
       .eq('id', userId)
       .single();
 
@@ -297,7 +345,7 @@ const getProfile = async (req, res) => {
       });
     }
 
-    // Get user's programming languages - match your table name
+    // Get user's programming languages
     const { data: languages } = await supabase
       .from('user_programming_languages')
       .select(`
@@ -319,6 +367,7 @@ const getProfile = async (req, res) => {
       `)
       .eq('user_id', userId);
 
+    // Check if user has completed onboarding
     const needsOnboarding = !languages || languages.length === 0;
 
     res.json({
@@ -343,27 +392,61 @@ const getProfile = async (req, res) => {
   }
 };
 
-// Update user profile - match your existing structure
+// Update user profile
 const updateProfile = async (req, res) => {
   try {
-    const userId = req.user.userId; // Changed to match your JWT structure
+    const userId = req.user.id;
     const { full_name, bio, github_username, linkedin_url, years_experience } = req.body;
 
-    const { data: user, error } = await supabase
+    // Validate input
+    const errors = {};
+    if (full_name && (full_name.trim().length < 2 || full_name.trim().length > 100)) {
+      errors.full_name = 'Full name must be between 2 and 100 characters';
+    }
+    if (bio && bio.trim().length > 500) {
+      errors.bio = 'Bio must be less than 500 characters';
+    }
+    if (github_username && !/^[a-zA-Z0-9]([a-zA-Z0-9-])*[a-zA-Z0-9]$|^[a-zA-Z0-9]$/.test(github_username.trim())) {
+      errors.github_username = 'Please enter a valid GitHub username';
+    }
+    if (linkedin_url && !/^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-_]+\/?$/.test(linkedin_url)) {
+      errors.linkedin_url = 'Please enter a valid LinkedIn profile URL';
+    }
+    if (years_experience !== undefined && (years_experience < 0 || years_experience > 50)) {
+      errors.years_experience = 'Years of experience must be between 0 and 50';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors
+      });
+    }
+
+    // Update user profile
+    const updateData = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (full_name !== undefined) updateData.full_name = full_name.trim();
+    if (bio !== undefined) updateData.bio = bio ? bio.trim() : null;
+    if (github_username !== undefined) updateData.github_username = github_username ? github_username.trim() : null;
+    if (linkedin_url !== undefined) updateData.linkedin_url = linkedin_url ? linkedin_url.trim() : null;
+    if (years_experience !== undefined) updateData.years_experience = years_experience;
+
+    const { data: updatedUser, error } = await supabase
       .from('users')
-      .update({
-        full_name,
-        bio,
-        github_username,
-        linkedin_url,
-        years_experience,
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', userId)
-      .select('id, username, email, full_name, bio, github_username, linkedin_url, years_experience, created_at, updated_at')
+      .select(`
+        id, username, email, full_name, bio, github_username, linkedin_url, 
+        years_experience, role, created_at, updated_at
+      `)
       .single();
 
     if (error) {
+      console.error('Update profile error:', error);
       return res.status(500).json({
         success: false,
         message: 'Failed to update profile',
@@ -374,7 +457,7 @@ const updateProfile = async (req, res) => {
     res.json({
       success: true,
       message: 'Profile updated successfully',
-      data: { user }
+      data: { user: updatedUser }
     });
 
   } catch (error) {
@@ -387,20 +470,42 @@ const updateProfile = async (req, res) => {
   }
 };
 
-// Change password - match your existing structure  
+// Change password
 const changePassword = async (req, res) => {
   try {
-    const userId = req.user.userId; // Changed to match your JWT structure
+    const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
 
-    // Get user's current password hash
-    const { data: user, error: getUserError } = await supabase
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required'
+      });
+    }
+
+    // Validate new password
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 8 characters long'
+      });
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must contain at least one uppercase letter, one lowercase letter, and one number'
+      });
+    }
+
+    // Get current user
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('password_hash')
       .eq('id', userId)
       .single();
 
-    if (getUserError || !user) {
+    if (userError || !user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -409,7 +514,6 @@ const changePassword = async (req, res) => {
 
     // Verify current password
     const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
-    
     if (!isCurrentPasswordValid) {
       return res.status(400).json({
         success: false,
@@ -424,17 +528,17 @@ const changePassword = async (req, res) => {
     // Update password
     const { error: updateError } = await supabase
       .from('users')
-      .update({
+      .update({ 
         password_hash: newPasswordHash,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
 
     if (updateError) {
+      console.error('Change password error:', updateError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to update password',
-        error: updateError.message
+        message: 'Failed to change password'
       });
     }
 
@@ -453,10 +557,30 @@ const changePassword = async (req, res) => {
   }
 };
 
+// Logout (client-side mainly, but can be used for logging)
+const logout = async (req, res) => {
+  try {
+    // In a more complex setup, you might want to blacklist the token
+    // For now, we'll just return success
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   updateProfile,
-  changePassword
+  changePassword,
+  logout
 };

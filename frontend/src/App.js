@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Profile from './pages/Profile';
 import ChallengeManagement from './pages/ChallengeManagement';
+import AdminDashboard from './pages/AdminDashboard';
 
 // Project workspace components (new imports)
 import ProjectDashboard from './pages/project/ProjectDashboard';
@@ -249,8 +250,29 @@ function App() {
                   </ProtectedRoute>
                 } 
             />
-            
-            
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AdminDashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+
+            // You can also add more specific admin routes:
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AdminDashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
+                        
             {/* Redirect /project/:id to /project/:id/dashboard */}
             <Route 
               path="/project/:projectId" 
