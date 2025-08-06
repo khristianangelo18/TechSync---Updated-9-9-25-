@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import CreateProject from './CreateProject';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
+import { projectService } from '../services/projectService';
 
 function Dashboard() {
   const { user } = useAuth();
@@ -11,6 +12,47 @@ function Dashboard() {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [recommendedProjects, setRecommendedProjects] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+
+  // New state for project statistics
+  const [projectStats, setProjectStats] = useState({
+    activeProjects: 0,
+    completedProjects: 0,
+    friends: 0,
+    learningModules: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  // Fetch project statistics
+  useEffect(() => {
+    const fetchProjectStats = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoadingStats(true);
+        const response = await projectService.getUserProjects();
+        const projects = response.data.projects || [];
+        
+        // Calculate statistics
+        const stats = {
+          activeProjects: projects.filter(p => 
+            p.status === 'active' || p.status === 'recruiting'
+          ).length,
+          completedProjects: projects.filter(p => p.status === 'completed').length,
+          friends: 0, // TODO: Implement friends functionality
+          learningModules: 0 // TODO: Implement learning modules
+        };
+        
+        setProjectStats(stats);
+      } catch (error) {
+        console.error('Error fetching project stats:', error);
+        // Keep default stats (all 0) on error
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchProjectStats();
+  }, [user?.id]);
 
   // Fetch recommended projects when component mounts
   useEffect(() => {
@@ -608,22 +650,30 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Quick Stats - Updated with Real Data but keeping original styling */}
       <div style={styles.statsContainer}>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>0</div>
+          <div style={styles.statValue}>
+            {loadingStats ? '...' : projectStats.activeProjects}
+          </div>
           <div style={styles.statLabel}>Active Projects</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>0</div>
+          <div style={styles.statValue}>
+            {loadingStats ? '...' : projectStats.completedProjects}
+          </div>
           <div style={styles.statLabel}>Completed Projects</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>0</div>
+          <div style={styles.statValue}>
+            {loadingStats ? '...' : projectStats.friends}
+          </div>
           <div style={styles.statLabel}>Friends</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statValue}>0</div>
+          <div style={styles.statValue}>
+            {loadingStats ? '...' : projectStats.learningModules}
+          </div>
           <div style={styles.statLabel}>Learning Modules</div>
         </div>
       </div>
