@@ -1,17 +1,19 @@
+// backend/routes/projects.js
 const express = require('express');
-const { body, query, param, validationResult } = require('express-validator');
 const router = express.Router();
-
-// Import middleware
-const authMiddleware = require('../middleware/auth');
+const { body, query, param, validationResult } = require('express-validator');
 
 // Import controllers
 const {
   createProject,
   getProjects,
   getProjectById,
-  getUserProjects
+  getUserProjects,
+  deleteProject
 } = require('../controllers/projectController');
+
+// Import middleware - Fixed path
+const authMiddleware = require('../middleware/auth');
 
 // Validation middleware
 const handleValidationErrors = (req, res, next) => {
@@ -26,24 +28,23 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Validation rules for creating a project
+// Validation rules for creating projects
 const createProjectValidation = [
   body('title')
-    .notEmpty()
-    .withMessage('Project title is required')
-    .isLength({ min: 3, max: 255 })
-    .withMessage('Project title must be between 3 and 255 characters'),
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Title must be between 1 and 100 characters'),
   
   body('description')
-    .notEmpty()
-    .withMessage('Project description is required')
-    .isLength({ min: 1, max: 5000 })
-    .withMessage('Project description must be between 1 and 5000 characters'),
+    .trim()
+    .isLength({ min: 1, max: 500 })
+    .withMessage('Description must be between 1 and 500 characters'),
   
   body('detailed_description')
     .optional()
-    .isLength({ max: 5000 })
-    .withMessage('Detailed description must be less than 5000 characters'),
+    .trim()
+    .isLength({ max: 2000 })
+    .withMessage('Detailed description must not exceed 2000 characters'),
   
   body('required_experience_level')
     .optional()
@@ -58,7 +59,7 @@ const createProjectValidation = [
   body('estimated_duration_weeks')
     .optional()
     .isInt({ min: 1, max: 104 })
-    .withMessage('Estimated duration must be between 1 and 104 weeks'),
+    .withMessage('Duration must be between 1 and 104 weeks'),
   
   body('difficulty_level')
     .optional()
@@ -66,14 +67,14 @@ const createProjectValidation = [
     .withMessage('Invalid difficulty level'),
   
   body('github_repo_url')
-    .optional({ nullable: true, checkFalsy: true })
+    .optional()
     .isURL()
-    .withMessage('GitHub repository URL must be a valid URL'),
+    .withMessage('Invalid GitHub repository URL'),
   
   body('deadline')
-    .optional({ nullable: true, checkFalsy: true })
+    .optional()
     .isISO8601()
-    .withMessage('Deadline must be a valid date'),
+    .withMessage('Invalid deadline date format'),
   
   body('programming_languages')
     .optional()
@@ -152,5 +153,8 @@ router.post('/', createProjectValidation, handleValidationErrors, createProject)
 
 // GET /api/projects/user/my - Get current user's projects
 router.get('/user/my', getUserProjects);
+
+// DELETE /api/projects/:id - Delete project (only by owner)
+router.delete('/:id', projectIdValidation, handleValidationErrors, deleteProject);
 
 module.exports = router;

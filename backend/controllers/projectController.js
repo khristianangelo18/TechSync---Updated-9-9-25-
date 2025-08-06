@@ -1,6 +1,7 @@
+// backend/controllers/projectController.js
 const supabase = require('../config/supabase');
 
-// Create a new project
+// Create new project
 const createProject = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -14,35 +15,32 @@ const createProject = async (req, res) => {
       difficulty_level,
       github_repo_url,
       deadline,
-      programming_languages, // Array of language names
-      topics // Array of topic names
+      programming_languages = [],
+      topics = []
     } = req.body;
 
-    console.log('Creating project for user:', userId);
-    console.log('Project data:', { title, description, required_experience_level });
-
-    // Create the main project record
+    // Create the project
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .insert([{
-        owner_id: userId,
+      .insert({
         title,
         description,
         detailed_description,
         required_experience_level,
-        maximum_members: parseInt(maximum_members) || null,
-        estimated_duration_weeks: parseInt(estimated_duration_weeks) || null,
+        maximum_members: maximum_members || 10,
+        estimated_duration_weeks,
         difficulty_level,
-        github_repo_url: github_repo_url || null,
-        deadline: deadline || null,
+        github_repo_url,
+        deadline,
+        owner_id: userId,
         status: 'recruiting',
-        current_members: 1
-      }])
+        current_members: 1,
+        created_at: new Date().toISOString()
+      })
       .select()
       .single();
 
     if (projectError) {
-      console.error('Project creation error:', projectError);
       return res.status(500).json({
         success: false,
         message: 'Failed to create project',
@@ -50,29 +48,25 @@ const createProject = async (req, res) => {
       });
     }
 
-    console.log('Project created successfully:', project.id);
-
-    // Add the creator as the first project member
+    // Add owner as a member
     const { error: memberError } = await supabase
       .from('project_members')
-      .insert([{
+      .insert({
         project_id: project.id,
         user_id: userId,
         role: 'owner',
-        status: 'active'
-      }]);
+        status: 'active',
+        joined_at: new Date().toISOString()
+      });
 
     if (memberError) {
-      console.error('Error adding project member:', memberError);
-      // Don't return error here as project is already created
+      console.error('Error adding owner as member:', memberError);
     }
 
     // Handle programming languages
     if (programming_languages && programming_languages.length > 0) {
-      for (let i = 0; i < programming_languages.length; i++) {
-        const langName = programming_languages[i];
-        
-        // Find or create the programming language
+      for (const langName of programming_languages) {
+        // Get or create programming language
         let { data: language } = await supabase
           .from('programming_languages')
           .select('id')
@@ -80,42 +74,35 @@ const createProject = async (req, res) => {
           .single();
 
         if (!language) {
-          // Create new language if it doesn't exist
-          const { data: newLanguage, error: langError } = await supabase
+          const { data: newLang, error: langError } = await supabase
             .from('programming_languages')
-            .insert([{
-              name: langName,
-              is_predefined: false,
-              created_by: userId
-            }])
-            .select('id')
+            .insert({ name: langName, is_active: true })
+            .select()
             .single();
 
           if (langError) {
-            console.error('Error creating language:', langError);
+            console.error('Error creating programming language:', langError);
             continue;
           }
-          language = newLanguage;
+          language = newLang;
         }
 
-        // Link language to project
+        // Link to project
         await supabase
           .from('project_languages')
-          .insert([{
+          .insert({
             project_id: project.id,
-            language_id: language.id,
-            required_level: required_experience_level,
-            is_primary: i === 0 // First language is primary
-          }]);
+            programming_language_id: language.id,
+            required_level: 'beginner',
+            is_primary: true
+          });
       }
     }
 
     // Handle topics
     if (topics && topics.length > 0) {
-      for (let i = 0; i < topics.length; i++) {
-        const topicName = topics[i];
-        
-        // Find or create the topic
+      for (const topicName of topics) {
+        // Get or create topic
         let { data: topic } = await supabase
           .from('topics')
           .select('id')
@@ -123,15 +110,14 @@ const createProject = async (req, res) => {
           .single();
 
         if (!topic) {
-          // Create new topic if it doesn't exist
           const { data: newTopic, error: topicError } = await supabase
             .from('topics')
-            .insert([{
-              name: topicName,
-              is_predefined: false,
-              created_by: userId
-            }])
-            .select('id')
+            .insert({ 
+              name: topicName, 
+              category: 'general',
+              is_active: true 
+            })
+            .select()
             .single();
 
           if (topicError) {
@@ -141,56 +127,21 @@ const createProject = async (req, res) => {
           topic = newTopic;
         }
 
-        // Link topic to project
+        // Link to project
         await supabase
           .from('project_topics')
-          .insert([{
+          .insert({
             project_id: project.id,
             topic_id: topic.id,
-            is_primary: i === 0 // First topic is primary
-          }]);
+            is_primary: true
+          });
       }
     }
-
-    // Create default chat room for the project
-    const { error: roomError } = await supabase
-      .from('chat_rooms')
-      .insert([{
-        project_id: project.id,
-        name: 'General',
-        description: 'General discussion for the project',
-        created_by: userId,
-        room_type: 'general'
-      }]);
-
-    if (roomError) {
-      console.error('Error creating chat room:', roomError);
-      // Don't return error as project is created successfully
-    }
-
-    // Log user activity
-    await supabase
-      .from('user_activity')
-      .insert([{
-        user_id: userId,
-        project_id: project.id,
-        activity_type: 'project_created',
-        activity_data: {
-          project_title: title,
-          project_id: project.id
-        }
-      }]);
 
     res.status(201).json({
       success: true,
       message: 'Project created successfully',
-      data: {
-        project: {
-          ...project,
-          programming_languages: programming_languages || [],
-          topics: topics || []
-        }
-      }
+      data: { project }
     });
 
   } catch (error) {
@@ -203,7 +154,7 @@ const createProject = async (req, res) => {
   }
 };
 
-// Get all projects (with pagination and filters)
+// Get all projects with filters
 const getProjects = async (req, res) => {
   try {
     const {
@@ -230,7 +181,8 @@ const getProjects = async (req, res) => {
         project_languages (
           programming_languages (
             id,
-            name
+            name,
+            description
           ),
           required_level,
           is_primary
@@ -433,9 +385,100 @@ const getUserProjects = async (req, res) => {
   }
 };
 
+// Delete project (new function)
+const deleteProject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    // First, verify that the user is the owner of the project
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('id, owner_id, title')
+      .eq('id', id)
+      .single();
+
+    if (projectError || !project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    // Check if the current user is the owner
+    if (project.owner_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only delete your own projects'
+      });
+    }
+
+    // Delete related records first (due to foreign key constraints)
+    
+    // Delete project recommendations
+    await supabase
+      .from('project_recommendations')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete project members
+    await supabase
+      .from('project_members')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete project languages
+    await supabase
+      .from('project_languages')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete project topics
+    await supabase
+      .from('project_topics')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete coding attempts (if any)
+    await supabase
+      .from('coding_attempts')
+      .delete()
+      .eq('project_id', id);
+
+    // Finally, delete the project itself
+    const { error: deleteError } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      console.error('Error deleting project:', deleteError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete project',
+        error: deleteError.message
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Project "${project.title}" has been deleted successfully`
+    });
+
+  } catch (error) {
+    console.error('Delete project error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createProject,
   getProjects,
   getProjectById,
-  getUserProjects
+  getUserProjects,
+  deleteProject // Add the new delete function
 };

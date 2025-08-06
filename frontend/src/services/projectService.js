@@ -1,3 +1,4 @@
+// frontend/src/services/projectService.js
 import api from './api';
 
 export const projectService = {
@@ -53,18 +54,7 @@ export const projectService = {
     }
   },
 
-  // Update project (placeholder for future implementation)
-  updateProject: async (projectId, updateData) => {
-    try {
-      const response = await api.put(`/projects/${projectId}`, updateData);
-      return response.data;
-    } catch (error) {
-      console.error('Update project error:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
-  // Delete project (placeholder for future implementation)
+  // Delete project (new function)
   deleteProject: async (projectId) => {
     try {
       const response = await api.delete(`/projects/${projectId}`);
@@ -75,7 +65,18 @@ export const projectService = {
     }
   },
 
-  // Join project (placeholder for future implementation)
+  // Update project
+  updateProject: async (projectId, updateData) => {
+    try {
+      const response = await api.put(`/projects/${projectId}`, updateData);
+      return response.data;
+    } catch (error) {
+      console.error('Update project error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Join project
   joinProject: async (projectId) => {
     try {
       const response = await api.post(`/projects/${projectId}/join`);
@@ -86,7 +87,7 @@ export const projectService = {
     }
   },
 
-  // Leave project (placeholder for future implementation)
+  // Leave project
   leaveProject: async (projectId) => {
     try {
       const response = await api.post(`/projects/${projectId}/leave`);

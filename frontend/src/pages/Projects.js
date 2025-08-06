@@ -11,8 +11,10 @@ function Projects() {
   const [starredProjects, setStarredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('my'); // 'my', 'joined', 'starred'
+  const [activeTab, setActiveTab] = useState('my');
   const [showCreateProject, setShowCreateProject] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, project: null });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchUserProjects();
@@ -34,12 +36,42 @@ function Projects() {
 
   const fetchStarredProjects = async () => {
     try {
-      // TODO: Implement starred projects API endpoint
-      // For now, using empty array as placeholder
       setStarredProjects([]);
     } catch (err) {
       console.error('Error fetching starred projects:', err);
     }
+  };
+
+  const handleDeleteProject = async (project) => {
+    setDeleteConfirm({ show: true, project });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.project) return;
+
+    setDeleting(true);
+    try {
+      await projectService.deleteProject(deleteConfirm.project.id);
+      
+      // Remove the project from the local state
+      setUserProjects(prev => prev.filter(p => p.id !== deleteConfirm.project.id));
+      
+      // Close the confirmation dialog
+      setDeleteConfirm({ show: false, project: null });
+      
+      // Show success message (you could add a toast notification here)
+      alert(`Project "${deleteConfirm.project.title}" has been deleted successfully.`);
+      
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ show: false, project: null });
   };
 
   const getDisplayProjects = () => {
@@ -76,82 +108,44 @@ function Projects() {
     return colors[difficulty] || '#6c757d';
   };
 
-  const handleStarProject = async (projectId) => {
-    try {
-      // TODO: Implement star/unstar project API
-      console.log('Star/unstar project:', projectId);
-      // For now, just show alert
-      alert('gawin mo na to bes ano ka dyan');
-    } catch (err) {
-      console.error('Error starring project:', err);
-    }
-  };
-
-  const ProjectCard = ({ project }) => {
+  const renderProjectCard = (project) => {
     const isOwner = project.owner_id === user?.id;
-    const isStarred = starredProjects.some(p => p.id === project.id);
 
     return (
-      <div style={styles.projectCard}>
+      <div key={project.id} style={styles.projectCard}>
         <div style={styles.cardHeader}>
-          <h3 style={styles.projectTitle}>{project.title}</h3>
-          <div style={styles.cardHeaderActions}>
-            <button
-              style={{
-                ...styles.starButton,
-                color: isStarred ? '#ffc107' : '#6c757d'
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStarProject(project.id);
-              }}
-              title={isStarred ? 'Remove from starred' : 'Add to starred'}
-            >
-              {isStarred ? '★' : '☆'}
-            </button>
+          <div style={styles.cardTitle}>{project.title}</div>
+          <div style={styles.cardMeta}>
             <span 
               style={{
-                ...styles.badge,
+                ...styles.statusBadge,
                 backgroundColor: getStatusColor(project.status)
               }}
             >
               {project.status?.toUpperCase()}
             </span>
+            {project.difficulty_level && (
+              <span 
+                style={{
+                  ...styles.difficultyBadge,
+                  backgroundColor: getDifficultyColor(project.difficulty_level)
+                }}
+              >
+                {project.difficulty_level?.toUpperCase()}
+              </span>
+            )}
           </div>
         </div>
 
-        <p style={styles.projectDescription}>
-          {project.description && project.description.length > 120 
-            ? `${project.description.substring(0, 120)}...` 
-            : project.description || 'No description available'
-          }
-        </p>
+        <div style={styles.cardDescription}>
+          {project.description}
+        </div>
 
         <div style={styles.projectMeta}>
           <div style={styles.metaRow}>
-            <span style={styles.metaLabel}>Difficulty:</span>
-            <span 
-              style={{
-                ...styles.difficultyBadge,
-                backgroundColor: getDifficultyColor(project.difficulty_level)
-              }}
-            >
-              {project.difficulty_level?.toUpperCase() || 'N/A'}
-            </span>
-          </div>
-
-          <div style={styles.metaRow}>
-            <span style={styles.metaLabel}>Experience:</span>
+            <span style={styles.metaLabel}>Members:</span>
             <span style={styles.metaValue}>
-              {project.required_experience_level?.charAt(0).toUpperCase() + 
-               project.required_experience_level?.slice(1) || 'Any'}
-            </span>
-          </div>
-
-          <div style={styles.metaRow}>
-            <span style={styles.metaLabel}>Team Size:</span>
-            <span style={styles.metaValue}>
-              {project.current_members || 0}/{project.maximum_members || 'N/A'} members
+              {project.current_members || 1}/{project.maximum_members || 10}
             </span>
           </div>
 
@@ -174,7 +168,6 @@ function Projects() {
           )}
         </div>
 
-        {/* Programming Languages */}
         {project.project_languages && project.project_languages.length > 0 && (
           <div style={styles.tagsSection}>
             <span style={styles.tagLabel}>Languages:</span>
@@ -193,7 +186,6 @@ function Projects() {
           </div>
         )}
 
-        {/* Topics */}
         {project.project_topics && project.project_topics.length > 0 && (
           <div style={styles.tagsSection}>
             <span style={styles.tagLabel}>Topics:</span>
@@ -231,6 +223,17 @@ function Projects() {
             >
               {isOwner ? 'Manage Project' : 'Enter Workspace'}
             </button>
+            
+            {/* Add delete button for project owners */}
+            {isOwner && (
+              <button 
+                style={styles.deleteButton}
+                onClick={() => handleDeleteProject(project)}
+                title="Delete Project"
+              >
+                Delete
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -247,7 +250,6 @@ function Projects() {
 
   const handleCloseCreateProject = () => {
     setShowCreateProject(false);
-    // Refresh projects after creating
     fetchUserProjects();
   };
 
@@ -310,15 +312,15 @@ function Projects() {
     },
     projectsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-      gap: '20px',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
+      gap: '25px',
       marginBottom: '30px'
     },
     projectCard: {
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
       borderRadius: '12px',
-      padding: '20px',
+      padding: '25px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
       transition: 'all 0.3s ease',
       cursor: 'pointer'
@@ -327,31 +329,21 @@ function Projects() {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: '12px'
+      marginBottom: '15px'
     },
-    cardHeaderActions: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    projectTitle: {
-      color: '#333',
+    cardTitle: {
       fontSize: '18px',
       fontWeight: 'bold',
-      margin: '0',
-      flex: 1,
-      marginRight: '10px'
+      color: '#333',
+      marginBottom: '8px',
+      lineHeight: '1.3'
     },
-    starButton: {
-      background: 'none',
-      border: 'none',
-      fontSize: '18px',
-      cursor: 'pointer',
-      padding: '4px',
-      borderRadius: '4px',
-      transition: 'all 0.2s ease'
+    cardMeta: {
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap'
     },
-    badge: {
+    statusBadge: {
       padding: '4px 8px',
       borderRadius: '12px',
       fontSize: '11px',
@@ -359,75 +351,73 @@ function Projects() {
       color: 'white',
       textTransform: 'uppercase'
     },
-    projectDescription: {
+    difficultyBadge: {
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      color: 'white',
+      textTransform: 'uppercase'
+    },
+    cardDescription: {
       color: '#666',
       fontSize: '14px',
       lineHeight: '1.5',
-      marginBottom: '15px',
-      margin: '0 0 15px 0'
+      marginBottom: '20px'
     },
     projectMeta: {
-      marginBottom: '15px'
+      marginBottom: '20px'
     },
     metaRow: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '6px'
+      marginBottom: '8px',
+      fontSize: '14px'
     },
     metaLabel: {
-      fontSize: '13px',
-      color: '#6c757d',
+      color: '#888',
       fontWeight: '500'
     },
     metaValue: {
-      fontSize: '13px',
-      color: '#495057',
-      fontWeight: '500'
-    },
-    difficultyBadge: {
-      padding: '2px 8px',
-      borderRadius: '10px',
-      fontSize: '11px',
-      fontWeight: 'bold',
-      color: 'white'
+      color: '#333',
+      fontWeight: '600'
     },
     tagsSection: {
-      marginBottom: '12px'
+      marginBottom: '15px'
     },
     tagLabel: {
       fontSize: '12px',
-      color: '#6c757d',
-      fontWeight: '500',
-      marginRight: '8px'
+      color: '#888',
+      fontWeight: '600',
+      marginBottom: '8px',
+      display: 'block'
     },
     tags: {
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '4px',
-      marginTop: '4px'
+      gap: '6px'
     },
     languageTag: {
-      padding: '3px 8px',
-      backgroundColor: '#007bff',
-      color: 'white',
-      borderRadius: '10px',
+      backgroundColor: '#e3f2fd',
+      color: '#1565c0',
+      padding: '4px 8px',
+      borderRadius: '12px',
       fontSize: '11px',
       fontWeight: '500'
     },
     topicTag: {
-      padding: '3px 8px',
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      borderRadius: '10px',
+      backgroundColor: '#f3e5f5',
+      color: '#7b1fa2',
+      padding: '4px 8px',
+      borderRadius: '12px',
       fontSize: '11px',
       fontWeight: '500'
     },
     moreTag: {
-      padding: '3px 8px',
-      backgroundColor: '#e9ecef',
-      color: '#6c757d',
-      borderRadius: '10px',
+      backgroundColor: '#f5f5f5',
+      color: '#666',
+      padding: '4px 8px',
+      borderRadius: '12px',
       fontSize: '11px',
       fontWeight: '500'
     },
@@ -435,26 +425,28 @@ function Projects() {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingTop: '12px',
-      borderTop: '1px solid #e9ecef'
+      marginTop: '20px',
+      paddingTop: '15px',
+      borderTop: '1px solid #f0f0f0'
     },
     ownerInfo: {
       display: 'flex',
       alignItems: 'center',
-      gap: '5px'
+      gap: '5px',
+      fontSize: '14px'
     },
     ownerLabel: {
-      fontSize: '12px',
-      color: '#6c757d'
+      color: '#888',
+      fontWeight: '500'
     },
     ownerName: {
-      fontSize: '13px',
-      color: '#495057',
-      fontWeight: '500'
+      color: '#333',
+      fontWeight: '600'
     },
     cardActions: {
       display: 'flex',
-      gap: '8px'
+      gap: '10px',
+      alignItems: 'center'
     },
     viewButton: {
       padding: '8px 16px',
@@ -462,143 +454,213 @@ function Projects() {
       color: 'white',
       border: 'none',
       borderRadius: '6px',
-      fontSize: '13px',
+      fontSize: '14px',
       fontWeight: '500',
       cursor: 'pointer',
       transition: 'background-color 0.2s ease'
     },
-    loadingContainer: {
+    deleteButton: {
+      padding: '8px 12px',
+      backgroundColor: '#dc3545',
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      fontSize: '16px',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
       display: 'flex',
-      justifyContent: 'center',
       alignItems: 'center',
-      minHeight: '400px'
-    },
-    errorContainer: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '400px',
-      color: '#dc3545'
+      justifyContent: 'center'
     },
     emptyState: {
       textAlign: 'center',
       padding: '60px 20px',
-      color: '#6c757d'
+      color: '#666'
     },
-    emptyStateTitle: {
-      fontSize: '24px',
-      marginBottom: '10px',
-      color: '#495057'
+    loading: {
+      textAlign: 'center',
+      padding: '60px 20px',
+      fontSize: '18px',
+      color: '#666'
     },
-    emptyStateText: {
-      fontSize: '16px',
+    error: {
+      textAlign: 'center',
+      padding: '60px 20px',
+      color: '#dc3545',
+      fontSize: '16px'
+    },
+    // Delete confirmation modal styles
+    modalOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    },
+    modal: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      padding: '30px',
+      width: '90%',
+      maxWidth: '500px',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+    },
+    modalHeader: {
       marginBottom: '20px'
+    },
+    modalTitle: {
+      fontSize: '20px',
+      fontWeight: 'bold',
+      color: '#333',
+      margin: '0 0 10px 0'
+    },
+    modalMessage: {
+      fontSize: '16px',
+      color: '#666',
+      lineHeight: '1.5'
+    },
+    projectTitle: {
+      fontWeight: 'bold',
+      color: '#dc3545'
+    },
+    modalActions: {
+      display: 'flex',
+      justifyContent: 'flex-end',
+      gap: '15px',
+      marginTop: '30px'
+    },
+    cancelButton: {
+      padding: '10px 20px',
+      backgroundColor: '#6c757d',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: '14px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease'
+    },
+    confirmButton: {
+      padding: '10px 20px',
+      backgroundColor: '#dc3545',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      fontSize: '14px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease'
+    },
+    disabledButton: {
+      opacity: 0.6,
+      cursor: 'not-allowed'
     }
   };
 
   if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <h3>Loading your projects...</h3>
-      </div>
-    );
+    return <div style={styles.loading}>Loading your projects...</div>;
   }
 
   if (error) {
-    return (
-      <div style={styles.errorContainer}>
-        <h3>{error}</h3>
-      </div>
-    );
+    return <div style={styles.error}>{error}</div>;
   }
-
-  const displayProjects = getDisplayProjects();
 
   return (
     <div style={styles.container}>
-      {/* Create Project Modal */}
-      {showCreateProject && (
-        <CreateProject onClose={handleCloseCreateProject} />
-      )}
-
-      {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>My Projects</h1>
         <button 
           style={styles.createButton}
           onClick={handleCreateProject}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = '#218838';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = '#28a745';
+          }}
         >
-          <span>+</span>
-          Create Project
+          + Create Project
         </button>
       </div>
 
-      {/* Tabs */}
       <div style={styles.tabsContainer}>
-        <button 
-          style={{
-            ...styles.tab,
-            ...(activeTab === 'my' ? styles.activeTab : {})
-          }}
-          onClick={() => setActiveTab('my')}
-        >
-          My Projects ({myProjects.length})
-        </button>
-        <button 
-          style={{
-            ...styles.tab,
-            ...(activeTab === 'joined' ? styles.activeTab : {})
-          }}
-          onClick={() => setActiveTab('joined')}
-        >
-          Joined Projects ({joinedProjects.length})
-        </button>
-        <button 
-          style={{
-            ...styles.tab,
-            ...(activeTab === 'starred' ? styles.activeTab : {})
-          }}
-          onClick={() => setActiveTab('starred')}
-        >
-          Starred Projects ({starredProjects.length})
-        </button>
+        {[
+          { key: 'my', label: `My Projects (${myProjects.length})` },
+          { key: 'joined', label: `Joined Projects (${joinedProjects.length})` },
+          { key: 'starred', label: `Starred (${starredProjects.length})` }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            style={{
+              ...styles.tab,
+              ...(activeTab === tab.key ? styles.activeTab : {})
+            }}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Projects Grid */}
-      {displayProjects.length > 0 ? (
-        <div style={styles.projectsGrid}>
-          {displayProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
-      ) : (
+      <div style={styles.projectsGrid}>
+        {getDisplayProjects().map(renderProjectCard)}
+      </div>
+
+      {getDisplayProjects().length === 0 && (
         <div style={styles.emptyState}>
-          <h2 style={styles.emptyStateTitle}>
-            {activeTab === 'my' 
-              ? 'No projects created yet' 
-              : activeTab === 'joined' 
-                ? 'No projects joined yet' 
-                : 'No starred projects yet'
-            }
-          </h2>
-          <p style={styles.emptyStateText}>
-            {activeTab === 'my' 
-              ? 'Create your first project to start collaborating with other developers!' 
-              : activeTab === 'joined' 
-                ? 'Join projects created by other developers to contribute and learn.' 
-                : 'Star projects you find interesting to keep track of them here.'
-            }
+          <h3>No projects found</h3>
+          <p>
+            {activeTab === 'my' && "You haven't created any projects yet. Click 'Create Project' to get started!"}
+            {activeTab === 'joined' && "You haven't joined any projects yet. Browse available projects to find one that interests you."}
+            {activeTab === 'starred' && "You haven't starred any projects yet."}
           </p>
-          {activeTab === 'my' && (
-            <button 
-              style={styles.createButton}
-              onClick={handleCreateProject}
-            >
-              <span>+</span>
-              Create Your First Project
-            </button>
-          )}
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Delete Project</h2>
+              <div style={styles.modalMessage}>
+                Are you sure you want to delete <span style={styles.projectTitle}>"{deleteConfirm.project?.title}"</span>?
+                <br /><br />
+                This action cannot be undone. All project data, members, and related information will be permanently deleted.
+              </div>
+            </div>
+            
+            <div style={styles.modalActions}>
+              <button
+                style={{
+                  ...styles.cancelButton,
+                  ...(deleting ? styles.disabledButton : {})
+                }}
+                onClick={cancelDelete}
+                disabled={deleting}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  ...styles.confirmButton,
+                  ...(deleting ? styles.disabledButton : {})
+                }}
+                onClick={confirmDelete}
+                disabled={deleting}
+              >
+                {deleting ? 'Deleting...' : 'Delete Project'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateProject && (
+        <CreateProject onClose={handleCloseCreateProject} />
       )}
     </div>
   );
