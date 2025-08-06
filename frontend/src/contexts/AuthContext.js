@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
 
 // Initial state
@@ -77,40 +77,41 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Check if user is logged in on app start
-  useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const response = await authService.getProfile(token);
-          if (response.success) {
-            dispatch({
-              type: actionTypes.LOGIN_SUCCESS,
-              payload: {
-                user: response.data.user,
-                token: token
-              }
-            });
-          } else {
-            localStorage.removeItem('token');
-            dispatch({ type: actionTypes.LOGOUT });
-          }
-        } catch (error) {
-          console.error('Auth check failed:', error);
+  // Check if user is logged in on app start - FIXED WITH USEcallback
+  const checkAuth = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const response = await authService.getProfile(token);
+        if (response.success) {
+          dispatch({
+            type: actionTypes.LOGIN_SUCCESS,
+            payload: {
+              user: response.data.user,
+              token: token
+            }
+          });
+        } else {
           localStorage.removeItem('token');
           dispatch({ type: actionTypes.LOGOUT });
         }
-      } else {
-        dispatch({ type: actionTypes.SET_LOADING, payload: false });
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('token');
+        dispatch({ type: actionTypes.LOGOUT });
       }
-    };
-
-    checkAuth();
+    } else {
+      dispatch({ type: actionTypes.SET_LOADING, payload: false });
+    }
   }, []);
 
+  // Only run checkAuth once on mount
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   // Login function
-  const login = async (credentials) => {
+  const login = useCallback(async (credentials) => {
     try {
       dispatch({ type: actionTypes.SET_LOADING, payload: true });
       
@@ -133,10 +134,10 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: actionTypes.LOGIN_FAILURE, payload: message });
       return { success: false, message };
     }
-  };
+  }, []);
 
   // Register function
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     try {
       dispatch({ type: actionTypes.SET_LOADING, payload: true });
       
@@ -159,23 +160,24 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: actionTypes.LOGIN_FAILURE, payload: message });
       return { success: false, message };
     }
-  };
+  }, []);
 
   // Logout function
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     authService.logout();
     dispatch({ type: actionTypes.LOGOUT });
-  };
+  }, []);
 
   // Update user profile
-  const updateUser = async (userData, completeReplace = false) => {
+  const updateUser = useCallback(async (userData, completeReplace = false) => {
     try {
       // If it's just updating specific flags or doing a complete replacement, do it locally
       if ((userData.hasOwnProperty('needsOnboarding') && Object.keys(userData).length === 1) || completeReplace) {
         dispatch({
           type: actionTypes.UPDATE_USER,
-          payload: completeReplace ? { user: userData, completeReplace: true } : userData
+          payload: completeReplace ? 
+            { user: userData, completeReplace: true } : userData
         });
         return { success: true };
       }
@@ -196,10 +198,10 @@ export const AuthProvider = ({ children }) => {
       const message = error.response?.data?.message || 'Update failed';
       return { success: false, message };
     }
-  };
+  }, [state.token]);
 
   // Refresh user profile (useful after onboarding completion)
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       if (state.token) {
         const response = await authService.getProfile(state.token);
@@ -216,12 +218,12 @@ export const AuthProvider = ({ children }) => {
       console.error('Refresh user error:', error);
       return { success: false };
     }
-  };
+  }, [state.token]);
 
   // Clear error
-  const clearError = () => {
+  const clearError = useCallback(() => {
     dispatch({ type: actionTypes.CLEAR_ERROR });
-  };
+  }, []);
 
   const value = {
     ...state,
