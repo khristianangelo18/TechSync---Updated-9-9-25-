@@ -1,9 +1,12 @@
 // frontend/src/pages/AdminDashboard.js
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import AdminAPI from '../services/adminAPI'; // Add this import
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,24 +25,32 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard data');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setStats(data.data.stats);
-        setRecentActivity(data.data.recentActivity);
+      setError(''); // Clear any previous errors
+      
+      // Use AdminAPI service instead of direct fetch
+      const response = await AdminAPI.getDashboardStats();
+      
+      if (response.success) {
+        setStats(response.data.stats);
+        setRecentActivity(response.data.recentActivity);
+      } else {
+        setError(response.message || 'Failed to load dashboard data');
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data');
+      
+      // Provide more specific error messages
+      if (error.response?.status === 403) {
+        setError('Access denied. You need admin privileges to view this data.');
+      } else if (error.response?.status === 401) {
+        setError('Authentication failed. Please log in again.');
+      } else if (error.response?.status === 500) {
+        setError('Server error. Please try again later.');
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setError('Cannot connect to server. Please check your internet connection.');
+      } else {
+        setError(error.response?.data?.message || 'Failed to load dashboard data');
+      }
     } finally {
       setLoading(false);
     }
@@ -51,7 +62,7 @@ const AdminDashboard = () => {
         <span style={styles.statIcon}>{icon}</span>
         <h3 style={styles.statTitle}>{title}</h3>
       </div>
-      <div style={{ ...styles.statValue, color }}>{value}</div>
+      <p style={{ ...styles.statValue, color }}>{value}</p>
     </div>
   );
 
@@ -59,26 +70,26 @@ const AdminDashboard = () => {
     <div style={styles.activityItem}>
       <div style={styles.activityHeader}>
         <span style={styles.activityUser}>
-          {activity.users?.full_name || activity.users?.username || 'Admin'}
+          {activity.users?.full_name || activity.users?.username || 'Unknown Admin'}
         </span>
         <span style={styles.activityTime}>
           {new Date(activity.created_at).toLocaleString()}
         </span>
       </div>
       <div style={styles.activityAction}>
-        {activity.action.replace(/_/g, ' ')} - {activity.resource_type}
-        {activity.resource_id && (
-          <span style={styles.activityResource}> (ID: {activity.resource_id.substring(0, 8)}...)</span>
-        )}
+        {activity.action.replace(/_/g, ' ').toLowerCase()}
       </div>
+      {activity.resource_type && (
+        <div style={styles.activityResource}>
+          Resource: {activity.resource_type}
+        </div>
+      )}
     </div>
   );
 
   const styles = {
     container: {
       padding: '30px',
-      maxWidth: '1400px',
-      margin: '0 auto',
       backgroundColor: '#f8f9fa',
       minHeight: '100vh'
     },
@@ -89,21 +100,18 @@ const AdminDashboard = () => {
       fontSize: '32px',
       fontWeight: 'bold',
       color: '#333',
-      margin: 0,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px'
+      margin: '0 0 10px 0'
     },
     subtitle: {
-      color: '#666',
       fontSize: '16px',
-      marginTop: '5px'
+      color: '#666',
+      margin: 0
     },
     statsGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
       gap: '20px',
-      marginBottom: '40px'
+      marginBottom: '30px'
     },
     statCard: {
       backgroundColor: 'white',
@@ -220,6 +228,16 @@ const AdminDashboard = () => {
       margin: '50px auto',
       maxWidth: '500px',
       boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+    },
+    retryButton: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      padding: '10px 20px',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      marginTop: '10px'
     }
   };
 
@@ -251,6 +269,13 @@ const AdminDashboard = () => {
       {error && (
         <div style={styles.error}>
           {error}
+          <br />
+          <button 
+            style={styles.retryButton}
+            onClick={fetchDashboardData}
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -295,64 +320,35 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      <div style={styles.section}>
-        <h2 style={styles.sectionTitle}>Quick Actions</h2>
-        <div style={styles.quickActions}>
-          <button
-            style={styles.actionButton}
-            onClick={() => window.location.href = '/admin/users'}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-          >
-            👥 Manage Users
-          </button>
-          <button
-            style={styles.actionButton}
-            onClick={() => window.location.href = '/admin/projects'}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-          >
-            📁 View Projects
-          </button>
-          <button
-            style={styles.actionButton}
-            onClick={() => window.location.href = '/admin/challenges'}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-          >
-            🧩 Manage Challenges
-          </button>
-          <button
-            style={styles.actionButton}
-            onClick={() => window.location.href = '/admin/settings'}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-          >
-            ⚙️ System Settings
-          </button>
-          <button
-            style={styles.actionButton}
-            onClick={() => window.location.href = '/admin/activity'}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
-          >
-            📋 Activity Logs
-          </button>
-          <button
-            style={{...styles.actionButton, backgroundColor: '#28a745'}}
-            onClick={() => window.location.href = '/challenges'}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#1e7e34'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#28a745'}
-          >
-            ➕ Add Challenge
-          </button>
-        </div>
-      </div>
-
       <div style={styles.contentGrid}>
         <div style={styles.section}>
-          <h2 style={styles.sectionTitle}>Recent Activity</h2>
-          {recentActivity.length > 0 ? (
+          <h2 style={styles.sectionTitle}>Quick Actions</h2>
+          <div style={styles.quickActions}>
+            <button 
+              style={styles.actionButton}
+              onClick={() => navigate('/admin/users')}
+            >
+              👥 Manage Users
+            </button>
+            <button style={styles.actionButton}>
+              📁 Manage Projects
+            </button>
+            <button style={styles.actionButton}>
+              🧩 Manage Challenges
+            </button>
+            <button style={styles.actionButton}>
+              ⚙️ System Settings
+            </button>
+            <button style={styles.actionButton}>
+              📊 View Reports
+            </button>
+            <button style={styles.actionButton}>
+              📋 Activity Logs
+            </button>
+          </div>
+
+          <h2 style={styles.sectionTitle}>Recent Admin Activity</h2>
+          {recentActivity && recentActivity.length > 0 ? (
             <div>
               {recentActivity.map((activity, index) => (
                 <ActivityItem key={`${activity.id}-${index}`} activity={activity} />

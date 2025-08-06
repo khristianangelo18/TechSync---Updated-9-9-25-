@@ -1,8 +1,9 @@
+// frontend/src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './pages/Layout';
-import ProjectLayout from './pages/ProjectLayout'; // New import
+import ProjectLayout from './pages/ProjectLayout';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -10,8 +11,9 @@ import Projects from './pages/Projects';
 import Profile from './pages/Profile';
 import ChallengeManagement from './pages/ChallengeManagement';
 import AdminDashboard from './pages/AdminDashboard';
+import ManageUsers from './pages/ManageUsers'; // New import
 
-// Project workspace components (new imports)
+// Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
 import ProjectTasks from './pages/project/ProjectTasks';
 import ProjectChats from './pages/project/ProjectChats';
@@ -78,7 +80,6 @@ const PublicRoute = ({ children }) => {
 const Friends = () => <div style={{ padding: '30px' }}><h2>Friends</h2><p>Your friends and connections will appear here.</p></div>;
 const Learns = () => <div style={{ padding: '30px' }}><h2>Learns</h2><p>Your learning modules and progress will appear here.</p></div>;
 const Help = () => <div style={{ padding: '30px' }}><h2>Help Center</h2><p>Frequently asked questions and support resources.</p></div>;
-
 
 function App() {
   return (
@@ -250,6 +251,7 @@ function App() {
                   </ProtectedRoute>
                 } 
             />
+            
             <Route 
               path="/admin" 
               element={
@@ -261,7 +263,7 @@ function App() {
               } 
             />
 
-            // You can also add more specific admin routes:
+            {/* Admin Routes */}
             <Route 
               path="/admin/dashboard" 
               element={
@@ -272,13 +274,23 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+            
+            <Route 
+              path="/admin/users" 
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <ManageUsers />
+                  </Layout>
+                </ProtectedRoute>
+              } 
+            />
                         
             {/* Redirect /project/:id to /project/:id/dashboard */}
             <Route 
               path="/project/:projectId" 
               element={<Navigate to="dashboard" replace />} 
             />
-
             
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" replace />} />

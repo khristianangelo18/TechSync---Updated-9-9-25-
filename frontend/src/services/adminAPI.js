@@ -20,7 +20,15 @@ class AdminAPI {
    */
   static async getUsers(filters = {}) {
     try {
-      const response = await api.get('/admin/users', { params: filters });
+      // Clean filters - remove empty values
+      const cleanFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+        if (value !== '' && value !== null && value !== undefined) {
+          acc[key] = value;
+        }
+        return acc;
+      }, {});
+
+      const response = await api.get('/admin/users', { params: cleanFilters });
       return response.data;
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -29,11 +37,69 @@ class AdminAPI {
   }
 
   /**
-   * Update user status/role
+   * Update user status/role with proper validation
    */
   static async updateUser(userId, updateData) {
     try {
-      const response = await api.put(`/admin/users/${userId}`, updateData);
+      // Validate user ID
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('Invalid user ID');
+      }
+
+      // Clean and validate update data
+      const cleanData = {};
+      
+      // Handle role
+      if (updateData.role !== undefined) {
+        if (!['user', 'moderator', 'admin'].includes(updateData.role)) {
+          throw new Error('Invalid role value');
+        }
+        cleanData.role = updateData.role;
+      }
+      
+      // Handle boolean fields - ensure they're actual booleans
+      if (updateData.is_active !== undefined) {
+        cleanData.is_active = Boolean(updateData.is_active);
+      }
+      
+      if (updateData.is_suspended !== undefined) {
+        cleanData.is_suspended = Boolean(updateData.is_suspended);
+      }
+      
+      // Handle suspension reason
+      if (updateData.suspension_reason !== undefined) {
+        if (updateData.suspension_reason === null) {
+          cleanData.suspension_reason = null;
+        } else if (typeof updateData.suspension_reason === 'string') {
+          const reason = updateData.suspension_reason.trim();
+          if (reason.length === 0) {
+            throw new Error('Suspension reason cannot be empty');
+          }
+          if (reason.length > 500) {
+            throw new Error('Suspension reason must be less than 500 characters');
+          }
+          cleanData.suspension_reason = reason;
+        }
+      }
+      
+      // Handle suspension duration
+      if (updateData.suspension_duration !== undefined) {
+        const duration = parseInt(updateData.suspension_duration);
+        if (isNaN(duration) || duration < 1 || duration > 525600) {
+          throw new Error('Suspension duration must be between 1 and 525600 minutes');
+        }
+        cleanData.suspension_duration = duration;
+      }
+
+      // Ensure we have data to send
+      if (Object.keys(cleanData).length === 0) {
+        throw new Error('No valid fields to update');
+      }
+
+      console.log('Sending cleaned data:', cleanData);
+      console.log('User ID:', userId);
+
+      const response = await api.put(`/admin/users/${userId}`, cleanData);
       return response.data;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -107,66 +173,33 @@ class AdminAPI {
   }
 
   /**
-   * Suspend user account
+   * Convenience methods for common actions
    */
   static async suspendUser(userId, reason, durationMinutes) {
-    try {
-      const response = await api.put(`/admin/users/${userId}`, {
-        is_suspended: true,
-        suspension_reason: reason,
-        suspension_duration: durationMinutes
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error suspending user:', error);
-      throw error;
-    }
+    return this.updateUser(userId, {
+      is_suspended: true,
+      suspension_reason: reason,
+      suspension_duration: durationMinutes
+    });
   }
 
-  /**
-   * Unsuspend user account
-   */
   static async unsuspendUser(userId) {
-    try {
-      const response = await api.put(`/admin/users/${userId}`, {
-        is_suspended: false,
-        suspension_reason: null
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error unsuspending user:', error);
-      throw error;
-    }
+    return this.updateUser(userId, {
+      is_suspended: false,
+      suspension_reason: null
+    });
   }
 
-  /**
-   * Change user role
-   */
   static async changeUserRole(userId, newRole) {
-    try {
-      const response = await api.put(`/admin/users/${userId}`, {
-        role: newRole
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error changing user role:', error);
-      throw error;
-    }
+    return this.updateUser(userId, {
+      role: newRole
+    });
   }
 
-  /**
-   * Activate/Deactivate user account
-   */
   static async toggleUserStatus(userId, isActive) {
-    try {
-      const response = await api.put(`/admin/users/${userId}`, {
-        is_active: isActive
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error toggling user status:', error);
-      throw error;
-    }
+    return this.updateUser(userId, {
+      is_active: isActive
+    });
   }
 }
 

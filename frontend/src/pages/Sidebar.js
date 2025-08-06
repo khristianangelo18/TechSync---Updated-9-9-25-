@@ -9,17 +9,20 @@ function Sidebar() {
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  // Main navigation items
+  // Main navigation items (for all users)
   const mainNavItems = [
     { id: 'home', label: 'Home', path: '/', icon: '🏠' },
     { id: 'projects', label: 'Projects', path: '/projects', icon: '📁' },
-    { id: 'challenges', label: 'Challenges', path: '/challenges', icon: '🧩' },
     { id: 'friends', label: 'Friends', path: '/friends', icon: '👥' },
     { id: 'learns', label: 'Learns', path: '/learns', icon: '📚' }
   ];
 
-  // Admin navigation items (only visible to admin/moderator users)
+  // Admin/Moderator navigation items (only visible to admin/moderator users)
   const adminNavItems = user?.role === 'admin' || user?.role === 'moderator' ? [
+    { id: 'challenges', label: 'Challenges', path: '/challenges', icon: '🧩' },
+    ...(user?.role === 'admin' ? [
+      { id: 'manage-users', label: 'Manage Users', path: '/admin/users', icon: '👥' }
+    ] : []),
     { id: 'admin', label: 'Admin Panel', path: '/admin', icon: '🛡️' }
   ] : [];
 
@@ -27,9 +30,6 @@ function Sidebar() {
   const bottomNavItems = [
     { id: 'help', label: 'Help Center', path: '/help', icon: '❓' }
   ];
-
-  // Combine all navigation items
-  const allNavItems = [...mainNavItems, ...adminNavItems];
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -137,10 +137,7 @@ function Sidebar() {
       color: '#333',
       borderRadius: '0',
       margin: '0 10px',
-      marginBottom: '2px',
-      borderTop: '1px solid #dee2e6',
-      marginTop: '10px',
-      paddingTop: '15px'
+      marginBottom: '2px'
     },
     adminNavItemActive: {
       backgroundColor: '#dc3545', // Red background for admin
@@ -150,6 +147,12 @@ function Sidebar() {
     adminNavItemHover: {
       backgroundColor: '#f8d7da', // Light red hover
       borderRadius: '8px'
+    },
+    adminSeparator: {
+      height: '1px',
+      backgroundColor: '#dee2e6',
+      margin: '10px 20px',
+      marginTop: '15px'
     },
     icon: {
       fontSize: '16px',
@@ -268,7 +271,7 @@ function Sidebar() {
       {/* Navigation */}
       <nav style={styles.nav}>
         <div style={styles.navSection}>
-          {/* Main Navigation Items */}
+          {/* Main Navigation Items (for all users) */}
           {mainNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
             return (
@@ -297,45 +300,50 @@ function Sidebar() {
             );
           })}
 
-          {/* Admin Navigation Items (only for admin/moderator) */}
-          {adminNavItems.map((item) => {
-            const isActiveItem = isActive(item.path);
-            return (
-              <div
-                key={item.id}
-                style={{
-                  ...styles.adminNavItem,
-                  ...(isActiveItem ? styles.adminNavItemActive : {})
-                }}
-                onClick={() => handleNavigation(item.path)}
-                onMouseEnter={(e) => {
-                  if (!isActiveItem) {
-                    Object.assign(e.target.style, styles.adminNavItemHover);
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActiveItem) {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.borderRadius = '0';
-                  }
-                }}
-              >
-                <span style={styles.icon}>{item.icon}</span>
-                <span style={styles.label}>{item.label}</span>
-                {user?.role === 'admin' && (
-                  <span style={{
-                    marginLeft: 'auto',
-                    fontSize: '10px',
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    padding: '2px 6px',
-                    borderRadius: '10px'
-                  }}>
-                    ADMIN
-                  </span>
-                )}
-              </div>
-            );
-          })}
+          {/* Admin/Moderator Navigation Items (only for admin/moderator) */}
+          {adminNavItems.length > 0 && (
+            <>
+              <div style={styles.adminSeparator}></div>
+              {adminNavItems.map((item) => {
+                const isActiveItem = isActive(item.path);
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      ...styles.adminNavItem,
+                      ...(isActiveItem ? styles.adminNavItemActive : {})
+                    }}
+                    onClick={() => handleNavigation(item.path)}
+                    onMouseEnter={(e) => {
+                      if (!isActiveItem) {
+                        Object.assign(e.target.style, styles.adminNavItemHover);
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActiveItem) {
+                        e.target.style.backgroundColor = 'transparent';
+                        e.target.style.borderRadius = '0';
+                      }
+                    }}
+                  >
+                    <span style={styles.icon}>{item.icon}</span>
+                    <span style={styles.label}>{item.label}</span>
+                    {user?.role === 'admin' && item.id === 'admin' && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        fontSize: '10px',
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        padding: '2px 6px',
+                        borderRadius: '10px'
+                      }}>
+                        ADMIN
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
         </div>
 
         {/* Bottom Navigation - Help Center */}
