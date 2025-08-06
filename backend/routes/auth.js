@@ -17,15 +17,19 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Register validation rules
+// Register validation rules - FIXED TO MATCH FRONTEND
 const registerValidation = [
   body('username')
+    .notEmpty()
+    .withMessage('Username is required')
     .isLength({ min: 3, max: 50 })
     .withMessage('Username must be between 3 and 50 characters')
     .matches(/^[a-zA-Z0-9_]+$/)
     .withMessage('Username can only contain letters, numbers, and underscores'),
   
   body('email')
+    .notEmpty()
+    .withMessage('Email is required')
     .isEmail()
     .withMessage('Please provide a valid email')
     .isLength({ max: 255 })
@@ -33,33 +37,38 @@ const registerValidation = [
     .normalizeEmail(),
   
   body('password')
+    .notEmpty()
+    .withMessage('Password is required')
     .isLength({ min: 8 })
     .withMessage('Password must be at least 8 characters long')
     .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
     .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
   
   body('full_name')
-    .optional()
-    .isLength({ min: 1, max: 255 })
-    .withMessage('Full name must be between 1 and 255 characters'),
+    .notEmpty()
+    .withMessage('Full name is required')
+    .isLength({ min: 2, max: 255 })
+    .withMessage('Full name must be between 2 and 255 characters'),
   
   body('bio')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isLength({ max: 1000 })
     .withMessage('Bio must be less than 1000 characters'),
   
   body('github_username')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isLength({ max: 50 })
-    .withMessage('GitHub username must be less than 50 characters'),
+    .withMessage('GitHub username must be less than 50 characters')
+    .matches(/^[a-zA-Z0-9-_]*$/)
+    .withMessage('GitHub username can only contain letters, numbers, hyphens, and underscores'),
   
   body('linkedin_url')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isURL()
     .withMessage('LinkedIn URL must be a valid URL'),
   
   body('years_experience')
-    .optional()
+    .optional({ nullable: true })
     .isInt({ min: 0, max: 100 })
     .withMessage('Years of experience must be between 0 and 100')
 ];
@@ -82,27 +91,27 @@ const loginValidation = [
 // Update profile validation rules
 const updateProfileValidation = [
   body('full_name')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isLength({ min: 1, max: 255 })
     .withMessage('Full name must be between 1 and 255 characters'),
   
   body('bio')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isLength({ max: 1000 })
     .withMessage('Bio must be less than 1000 characters'),
   
   body('github_username')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isLength({ max: 50 })
     .withMessage('GitHub username must be less than 50 characters'),
   
   body('linkedin_url')
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isURL()
     .withMessage('LinkedIn URL must be a valid URL'),
   
   body('years_experience')
-    .optional()
+    .optional({ nullable: true })
     .isInt({ min: 0, max: 100 })
     .withMessage('Years of experience must be between 0 and 100')
 ];
