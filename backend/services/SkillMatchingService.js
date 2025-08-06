@@ -24,7 +24,7 @@ class SkillMatchingService {
             
             for (const project of availableProjects) {
                 const score = await this.calculateMatchScore(user, project);
-                if (score > 50) { // Minimum threshold
+                if (score > 70) { // Minimum threshold
                     recommendations.push({
                         projectId: project.id,
                         score: score,

@@ -8,6 +8,7 @@ import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
 import Profile from './pages/Profile';
+import ChallengeManagement from './pages/ChallengeManagement';
 
 // Project workspace components (new imports)
 import ProjectDashboard from './pages/project/ProjectDashboard';
@@ -237,12 +238,25 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+
+            <Route 
+                path="/challenges" 
+                element={
+                  <ProtectedRoute>
+                    <Layout>
+                      <ChallengeManagement />
+                    </Layout>
+                  </ProtectedRoute>
+                } 
+            />
+            
             
             {/* Redirect /project/:id to /project/:id/dashboard */}
             <Route 
               path="/project/:projectId" 
               element={<Navigate to="dashboard" replace />} 
             />
+
             
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/" replace />} />

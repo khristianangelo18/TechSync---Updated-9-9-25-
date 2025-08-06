@@ -9,11 +9,12 @@ function Sidebar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const mainNavItems = [
-    { id: 'home', label: 'Home', path: '/', icon: '🏠' },
-    { id: 'projects', label: 'Projects', path: '/projects', icon: '📁' },
-    { id: 'friends', label: 'Friends', path: '/friends', icon: '👥' },
-    { id: 'learns', label: 'Learns', path: '/learns', icon: '📚' }
-  ];
+  { id: 'home', label: 'Home', path: '/', icon: '🏠' },
+  { id: 'projects', label: 'Projects', path: '/projects', icon: '📁' },
+  { id: 'challenges', label: 'Challenges', path: '/challenges', icon: '🧩' }, // Add this line
+  { id: 'friends', label: 'Friends', path: '/friends', icon: '👥' },
+  { id: 'learns', label: 'Learns', path: '/learns', icon: '📚' }
+];
 
   const bottomNavItems = [
     { id: 'help', label: 'Help Center', path: '/help', icon: '❓' }
