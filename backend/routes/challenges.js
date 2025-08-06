@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const { body, param, query, validationResult } = require('express-validator');
 
-// Import controllers
+// Import your existing controllers
 const {
   createChallenge,
   getChallenges,
@@ -12,6 +12,16 @@ const {
   deleteChallenge,
   getChallengesByLanguage
 } = require('../controllers/challengeController');
+
+// Import new project recruitment controllers
+const {
+  getProjectChallenge,
+  submitChallengeAttempt,
+  getUserAttempts,
+  getAttemptDetails,
+  getUserStats,
+  canAttemptChallenge
+} = require('../controllers/projectRecruitmentController');
 
 // Import middleware
 const authMiddleware = require('../middleware/auth');
@@ -29,7 +39,7 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Validation rules
+// Your existing validation rules
 const createChallengeValidation = [
   body('title')
     .trim()
@@ -202,23 +212,89 @@ const languageIdValidation = [
     .withMessage('Language ID must be a positive integer')
 ];
 
+// NEW VALIDATION RULES FOR PROJECT RECRUITMENT
+const projectChallengeValidation = [
+  param('projectId')
+    .isUUID()
+    .withMessage('Project ID must be a valid UUID')
+];
+
+const submitAttemptValidation = [
+  param('projectId')
+    .isUUID()
+    .withMessage('Project ID must be a valid UUID'),
+  
+  body('submittedCode')
+    .isLength({ min: 10, max: 50000 })
+    .withMessage('Submitted code must be between 10 and 50000 characters'),
+  
+  body('startedAt')
+    .optional()
+    .isISO8601()
+    .withMessage('Started at must be a valid ISO date')
+];
+
+const attemptIdValidation = [
+  param('attemptId')
+    .isUUID()
+    .withMessage('Attempt ID must be a valid UUID')
+];
+
+// ============== YOUR EXISTING ROUTES ==============
+
 // PUBLIC ROUTES (no authentication required)
-
-// GET /api/challenges - Get all challenges with filters
 router.get('/', getChallengesValidation, handleValidationErrors, getChallenges);
-
-// GET /api/challenges/:id - Get specific challenge by ID
 router.get('/:id', challengeIdValidation, handleValidationErrors, getChallengeById);
+router.get('/language/:languageId', languageIdValidation, handleValidationErrors, getChallengesByLanguage);
 
-// GET /api/challenges/language/:languageId - Get challenges by programming language
-router.get('/language/:languageId', 
-  languageIdValidation, 
-  handleValidationErrors, 
-  getChallengesByLanguage
+// ============== NEW PROJECT RECRUITMENT ROUTES ==============
+
+// Get coding challenge for a specific project (for joining)
+router.get('/project/:projectId/challenge', 
+  authMiddleware,
+  projectChallengeValidation,
+  handleValidationErrors,
+  getProjectChallenge
 );
 
-// PROTECTED ROUTES (require authentication)
-router.use(authMiddleware);
+// Submit coding challenge attempt for project recruitment
+router.post('/project/:projectId/attempt',
+  authMiddleware,
+  submitAttemptValidation,
+  handleValidationErrors,
+  submitChallengeAttempt
+);
+
+// Check if user can attempt a project challenge
+router.get('/project/:projectId/can-attempt',
+  authMiddleware,
+  projectChallengeValidation,
+  handleValidationErrors,
+  canAttemptChallenge
+);
+
+// Get user's challenge attempts with pagination
+router.get('/user/attempts',
+  authMiddleware,
+  getUserAttempts
+);
+
+// Get detailed information about a specific attempt
+router.get('/attempt/:attemptId',
+  authMiddleware,
+  attemptIdValidation,
+  handleValidationErrors,
+  getAttemptDetails
+);
+
+// Get user's challenge statistics
+router.get('/user/stats',
+  authMiddleware,
+  getUserStats
+);
+
+// ============== YOUR EXISTING PROTECTED ROUTES ==============
+router.use(authMiddleware); // Apply auth to routes below
 
 // POST /api/challenges - Create new challenge
 router.post('/', createChallengeValidation, handleValidationErrors, createChallenge);

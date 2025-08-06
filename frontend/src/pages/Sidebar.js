@@ -35,10 +35,26 @@ function Sidebar() {
     navigate(path);
   };
 
+  // FIXED: Improved path matching logic
   const isActive = (path) => {
     if (path === '/') {
       return location.pathname === '/';
     }
+    
+    // Special handling for admin routes to prevent overlap
+    if (path === '/admin' && location.pathname === '/admin/users') {
+      return false; // Don't highlight admin panel when on manage users
+    }
+    
+    if (path === '/admin/users') {
+      return location.pathname === '/admin/users' || location.pathname.startsWith('/admin/users/');
+    }
+    
+    // For other paths, use startsWith but be more specific
+    if (path === '/admin') {
+      return location.pathname === '/admin' || (location.pathname.startsWith('/admin') && !location.pathname.startsWith('/admin/users'));
+    }
+    
     return location.pathname.startsWith(path);
   };
 
@@ -152,24 +168,15 @@ function Sidebar() {
       height: '1px',
       backgroundColor: '#dee2e6',
       margin: '10px 20px',
-      marginTop: '15px'
-    },
-    icon: {
-      fontSize: '16px',
-      marginRight: '12px',
-      minWidth: '20px'
-    },
-    label: {
-      fontSize: '14px',
-      fontWeight: '500'
+      borderRadius: '1px'
     },
     bottomNav: {
       borderTop: '1px solid #dee2e6',
-      paddingTop: '15px'
+      paddingTop: '20px'
     },
     userSection: {
-      padding: '20px',
       borderTop: '1px solid #dee2e6',
+      padding: '16px',
       backgroundColor: 'white',
       position: 'relative'
     },
@@ -181,11 +188,11 @@ function Sidebar() {
     userInfo: {
       display: 'flex',
       alignItems: 'center',
-      flex: 1,
       cursor: 'pointer',
-      padding: '4px',
-      borderRadius: '6px',
-      transition: 'all 0.2s ease'
+      flex: 1,
+      padding: '8px',
+      borderRadius: '8px',
+      transition: 'background-color 0.2s ease'
     },
     userInfoHover: {
       backgroundColor: '#f8f9fa'
@@ -195,29 +202,42 @@ function Sidebar() {
       height: '32px',
       borderRadius: '50%',
       backgroundColor: '#007bff',
+      color: 'white',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: '10px',
       fontSize: '14px',
       fontWeight: 'bold',
-      color: 'white'
+      marginRight: '12px',
+      flexShrink: 0
     },
     userName: {
       fontSize: '14px',
       fontWeight: '500',
-      color: '#333'
+      color: '#333',
+      lineHeight: 1.2
     },
     userRole: {
       fontSize: '12px',
       color: '#6c757d',
+      textTransform: 'capitalize',
       marginTop: '2px'
+    },
+    icon: {
+      marginRight: '12px',
+      fontSize: '16px',
+      width: '20px',
+      textAlign: 'center'
+    },
+    label: {
+      fontSize: '14px',
+      fontWeight: '400'
     },
     threeDots: {
       background: 'none',
       border: 'none',
-      color: '#6c757d',
       fontSize: '16px',
+      color: '#6c757d',
       cursor: 'pointer',
       padding: '4px 6px',
       borderRadius: '4px',
