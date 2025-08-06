@@ -1,3 +1,4 @@
+// frontend/src/services/suggestionsService.js
 import api from './api';
 
 export const suggestionsService = {
@@ -5,7 +6,10 @@ export const suggestionsService = {
   getProgrammingLanguages: async () => {
     try {
       const response = await api.get('/suggestions/programming-languages');
-      return response.data.data || [];
+      const languages = response.data.data || [];
+      
+      // Backend now returns objects with id, name, description
+      return languages;
     } catch (error) {
       console.error('Error fetching programming languages:', error);
       return [];
@@ -16,7 +20,10 @@ export const suggestionsService = {
   getTopics: async () => {
     try {
       const response = await api.get('/suggestions/topics');
-      return response.data.data || [];
+      const topics = response.data.data || [];
+      
+      // Backend now returns objects with id, name, category, description
+      return topics;
     } catch (error) {
       console.error('Error fetching topics:', error);
       return [];

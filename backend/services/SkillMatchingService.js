@@ -18,7 +18,7 @@ class SkillMatchingService {
     async recommendProjects(userId) {
         try {
             const user = await this.getUserProfile(userId);
-            const availableProjects = await this.getAvailableProjects();
+            const availableProjects = await this.getAvailableProjects(userId); // Pass userId here
             
             const recommendations = [];
             
@@ -104,9 +104,12 @@ class SkillMatchingService {
 
     /**
      * Get available projects for recommendation
+     * FIXED: Removed supabase.raw() which doesn't exist
+     * FIXED: Exclude user's own projects and projects they're already members of
      */
-    async getAvailableProjects() {
+    async getAvailableProjects(userId) {
         try {
+            // First get all recruiting projects with owner info
             const { data: projects, error } = await supabase
                 .from('projects')
                 .select(`
@@ -118,6 +121,7 @@ class SkillMatchingService {
                     current_members,
                     maximum_members,
                     status,
+                    owner_id,
                     project_languages (
                         programming_languages (id, name),
                         required_level,
@@ -128,15 +132,37 @@ class SkillMatchingService {
                         is_primary
                     )
                 `)
-                .eq('status', 'recruiting')
-                .lt('current_members', supabase.raw('maximum_members'));
+                .eq('status', 'recruiting');
 
             if (error) {
                 throw error;
             }
 
+            // Get projects the user is already a member of
+            const { data: userMemberships, error: membershipError } = await supabase
+                .from('project_members')
+                .select('project_id')
+                .eq('user_id', userId)
+                .eq('status', 'active');
+
+            if (membershipError) {
+                console.error('Error fetching user memberships:', membershipError);
+            }
+
+            const userProjectIds = new Set(userMemberships?.map(m => m.project_id) || []);
+
+            // Filter projects where:
+            // 1. current_members < maximum_members (has space)
+            // 2. user is not the owner
+            // 3. user is not already a member
+            const availableProjects = projects.filter(project => 
+                project.current_members < project.maximum_members &&
+                project.owner_id !== userId &&
+                !userProjectIds.has(project.id)
+            );
+
             // Transform the data to make it easier to work with
-            return projects.map(project => ({
+            return availableProjects.map(project => ({
                 ...project,
                 languages: project.project_languages?.map(pl => pl.programming_languages?.name) || [],
                 topics: project.project_topics?.map(pt => pt.topics?.name) || []
@@ -151,140 +177,95 @@ class SkillMatchingService {
      * Calculate match score between user and project
      */
     async calculateMatchScore(user, project) {
-        const topicScore = this.calculateTopicMatch(user, project);
-        const experienceScore = this.calculateExperienceMatch(user, project);
-        const languageScore = this.calculateLanguageMatch(user, project);
-        
-        const totalScore = (
-            topicScore * this.weights.topic_match +
-            experienceScore * this.weights.experience_match +
-            languageScore * this.weights.language_match
-        );
-        
-        return Math.round(totalScore);
-    }
+        try {
+            const topicScore = this.calculateTopicMatch(user.topics, project.project_topics);
+            const experienceScore = this.calculateExperienceMatch(user.years_experience, project.required_experience_level);
+            const languageScore = this.calculateLanguageMatch(user.programming_languages, project.project_languages);
 
-    /**
-     * Calculate topic matching score
-     */
-    calculateTopicMatch(user, project) {
-        const userTopics = user.topics || [];
-        const projectTopics = project.project_topics || [];
+            const weightedScore = (
+                topicScore * this.weights.topic_match +
+                experienceScore * this.weights.experience_match +
+                languageScore * this.weights.language_match
+            );
 
-        if (userTopics.length === 0 || projectTopics.length === 0) {
+            return Math.round(weightedScore);
+        } catch (error) {
+            console.error('Error calculating match score:', error);
             return 0;
         }
-
-        let totalScore = 0;
-        let matchCount = 0;
-
-        for (const projectTopic of projectTopics) {
-            const topicName = projectTopic.topics?.name;
-            const userTopic = userTopics.find(ut => 
-                ut.topics?.name === topicName
-            );
-            
-            if (userTopic) {
-                let score = this.getInterestScore(userTopic.interest_level);
-                score += this.getExperienceScore(userTopic.experience_level);
-                
-                // Boost score for primary project topics
-                if (projectTopic.is_primary) {
-                    score *= 1.5;
-                }
-                
-                totalScore += score;
-                matchCount++;
-            }
-        }
-
-        return matchCount > 0 ? (totalScore / matchCount) : 0;
     }
 
     /**
-     * Calculate experience level matching
+     * Calculate topic match score
      */
-    calculateExperienceMatch(user, project) {
-        const userExp = user.years_experience || 0;
-        const requiredLevel = project.required_experience_level;
-        
-        const levelRanges = {
-            'beginner': [0, 2],
-            'intermediate': [2, 5],
-            'advanced': [5, 10],
-            'expert': [10, 100]
+    calculateTopicMatch(userTopics, projectTopics) {
+        if (!userTopics?.length || !projectTopics?.length) return 0;
+
+        const userTopicNames = userTopics.map(t => t.topics?.name).filter(Boolean);
+        const projectTopicNames = projectTopics.map(t => t.topics?.name).filter(Boolean);
+
+        const matches = userTopicNames.filter(topic => projectTopicNames.includes(topic));
+        return (matches.length / projectTopicNames.length) * 100;
+    }
+
+    /**
+     * Calculate experience match score
+     */
+    calculateExperienceMatch(userExperience, requiredExperience) {
+        if (!userExperience || !requiredExperience) return 50; // neutral score
+
+        const experienceLevels = {
+            'beginner': 1,
+            'intermediate': 2,
+            'advanced': 3,
+            'expert': 4
         };
-        
-        const [minReq, maxReq] = levelRanges[requiredLevel] || [0, 100];
-        
-        if (userExp >= minReq && userExp <= maxReq) {
-            return 100; // Perfect match
-        } else if (userExp < minReq) {
-            // User is underqualified
-            const gap = minReq - userExp;
-            return Math.max(0, 100 - (gap * 20));
+
+        const userLevel = experienceLevels[userExperience] || 1;
+        const requiredLevel = experienceLevels[requiredExperience] || 1;
+
+        if (userLevel >= requiredLevel) {
+            return 100; // Perfect match or overqualified
         } else {
-            // User is overqualified (still good but slightly lower score)
-            return 80;
+            return Math.max(0, 100 - ((requiredLevel - userLevel) * 25));
         }
     }
 
     /**
-     * Calculate programming language matching
+     * Calculate programming language match score
      */
-    calculateLanguageMatch(user, project) {
-        const userLanguages = user.programming_languages || [];
-        const projectLanguages = project.project_languages || [];
+    calculateLanguageMatch(userLanguages, projectLanguages) {
+        if (!userLanguages?.length || !projectLanguages?.length) return 0;
 
-        if (userLanguages.length === 0 || projectLanguages.length === 0) {
-            return 0;
-        }
+        const userLangNames = userLanguages.map(l => l.programming_languages?.name).filter(Boolean);
+        const projectLangNames = projectLanguages.map(l => l.programming_languages?.name).filter(Boolean);
 
-        let totalScore = 0;
-        let matchCount = 0;
-
-        for (const projectLang of projectLanguages) {
-            const langName = projectLang.programming_languages?.name;
-            const userLang = userLanguages.find(ul => 
-                ul.programming_languages?.name === langName
-            );
-            
-            if (userLang) {
-                const score = this.compareProficiencyLevels(
-                    userLang.proficiency_level, 
-                    projectLang.required_level
-                );
-                
-                // Boost score for primary languages
-                const finalScore = projectLang.is_primary ? score * 1.3 : score;
-                totalScore += finalScore;
-                matchCount++;
-            }
-        }
-
-        return matchCount > 0 ? Math.min(100, totalScore / matchCount) : 0;
+        const matches = userLangNames.filter(lang => projectLangNames.includes(lang));
+        return (matches.length / projectLangNames.length) * 100;
     }
 
     /**
-     * Get match factors for explanation
+     * Get detailed match factors for explanation
      */
     async getMatchFactors(user, project) {
+        const topicMatches = this.getTopicMatches(user.topics, project.project_topics);
+        const languageMatches = this.getLanguageMatches(user.programming_languages, project.project_languages);
+        
         return {
-            topicMatch: this.calculateTopicMatch(user, project),
-            experienceMatch: this.calculateExperienceMatch(user, project),
-            languageMatch: this.calculateLanguageMatch(user, project),
-            matchedTopics: this.getMatchedTopics(user, project),
-            matchedLanguages: this.getMatchedLanguages(user, project)
+            topicMatches,
+            languageMatches,
+            experienceMatch: {
+                userExperience: user.years_experience,
+                requiredExperience: project.required_experience_level,
+                isMatch: this.calculateExperienceMatch(user.years_experience, project.required_experience_level) >= 75
+            }
         };
     }
 
     /**
-     * Get matched topics between user and project
+     * Get topic matches for detailed explanation
      */
-    getMatchedTopics(user, project) {
-        const userTopics = user.topics || [];
-        const projectTopics = project.project_topics || [];
-        
+    getTopicMatches(userTopics, projectTopics) {
         const matches = [];
         for (const projectTopic of projectTopics) {
             const topicName = projectTopic.topics?.name;
@@ -293,6 +274,7 @@ class SkillMatchingService {
                 matches.push({
                     name: topicName,
                     userInterest: userTopic.interest_level,
+                    userExperience: userTopic.experience_level,
                     isPrimary: projectTopic.is_primary
                 });
             }
@@ -301,12 +283,9 @@ class SkillMatchingService {
     }
 
     /**
-     * Get matched languages between user and project
+     * Get language matches for detailed explanation
      */
-    getMatchedLanguages(user, project) {
-        const userLanguages = user.programming_languages || [];
-        const projectLanguages = project.project_languages || [];
-        
+    getLanguageMatches(userLanguages, projectLanguages) {
         const matches = [];
         for (const projectLang of projectLanguages) {
             const langName = projectLang.programming_languages?.name;
@@ -354,47 +333,96 @@ class SkillMatchingService {
             }
         } catch (error) {
             console.error('Error in storeRecommendations:', error);
+            // Don't throw here as this is not critical for the recommendation process
         }
     }
 
     /**
-     * Helper methods for scoring
-     */
-    getInterestScore(level) {
-        const scores = { 'low': 30, 'medium': 60, 'high': 90 };
-        return scores[level] || 0;
-    }
-
-    getExperienceScore(level) {
-        const scores = { 'beginner': 25, 'intermediate': 50, 'advanced': 75, 'expert': 100 };
-        return scores[level] || 0;
-    }
-
-    compareProficiencyLevels(userLevel, requiredLevel) {
-        const levels = { 'beginner': 1, 'intermediate': 2, 'advanced': 3, 'expert': 4 };
-        const userScore = levels[userLevel] || 0;
-        const requiredScore = levels[requiredLevel] || 0;
-        
-        if (userScore >= requiredScore) {
-            return 100;
-        } else {
-            return Math.max(0, 100 - ((requiredScore - userScore) * 30));
-        }
-    }
-
-    /**
-     * Intelligent exam assessment (placeholder for now)
+     * Assess coding skill through challenge
      */
     async assessCodingSkill(userId, projectId, submittedCode, challengeId) {
-        // For now, return a mock response
-        // You can implement the full logic later
-        return {
-            passed: false,
-            score: 65,
-            attemptId: `attempt_${Date.now()}`,
-            failureCount: 1,
-            needsLearning: false
-        };
+        try {
+            // Get the challenge details
+            const { data: challenge, error: challengeError } = await supabase
+                .from('coding_challenges')
+                .select('*')
+                .eq('id', challengeId)
+                .single();
+
+            if (challengeError || !challenge) {
+                throw new Error('Challenge not found');
+            }
+
+            // Simple code assessment (you can make this more sophisticated)
+            const score = this.evaluateCode(submittedCode, challenge);
+            
+            // Store the attempt
+            const { error: attemptError } = await supabase
+                .from('coding_attempts')
+                .insert({
+                    user_id: userId,
+                    project_id: projectId,
+                    challenge_id: challengeId,
+                    submitted_code: submittedCode,
+                    score: score,
+                    passed: score >= this.minPassingScore,
+                    attempted_at: new Date().toISOString()
+                });
+
+            if (attemptError) {
+                throw attemptError;
+            }
+
+            return {
+                score,
+                passed: score >= this.minPassingScore,
+                feedback: this.generateFeedback(score, challenge),
+                nextSteps: score >= this.minPassingScore ? 
+                    'Congratulations! You can now apply to this project.' : 
+                    'Keep practicing and try again when ready.'
+            };
+
+        } catch (error) {
+            console.error('Error in assessCodingSkill:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Simple code evaluation (placeholder - implement actual logic)
+     */
+    evaluateCode(code, challenge) {
+        // This is a simplified evaluation
+        // In a real system, you'd want to:
+        // 1. Run the code against test cases
+        // 2. Check for syntax errors
+        // 3. Evaluate code quality, efficiency, etc.
+        
+        let score = 0;
+        
+        // Basic checks
+        if (code && code.length > 10) score += 20;
+        if (code.includes('function') || code.includes('def') || code.includes('=>')) score += 20;
+        if (code.includes('return')) score += 20;
+        if (code.split('\n').length > 3) score += 20; // Multi-line solution
+        if (code.includes('if') || code.includes('for') || code.includes('while')) score += 20;
+        
+        return Math.min(score, 100);
+    }
+
+    /**
+     * Generate feedback based on score
+     */
+    generateFeedback(score, challenge) {
+        if (score >= 90) {
+            return "Excellent work! Your solution demonstrates strong programming skills.";
+        } else if (score >= 70) {
+            return "Good job! Your solution shows solid understanding with room for improvement.";
+        } else if (score >= 50) {
+            return "Your solution shows basic understanding. Consider reviewing the requirements and trying again.";
+        } else {
+            return "Your solution needs significant improvement. Review the challenge requirements and practice more.";
+        }
     }
 }
 

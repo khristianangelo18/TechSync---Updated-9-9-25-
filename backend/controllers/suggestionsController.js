@@ -1,3 +1,4 @@
+// backend/controllers/suggestionsController.js
 const supabase = require('../config/supabase');
 
 // Get all programming languages for suggestions
@@ -5,7 +6,7 @@ const getProgrammingLanguages = async (req, res) => {
   try {
     const { data: languages, error } = await supabase
       .from('programming_languages')
-      .select('name')
+      .select('id, name, description')
       .eq('is_active', true)
       .order('usage_count', { ascending: false })
       .order('name');
@@ -18,12 +19,9 @@ const getProgrammingLanguages = async (req, res) => {
       });
     }
 
-    // Return just the names as an array
-    const languageNames = languages.map(lang => lang.name);
-
     res.json({
       success: true,
-      data: languageNames
+      data: languages
     });
 
   } catch (error) {
@@ -41,7 +39,7 @@ const getTopics = async (req, res) => {
   try {
     const { data: topics, error } = await supabase
       .from('topics')
-      .select('name, category')
+      .select('id, name, category, description')
       .eq('is_active', true)
       .order('usage_count', { ascending: false })
       .order('name');
@@ -54,12 +52,9 @@ const getTopics = async (req, res) => {
       });
     }
 
-    // Return just the names as an array
-    const topicNames = topics.map(topic => topic.name);
-
     res.json({
       success: true,
-      data: topicNames
+      data: topics
     });
 
   } catch (error) {
@@ -79,7 +74,7 @@ const searchProgrammingLanguages = async (req, res) => {
     
     let query = supabase
       .from('programming_languages')
-      .select('name')
+      .select('id, name, description')
       .eq('is_active', true)
       .order('usage_count', { ascending: false })
       .limit(20);
@@ -98,17 +93,15 @@ const searchProgrammingLanguages = async (req, res) => {
       });
     }
 
-    const languageNames = languages.map(lang => lang.name);
-
     res.json({
       success: true,
-      data: languageNames
+      data: languages
     });
 
   } catch (error) {
     console.error('Search programming languages error:', error);
     res.status(500).json({
-      success: false,  
+      success: false,
       message: 'Internal server error',
       error: error.message
     });
@@ -122,7 +115,7 @@ const searchTopics = async (req, res) => {
     
     let query = supabase
       .from('topics')
-      .select('name')
+      .select('id, name, category, description')
       .eq('is_active', true)
       .order('usage_count', { ascending: false })
       .limit(20);
@@ -141,18 +134,16 @@ const searchTopics = async (req, res) => {
       });
     }
 
-    const topicNames = topics.map(topic => topic.name);
-
     res.json({
       success: true,
-      data: topicNames
+      data: topics
     });
 
   } catch (error) {
     console.error('Search topics error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error', 
+      message: 'Internal server error',
       error: error.message
     });
   }
