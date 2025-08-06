@@ -35,6 +35,11 @@ function Sidebar() {
     setShowUserMenu(!showUserMenu);
   };
 
+  const handleProfileClick = () => {
+    navigate('/profile');
+    setShowUserMenu(false);
+  };
+
   const handleLogout = () => {
     logout();
     setShowUserMenu(false);
@@ -136,7 +141,14 @@ function Sidebar() {
     userInfo: {
       display: 'flex',
       alignItems: 'center',
-      flex: 1
+      flex: 1,
+      cursor: 'pointer', // Make profile clickable
+      padding: '4px',
+      borderRadius: '6px',
+      transition: 'all 0.2s ease'
+    },
+    userInfoHover: {
+      backgroundColor: '#f8f9fa'
     },
     userAvatar: {
       width: '32px',
@@ -160,9 +172,9 @@ function Sidebar() {
       background: 'none',
       border: 'none',
       color: '#6c757d',
-      cursor: 'pointer',
       fontSize: '16px',
-      padding: '8px',
+      cursor: 'pointer',
+      padding: '4px 6px',
       borderRadius: '4px',
       transition: 'all 0.2s ease'
     },
@@ -172,56 +184,58 @@ function Sidebar() {
     },
     userMenu: {
       position: 'absolute',
-      bottom: '70px',
+      bottom: '100%',
+      left: '20px',
       right: '20px',
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
       borderRadius: '8px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
       zIndex: 1001,
-      minWidth: '180px',
       overflow: 'hidden'
     },
     menuItem: {
-      padding: '12px 16px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      color: '#dc3545',
-      transition: 'background-color 0.2s ease',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      fontWeight: '500'
+      padding: '12px 16px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      fontSize: '14px',
+      color: '#333',
+      borderBottom: '1px solid #f1f3f4'
+    },
+    menuItemLast: {
+      borderBottom: 'none'
     },
     menuItemHover: {
-      backgroundColor: '#fff5f5'
+      backgroundColor: '#f8f9fa'
     },
     menuItemIcon: {
-      fontSize: '16px',
-      width: '16px'
+      marginRight: '8px',
+      fontSize: '14px'
     }
   };
 
   return (
     <div style={styles.sidebar}>
-      {/* Logo/Brand */}
+      {/* Logo Section */}
       <div style={styles.logo}>
-        <h3 style={styles.logoText}>TechSync</h3>
+        <h1 style={styles.logoText}>TechSync</h1>
       </div>
 
-      {/* Main Navigation */}
+      {/* Navigation */}
       <nav style={styles.nav}>
         <div style={styles.navSection}>
-          {mainNavItems.map(item => {
+          {mainNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
             return (
               <div
                 key={item.id}
-                onClick={() => handleNavigation(item.path)}
                 style={{
                   ...styles.navItem,
                   ...(isActiveItem ? styles.navItemActive : {})
                 }}
+                onClick={() => handleNavigation(item.path)}
                 onMouseEnter={(e) => {
                   if (!isActiveItem) {
                     Object.assign(e.target.style, styles.navItemHover);
@@ -241,18 +255,18 @@ function Sidebar() {
           })}
         </div>
 
-        {/* Bottom Navigation */}
-        <div style={styles.navSection}>
-          {bottomNavItems.map(item => {
+        {/* Bottom Navigation - Help Center */}
+        <div style={{ ...styles.navSection, ...styles.bottomNav }}>
+          {bottomNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
             return (
               <div
                 key={item.id}
-                onClick={() => handleNavigation(item.path)}
                 style={{
                   ...styles.navItem,
                   ...(isActiveItem ? styles.navItemActive : {})
                 }}
+                onClick={() => handleNavigation(item.path)}
                 onMouseEnter={(e) => {
                   if (!isActiveItem) {
                     Object.assign(e.target.style, styles.navItemHover);
@@ -273,10 +287,19 @@ function Sidebar() {
         </div>
       </nav>
 
-      {/* User Section with Three Dots Menu */}
+      {/* User Section with Clickable Profile and Three Dots Menu */}
       <div style={styles.userSection}>
         <div style={styles.userItem}>
-          <div style={styles.userInfo}>
+          <div
+            style={styles.userInfo}
+            onClick={handleProfileClick}
+            onMouseEnter={(e) => {
+              Object.assign(e.target.style, styles.userInfoHover);
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
             <div style={styles.userAvatar}>
               {user?.full_name?.charAt(0)?.toUpperCase() || 
                user?.username?.charAt(0)?.toUpperCase() || 'U'}
@@ -305,6 +328,22 @@ function Sidebar() {
           <div style={styles.userMenu}>
             <div
               style={styles.menuItem}
+              onClick={handleProfileClick}
+              onMouseEnter={(e) => {
+                Object.assign(e.target.style, styles.menuItemHover);
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'white';
+              }}
+            >
+              <span style={styles.menuItemIcon}>👤</span>
+              View Profile
+            </div>
+            <div
+              style={{
+                ...styles.menuItem,
+                ...styles.menuItemLast
+              }}
               onClick={handleLogout}
               onMouseEnter={(e) => {
                 Object.assign(e.target.style, styles.menuItemHover);

@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
+import Profile from './pages/Profile';
 
 // Project workspace components (new imports)
 import ProjectDashboard from './pages/project/ProjectDashboard';
@@ -75,7 +76,7 @@ const PublicRoute = ({ children }) => {
 const Friends = () => <div style={{ padding: '30px' }}><h2>Friends</h2><p>Your friends and connections will appear here.</p></div>;
 const Learns = () => <div style={{ padding: '30px' }}><h2>Learns</h2><p>Your learning modules and progress will appear here.</p></div>;
 const Help = () => <div style={{ padding: '30px' }}><h2>Help Center</h2><p>Frequently asked questions and support resources.</p></div>;
-const Profile = () => <div style={{ padding: '30px' }}><h2>Profile</h2><p>Your profile settings and information.</p></div>;
+
 
 function App() {
   return (

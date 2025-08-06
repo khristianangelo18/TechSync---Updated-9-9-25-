@@ -57,13 +57,18 @@ function ProjectSidebar() {
     setShowUserMenu(!showUserMenu);
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleProfileClick = () => {
+    navigate('/profile');
     setShowUserMenu(false);
   };
 
   const handleExitProject = () => {
     navigate('/projects');
+    setShowUserMenu(false);
+  };
+
+  const handleLogout = () => {
+    logout();
     setShowUserMenu(false);
   };
 
@@ -79,17 +84,6 @@ function ProjectSidebar() {
     }
   }, [showUserMenu]);
 
-  const getStatusColor = (status) => {
-    const colors = {
-      recruiting: '#28a745',
-      active: '#007bff',
-      completed: '#6c757d',
-      paused: '#ffc107',
-      cancelled: '#dc3545'
-    };
-    return colors[status] || '#6c757d';
-  };
-
   const styles = {
     sidebar: {
       width: '250px',
@@ -103,29 +97,43 @@ function ProjectSidebar() {
       top: 0,
       zIndex: 1000
     },
-    projectHeader: {
+    header: {
       padding: '20px',
       borderBottom: '1px solid #dee2e6',
       backgroundColor: 'white'
     },
+    projectInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px'
+    },
+    backButton: {
+      background: 'none',
+      border: 'none',
+      cursor: 'pointer',
+      padding: '4px',
+      borderRadius: '4px',
+      transition: 'background-color 0.2s ease'
+    },
+    backButtonHover: {
+      backgroundColor: '#e9ecef'
+    },
     projectTitle: {
       fontSize: '16px',
       fontWeight: 'bold',
-      margin: '0 0 8px 0',
       color: '#333',
-      wordBreak: 'break-word'
+      margin: 0,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      whiteSpace: 'nowrap'
     },
-    projectMeta: {
-      fontSize: '12px',
-      color: '#6c757d'
-    },
-    statusBadge: {
-      display: 'inline-block',
+    projectBadge: {
+      backgroundColor: '#007bff',
+      color: 'white',
       padding: '4px 8px',
       borderRadius: '12px',
       fontSize: '11px',
       fontWeight: 'bold',
-      color: 'white',
       textTransform: 'uppercase'
     },
     nav: {
@@ -182,7 +190,14 @@ function ProjectSidebar() {
     userDetails: {
       display: 'flex',
       alignItems: 'center',
-      flex: 1
+      flex: 1,
+      cursor: 'pointer', // Make profile clickable
+      padding: '4px',
+      borderRadius: '6px',
+      transition: 'all 0.2s ease'
+    },
+    userDetailsHover: {
+      backgroundColor: '#f8f9fa'
     },
     userAvatar: {
       width: '32px',
@@ -206,9 +221,9 @@ function ProjectSidebar() {
       background: 'none',
       border: 'none',
       color: '#6c757d',
-      cursor: 'pointer',
       fontSize: '16px',
-      padding: '8px',
+      cursor: 'pointer',
+      padding: '4px 6px',
       borderRadius: '4px',
       transition: 'all 0.2s ease'
     },
@@ -218,26 +233,25 @@ function ProjectSidebar() {
     },
     userMenu: {
       position: 'absolute',
-      bottom: '70px',
+      bottom: '100%',
+      left: '20px',
       right: '20px',
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
       borderRadius: '8px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
       zIndex: 1001,
-      minWidth: '200px',
       overflow: 'hidden'
     },
     menuItem: {
-      padding: '12px 16px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      color: '#333',
-      borderBottom: '1px solid #f8f9fa',
-      transition: 'background-color 0.2s ease',
       display: 'flex',
       alignItems: 'center',
-      gap: '10px'
+      padding: '12px 16px',
+      cursor: 'pointer',
+      transition: 'background-color 0.2s ease',
+      fontSize: '14px',
+      color: '#333',
+      borderBottom: '1px solid #f1f3f4'
     },
     menuItemLast: {
       borderBottom: 'none'
@@ -245,53 +259,67 @@ function ProjectSidebar() {
     menuItemHover: {
       backgroundColor: '#f8f9fa'
     },
-    menuItemIcon: {
-      fontSize: '16px',
-      width: '16px'
-    },
     exitMenuItem: {
-      color: '#dc3545',
-      fontWeight: '500'
+      color: '#007bff'
     },
     exitMenuItemHover: {
-      backgroundColor: '#fff5f5'
+      backgroundColor: '#e3f2fd'
     },
     logoutMenuItem: {
-      color: '#dc3545',
-      fontWeight: '500'
+      color: '#dc3545'
     },
     logoutMenuItemHover: {
-      backgroundColor: '#fff5f5'
+      backgroundColor: '#fde8e8'
     },
-    loadingText: {
-      fontSize: '14px',
-      color: '#6c757d'
+    menuItemIcon: {
+      marginRight: '8px',
+      fontSize: '14px'
     }
   };
+
+  if (loading) {
+    return (
+      <div style={styles.sidebar}>
+        <div style={styles.header}>
+          <div style={{ textAlign: 'center', color: '#666' }}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.sidebar}>
       {/* Project Header */}
-      <div style={styles.projectHeader}>
-        {loading ? (
-          <div style={styles.loadingText}>Loading project...</div>
-        ) : project ? (
-          <>
-            <h3 style={styles.projectTitle}>{project.title}</h3>
-            <div style={styles.projectMeta}>
-              <span 
-                style={{
-                  ...styles.statusBadge,
-                  backgroundColor: getStatusColor(project.status)
-                }}
-              >
-                {project.status?.toUpperCase() || 'ACTIVE'}
-              </span>
-            </div>
-          </>
-        ) : (
-          <div style={styles.loadingText}>Project not found</div>
-        )}
+      <div style={styles.header}>
+        <div style={styles.projectInfo}>
+          <button
+            style={styles.backButton}
+            onClick={() => navigate('/projects')}
+            onMouseEnter={(e) => {
+              Object.assign(e.target.style, styles.backButtonHover);
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
+            ←
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h1 style={styles.projectTitle}>
+              {project?.title || 'Project Workspace'}
+            </h1>
+            {project?.status && (
+              <div style={{
+                ...styles.projectBadge,
+                backgroundColor: project.status === 'active' ? '#28a745' : 
+                               project.status === 'completed' ? '#007bff' : '#6c757d',
+                marginTop: '8px'
+              }}>
+                {project.status}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -326,6 +354,7 @@ function ProjectSidebar() {
           })}
         </div>
 
+        {/* Bottom Navigation - Help Center */}
         <div style={styles.navSection}>
           {bottomNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
@@ -357,10 +386,19 @@ function ProjectSidebar() {
         </div>
       </nav>
 
-      {/* User Section */}
+      {/* User Section with Clickable Profile */}
       <div style={styles.userSection}>
         <div style={styles.userInfo}>
-          <div style={styles.userDetails}>
+          <div
+            style={styles.userDetails}
+            onClick={handleProfileClick}
+            onMouseEnter={(e) => {
+              Object.assign(e.target.style, styles.userDetailsHover);
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'transparent';
+            }}
+          >
             <div style={styles.userAvatar}>
               {user?.full_name?.charAt(0)?.toUpperCase() || 
                user?.username?.charAt(0)?.toUpperCase() || 'U'}
@@ -387,6 +425,19 @@ function ProjectSidebar() {
         {/* User Menu */}
         {showUserMenu && (
           <div style={styles.userMenu}>
+            <div
+              style={styles.menuItem}
+              onClick={handleProfileClick}
+              onMouseEnter={(e) => {
+                Object.assign(e.target.style, styles.menuItemHover);
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'white';
+              }}
+            >
+              <span style={styles.menuItemIcon}>👤</span>
+              View Profile
+            </div>
             <div 
               style={{
                 ...styles.menuItem,
