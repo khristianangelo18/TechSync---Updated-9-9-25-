@@ -1,7 +1,7 @@
-// frontend/src/components/ProjectChallengeInterface.js
+// frontend/src/components/ProjectChallengeInterface.js - CLEAN LAYOUT (Fixed to match working version)
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-const ProjectChallengeInterface = ({ projectId, onClose }) => {
+const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
   const [challenge, setChallenge] = useState(null);
   const [submittedCode, setSubmittedCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,12 +15,12 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
   // Use ref to avoid stale closure issues
   const handleSubmitRef = useRef();
 
-  // API Configuration - use proxy for development
+  // API Configuration - use proxy for development (SAME AS WORKING VERSION)
   const API_BASE_URL = process.env.NODE_ENV === 'production' 
     ? process.env.REACT_APP_API_URL || ''
     : '';
 
-  // Helper function to get auth headers
+  // Helper function to get auth headers (SAME AS WORKING VERSION)
   const getAuthHeaders = useCallback(() => {
     const token = localStorage.getItem('token');
     return {
@@ -32,7 +32,7 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     };
   }, []);
 
-  // Helper function to handle API responses
+  // Helper function to handle API responses (SAME AS WORKING VERSION)
   const handleApiResponse = useCallback(async (response, actionName) => {
     console.log(`${actionName} response status:`, response.status);
     console.log(`${actionName} response headers:`, [...response.headers.entries()]);
@@ -56,7 +56,7 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     return data;
   }, []);
 
-  // Check if user can attempt challenge
+  // Check if user can attempt challenge (SAME AS WORKING VERSION)
   const checkCanAttempt = useCallback(async () => {
     try {
       console.log('Checking if user can attempt challenge...');
@@ -87,7 +87,7 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     }
   }, [projectId, API_BASE_URL, getAuthHeaders, handleApiResponse]);
 
-  // Fetch challenge data
+  // Fetch challenge data (SAME AS WORKING VERSION)
   const fetchChallenge = useCallback(async () => {
     if (!canAttempt?.canAttempt) {
       console.log('Cannot attempt, skipping challenge fetch');
@@ -127,7 +127,7 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     }
   }, [projectId, canAttempt, API_BASE_URL, getAuthHeaders, handleApiResponse, submittedCode]);
 
-  // Initial load
+  // Initial load (SAME AS WORKING VERSION)
   useEffect(() => {
     console.log('Component mounted, starting checks...');
     console.log('Project ID:', projectId);
@@ -145,14 +145,14 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     initializeChallenge();
   }, [projectId, checkCanAttempt, API_BASE_URL]);
 
-  // Fetch challenge when can attempt status is confirmed
+  // Fetch challenge when can attempt status is confirmed (SAME AS WORKING VERSION)
   useEffect(() => {
     if (canAttempt?.canAttempt === true && !challenge) {
       fetchChallenge();
     }
   }, [canAttempt, challenge, fetchChallenge]);
 
-  // Handle starting the challenge
+  // Handle starting the challenge (SAME AS WORKING VERSION)
   const handleStartChallenge = useCallback(() => {
     const now = new Date();
     setStartedAt(now.toISOString());
@@ -165,7 +165,7 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     console.log('Challenge started at:', now.toISOString());
   }, [challenge]);
 
-  // Handle challenge submission
+  // Handle challenge submission (SAME AS WORKING VERSION)
   const handleSubmit = useCallback(async () => {
     if (!submittedCode.trim()) {
       alert('Please write your solution before submitting.');
@@ -227,10 +227,10 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     }
   }, [submittedCode, startedAt, challenge, projectId, API_BASE_URL, getAuthHeaders, handleApiResponse, onClose]);
 
-  // Update ref for timer callback
+  // Update ref for timer callback (SAME AS WORKING VERSION)
   handleSubmitRef.current = handleSubmit;
 
-  // Timer countdown effect
+  // Timer countdown effect (SAME AS WORKING VERSION)
   useEffect(() => {
     if (!startedAt || !challenge?.challenge?.time_limit_minutes || result) {
       return;
@@ -250,7 +250,7 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     return () => clearInterval(timer);
   }, [startedAt, challenge, result]);
 
-  // Format time helper
+  // Format time helper (SAME AS WORKING VERSION)
   const formatTime = (minutes) => {
     if (minutes === null || minutes === undefined) return 'No limit';
     const hours = Math.floor(minutes / 60);
@@ -261,28 +261,38 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     return `${mins}m`;
   };
 
-  // Loading state
+  const getDifficultyColor = (difficulty) => {
+    const colors = {
+      easy: '#28a745',
+      medium: '#ffc107', 
+      hard: '#fd7e14',
+      expert: '#dc3545'
+    };
+    return colors[difficulty?.toLowerCase()] || '#6c757d';
+  };
+
+  // Loading state - CLEAN DESIGN
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900">Loading Challenge</h3>
-          <p className="text-gray-500">Please wait while we prepare your coding challenge...</p>
+      <div style={styles.container}>
+        <div style={styles.centerContent}>
+          <div style={styles.spinner}></div>
+          <h3 style={styles.loadingTitle}>Loading Challenge</h3>
+          <p style={styles.loadingText}>Please wait while we prepare your coding challenge...</p>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // Error state - CLEAN DESIGN  
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="text-center">
-          <div className="text-red-400 text-6xl mb-4">⚠️</div>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Error Loading Challenge</h3>
-          <p className="mt-1 text-sm text-gray-500">{error}</p>
-          <div className="mt-4 text-xs text-gray-400">
+      <div style={styles.container}>
+        <div style={styles.centerContent}>
+          <div style={styles.errorIcon}>⚠️</div>
+          <h3 style={styles.errorTitle}>Error Loading Challenge</h3>
+          <p style={styles.errorMessage}>{error}</p>
+          <div style={styles.debugInfo}>
             <p><strong>Project ID:</strong> {projectId}</p>
             <p><strong>API Base URL:</strong> {API_BASE_URL || 'Using proxy'}</p>
             <p><strong>Token exists:</strong> {localStorage.getItem('token') ? 'Yes' : 'No'}</p>
@@ -293,8 +303,8 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
               setError(null);
               setLoading(true);
               checkCanAttempt();
-            }} 
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            }}
+            style={styles.retryButton}
           >
             Try Again
           </button>
@@ -303,265 +313,633 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     );
   }
 
-  // Cannot attempt state
+  // Cannot attempt state - CLEAN DESIGN
   if (canAttempt && !canAttempt.canAttempt) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="text-center">
-          <div className="text-yellow-400 text-6xl mb-4">⚠️</div>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Cannot Attempt Challenge</h3>
-          <p className="mt-1 text-sm text-gray-500">{canAttempt.reason}</p>
+      <div style={styles.container}>
+        <div style={styles.centerContent}>
+          <div style={styles.warningIcon}>⚠️</div>
+          <h3 style={styles.warningTitle}>Cannot Attempt Challenge</h3>
+          <p style={styles.warningMessage}>{canAttempt.reason}</p>
           {canAttempt.nextAttemptAt && (
-            <p className="mt-2 text-xs text-gray-400">
+            <p style={styles.nextAttemptText}>
               Next attempt available: {new Date(canAttempt.nextAttemptAt).toLocaleString()}
             </p>
           )}
           {onClose && (
-            <button 
-              onClick={onClose}
-              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-            >
-              Close
-            </button>
+            <button onClick={onClose} style={styles.closeButton}>Close</button>
           )}
         </div>
       </div>
     );
   }
 
-  // No challenge available
+  // No challenge available - CLEAN DESIGN
   if (!challenge) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="text-center">
-          <div className="text-gray-400 text-6xl mb-4">💻</div>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No Challenge Available</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            This project doesn't have an active coding challenge.
-          </p>
+      <div style={styles.container}>
+        <div style={styles.centerContent}>
+          <div style={styles.emptyIcon}>💻</div>
+          <h3 style={styles.emptyTitle}>No Challenge Available</h3>
+          <p style={styles.emptyMessage}>This project doesn't have an active coding challenge.</p>
           {onClose && (
-            <button 
-              onClick={onClose}
-              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-            >
-              Close
-            </button>
+            <button onClick={onClose} style={styles.closeButton}>Close</button>
           )}
         </div>
       </div>
     );
   }
 
+  // Main challenge interface - CLEAN DESIGN
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Join "{challenge.project.title}"
-              </h1>
-              <p className="text-gray-600 mt-1">
-                Complete this coding challenge to join the project
-              </p>
+    <div style={styles.container}>
+      {/* Header */}
+      <div style={styles.header}>
+        <div style={styles.headerContent}>
+          <h1 style={styles.title}>Join "{challenge.project?.title || 'Project'}"</h1>
+          <p style={styles.subtitle}>Complete this coding challenge to join the project</p>
+        </div>
+        {onClose && (
+          <button onClick={onClose} style={styles.closeIcon}>×</button>
+        )}
+      </div>
+
+      <div style={styles.content}>
+        {/* Challenge Info Cards */}
+        <div style={styles.infoGrid}>
+          <div style={styles.infoCard}>
+            <div style={styles.infoLabel}>Difficulty</div>
+            <div style={{
+              ...styles.infoValue, 
+              color: getDifficultyColor(challenge.challenge?.difficulty_level)
+            }}>
+              {challenge.challenge?.difficulty_level || 'Medium'}
             </div>
-            {onClose && (
-              <button 
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            )}
+          </div>
+          
+          <div style={styles.infoCard}>
+            <div style={styles.infoLabel}>Language</div>
+            <div style={styles.infoValue}>
+              {challenge.challenge?.programming_languages?.name || challenge.project?.primaryLanguage || 'JavaScript'}
+            </div>
+          </div>
+          
+          <div style={styles.infoCard}>
+            <div style={styles.infoLabel}>Time Limit</div>
+            <div style={styles.infoValue}>
+              {formatTime(challenge.challenge?.time_limit_minutes)}
+            </div>
           </div>
         </div>
 
-        <div className="p-6">
-          {/* Challenge Info Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="text-blue-600 text-sm font-medium">Difficulty</div>
-              <div className="text-lg font-semibold capitalize">
-                {challenge.challenge.difficulty_level}
-              </div>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="text-green-600 text-sm font-medium">Language</div>
-              <div className="text-lg font-semibold">
-                {challenge.challenge.programming_languages?.name || challenge.project.primaryLanguage}
-              </div>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <div className="text-purple-600 text-sm font-medium">Time Limit</div>
-              <div className="text-lg font-semibold">
-                {challenge.challenge.time_limit_minutes ? 
-                  formatTime(challenge.challenge.time_limit_minutes) : 
-                  'No limit'
-                }
-              </div>
+        {/* Timer */}
+        {startedAt && timeRemaining !== null && (
+          <div style={styles.timerContainer}>
+            <div style={styles.timerContent}>
+              <span style={styles.timerLabel}>Time Remaining:</span>
+              <span style={{
+                ...styles.timerValue,
+                color: timeRemaining <= 10 ? '#dc3545' : '#28a745'
+              }}>
+                {formatTime(timeRemaining)}
+              </span>
             </div>
           </div>
+        )}
 
-          {/* Timer */}
-          {startedAt && timeRemaining !== null && (
-            <div className="mb-6">
-              <div className={`p-4 rounded-lg ${
-                timeRemaining <= 10 
-                  ? 'bg-red-50 border border-red-200' 
-                  : 'bg-yellow-50 border border-yellow-200'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className={`font-medium ${
-                    timeRemaining <= 10 ? 'text-red-800' : 'text-yellow-800'
-                  }`}>
-                    Time Remaining:
-                  </span>
-                  <span className={`text-xl font-bold ${
-                    timeRemaining <= 10 ? 'text-red-600' : 'text-yellow-600'
-                  }`}>
-                    {formatTime(timeRemaining)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Challenge Description */}
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Challenge Description</h3>
+          <div style={styles.descriptionBox}>
+            <pre style={styles.descriptionText}>
+              {challenge.challenge?.description || 'No description available.'}
+            </pre>
+          </div>
+        </div>
 
-          {/* Challenge Description */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Challenge Description</h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <pre className="whitespace-pre-wrap text-sm font-sans">
-                {challenge.challenge.description}
+        {/* Test Cases */}
+        {challenge.challenge?.test_cases && (
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>Test Cases</h3>
+            <div style={styles.testCasesBox}>
+              <pre style={styles.codeText}>
+                {typeof challenge.challenge.test_cases === 'string' 
+                  ? challenge.challenge.test_cases 
+                  : JSON.stringify(challenge.challenge.test_cases, null, 2)
+                }
               </pre>
             </div>
           </div>
+        )}
 
-          {/* Test Cases (if available) */}
-          {challenge.challenge.test_cases && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3">Test Cases</h3>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <pre className="whitespace-pre-wrap text-sm font-mono">
-                  {typeof challenge.challenge.test_cases === 'string' 
-                    ? challenge.challenge.test_cases 
-                    : JSON.stringify(challenge.challenge.test_cases, null, 2)
-                  }
-                </pre>
-              </div>
-            </div>
-          )}
-
-          {/* Code Editor */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold mb-3">Your Solution</h3>
-            <textarea
-              value={submittedCode}
-              onChange={(e) => setSubmittedCode(e.target.value)}
-              className="w-full h-64 p-4 font-mono text-sm border border-gray-300 rounded-lg resize-y focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Write your solution here..."
-              disabled={isSubmitting || (result && result.evaluation)}
-            />
-            <div className="mt-2 text-sm text-gray-500">
-              Character count: {submittedCode.length}
-            </div>
+        {/* Code Editor */}
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Your Solution</h3>
+          <textarea
+            value={submittedCode}
+            onChange={(e) => setSubmittedCode(e.target.value)}
+            style={styles.codeEditor}
+            placeholder="Write your solution here..."
+            disabled={isSubmitting || (result && result.evaluation)}
+          />
+          <div style={styles.characterCount}>
+            Character count: {submittedCode.length}
           </div>
+        </div>
 
-          {/* Error Display */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700">{error}</p>
+        {/* Error Display */}
+        {error && (
+          <div style={styles.errorBox}>{error}</div>
+        )}
+
+        {/* Result Display */}
+        {result && (
+          <div style={{
+            ...styles.resultBox,
+            backgroundColor: result.passed ? '#d4edda' : '#f8d7da',
+            borderColor: result.passed ? '#c3e6cb' : '#f5c6cb',
+            color: result.passed ? '#155724' : '#721c24'
+          }}>
+            <div style={styles.resultHeader}>
+              <span style={styles.resultTitle}>
+                {result.passed ? '✅ Challenge Passed!' : '❌ Challenge Not Passed'}
+              </span>
+              <span style={{
+                ...styles.resultScore,
+                color: result.passed ? '#155724' : '#721c24'
+              }}>
+                {result.score}%
+              </span>
             </div>
-          )}
-
-          {/* Result Display */}
-          {result && (
-            <div className="mb-6">
-              <div className={`p-4 rounded-lg border ${
-                result.passed 
-                  ? 'bg-green-50 border-green-200' 
-                  : 'bg-red-50 border-red-200'
-              }`}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold">
-                    {result.passed ? '✅ Challenge Passed!' : '❌ Challenge Not Passed'}
-                  </span>
-                  <span className={`text-lg font-bold ${
-                    result.passed ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {result.score}%
-                  </span>
-                </div>
-                
-                {result.feedback && (
-                  <p className={`text-sm ${
-                    result.passed ? 'text-green-700' : 'text-red-700'
-                  }`}>
-                    {result.feedback}
-                  </p>
-                )}
-                
-                {result.projectJoined && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                    <p className="text-blue-700 font-medium">
-                      🎉 Congratulations! You have been added to the project as a member.
-                    </p>
-                  </div>
-                )}
+            
+            {result.feedback && (
+              <p style={styles.resultFeedback}>{result.feedback}</p>
+            )}
+            
+            {result.projectJoined && (
+              <div style={styles.joinedNotice}>
+                <p style={styles.joinedText}>
+                  🎉 Congratulations! You have been added to the project as a member.
+                </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* Action Buttons */}
+        {/* Action Buttons */}
+        <div style={styles.actionButtons}>
           {!startedAt && !result && (
-            <div className="flex gap-3">
-              <button
-                onClick={handleStartChallenge}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loading || isSubmitting}
-              >
-                Start Challenge
-              </button>
-            </div>
+            <button
+              onClick={handleStartChallenge}
+              disabled={loading || isSubmitting}
+              style={{
+                ...styles.startButton,
+                opacity: (loading || isSubmitting) ? 0.6 : 1
+              }}
+            >
+              Start Challenge
+            </button>
           )}
 
           {startedAt && !result && (
-            <div className="flex gap-3">
-              <button
-                onClick={handleSubmit}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Solution'}
-              </button>
-            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              style={{
+                ...styles.submitButton,
+                opacity: isSubmitting ? 0.6 : 1
+              }}
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Solution'}
+            </button>
           )}
 
           {result && (
-            <div className="flex gap-3">
+            <>
               {onClose && (
-                <button
-                  onClick={onClose}
-                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                >
-                  Close
-                </button>
+                <button onClick={onClose} style={styles.closeButton}>Close</button>
               )}
               
               {!result.projectJoined && (
                 <button
                   onClick={() => window.location.reload()}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  style={styles.retryLaterButton}
                 >
                   Try Again Later
                 </button>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
     </div>
   );
 };
+
+const styles = {
+  container: {
+    maxWidth: '900px',
+    margin: '0 auto',
+    padding: '20px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    backgroundColor: '#fff',
+    borderRadius: '12px',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    border: '1px solid #e5e7eb'
+  },
+
+  centerContent: {
+    textAlign: 'center',
+    padding: '60px 20px'
+  },
+
+  spinner: {
+    width: '40px',
+    height: '40px',
+    border: '4px solid #f3f4f6',
+    borderTop: '4px solid #3b82f6',
+    borderRadius: '50%',
+    animation: 'spin 1s linear infinite',
+    margin: '0 auto 20px'
+  },
+
+  loadingTitle: {
+    fontSize: '20px',
+    fontWeight: '600',
+    color: '#1f2937',
+    margin: '0 0 8px 0'
+  },
+
+  loadingText: {
+    color: '#6b7280',
+    fontSize: '16px'
+  },
+
+  errorIcon: {
+    fontSize: '48px',
+    marginBottom: '16px'
+  },
+
+  errorTitle: {
+    color: '#dc2626',
+    fontSize: '20px',
+    fontWeight: '600',
+    marginBottom: '8px'
+  },
+
+  errorMessage: {
+    color: '#6b7280',
+    marginBottom: '20px',
+    fontSize: '14px'
+  },
+
+  debugInfo: {
+    backgroundColor: '#f9fafb',
+    padding: '12px',
+    borderRadius: '6px',
+    marginBottom: '20px',
+    fontSize: '12px',
+    color: '#6b7280',
+    textAlign: 'left'
+  },
+
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '10px 20px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+
+  warningIcon: {
+    fontSize: '48px',
+    marginBottom: '16px',
+    color: '#f59e0b'
+  },
+
+  warningTitle: {
+    color: '#1f2937',
+    fontSize: '20px',
+    fontWeight: '600',
+    marginBottom: '8px'
+  },
+
+  warningMessage: {
+    color: '#6b7280',
+    marginBottom: '12px'
+  },
+
+  nextAttemptText: {
+    color: '#6b7280',
+    fontSize: '12px',
+    marginBottom: '20px'
+  },
+
+  emptyIcon: {
+    fontSize: '48px',
+    marginBottom: '16px',
+    color: '#6b7280'
+  },
+
+  emptyTitle: {
+    color: '#1f2937',
+    fontSize: '20px',
+    fontWeight: '600',
+    marginBottom: '8px'
+  },
+
+  emptyMessage: {
+    color: '#6b7280',
+    marginBottom: '20px'
+  },
+
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '30px',
+    paddingBottom: '20px',
+    borderBottom: '2px solid #e5e7eb'
+  },
+
+  headerContent: {
+    flex: 1
+  },
+
+  title: {
+    color: '#1f2937',
+    fontSize: '28px',
+    fontWeight: '700',
+    marginBottom: '8px'
+  },
+
+  subtitle: {
+    color: '#6b7280',
+    fontSize: '16px'
+  },
+
+  closeIcon: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '4px'
+  },
+
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px'
+  },
+
+  infoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '16px'
+  },
+
+  infoCard: {
+    backgroundColor: '#f9fafb',
+    padding: '20px',
+    borderRadius: '8px',
+    textAlign: 'center',
+    border: '1px solid #e5e7eb'
+  },
+
+  infoLabel: {
+    color: '#6b7280',
+    fontSize: '14px',
+    fontWeight: '500',
+    marginBottom: '8px'
+  },
+
+  infoValue: {
+    color: '#1f2937',
+    fontSize: '18px',
+    fontWeight: '600',
+    textTransform: 'capitalize'
+  },
+
+  timerContainer: {
+    backgroundColor: '#fef3c7',
+    border: '1px solid #fde68a',
+    borderRadius: '8px',
+    padding: '16px'
+  },
+
+  timerContent: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+
+  timerLabel: {
+    color: '#92400e',
+    fontWeight: '500'
+  },
+
+  timerValue: {
+    fontSize: '20px',
+    fontWeight: '700',
+    fontFamily: 'monospace'
+  },
+
+  section: {
+    marginBottom: '8px'
+  },
+
+  sectionTitle: {
+    color: '#1f2937',
+    fontSize: '18px',
+    fontWeight: '600',
+    marginBottom: '12px'
+  },
+
+  descriptionBox: {
+    backgroundColor: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '20px'
+  },
+
+  descriptionText: {
+    color: '#1f2937',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    margin: 0,
+    whiteSpace: 'pre-wrap',
+    fontFamily: 'inherit'
+  },
+
+  testCasesBox: {
+    backgroundColor: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '20px',
+    overflow: 'auto'
+  },
+
+  codeText: {
+    color: '#1f2937',
+    fontSize: '13px',
+    lineHeight: '1.5',
+    margin: 0,
+    fontFamily: 'Monaco, Consolas, "Ubuntu Mono", monospace'
+  },
+
+  codeEditor: {
+    width: '100%',
+    minHeight: '300px',
+    padding: '16px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontFamily: 'Monaco, Consolas, "Ubuntu Mono", monospace',
+    lineHeight: '1.5',
+    resize: 'vertical',
+    outline: 'none',
+    backgroundColor: '#fff'
+  },
+
+  characterCount: {
+    color: '#6b7280',
+    fontSize: '12px',
+    marginTop: '8px',
+    textAlign: 'right'
+  },
+
+  errorBox: {
+    backgroundColor: '#fef2f2',
+    color: '#991b1b',
+    padding: '12px 16px',
+    borderRadius: '6px',
+    border: '1px solid #fecaca'
+  },
+
+  resultBox: {
+    padding: '20px',
+    borderRadius: '8px',
+    border: '1px solid'
+  },
+
+  resultHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px'
+  },
+
+  resultTitle: {
+    fontSize: '16px',
+    fontWeight: '600'
+  },
+
+  resultScore: {
+    fontSize: '20px',
+    fontWeight: '700'
+  },
+
+  resultFeedback: {
+    fontSize: '14px',
+    margin: '8px 0'
+  },
+
+  joinedNotice: {
+    marginTop: '16px',
+    padding: '12px',
+    backgroundColor: '#dbeafe',
+    border: '1px solid #bfdbfe',
+    borderRadius: '6px'
+  },
+
+  joinedText: {
+    color: '#1e40af',
+    fontWeight: '500',
+    margin: 0
+  },
+
+  actionButtons: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    paddingTop: '20px',
+    borderTop: '1px solid #e5e7eb'
+  },
+
+  startButton: {
+    backgroundColor: '#10b981',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+
+  submitButton: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+
+  closeButton: {
+    backgroundColor: '#6b7280',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+
+  retryLaterButton: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '12px 24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  }
+};
+
+// Add CSS for spinner animation
+const styleSheet = document.createElement("style");
+styleSheet.innerText = `
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  textarea:focus {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+  }
+  
+  button:hover {
+    opacity: 0.9 !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+  }
+  
+  button:disabled {
+    cursor: not-allowed !important;
+    transform: none !important;
+  }
+`;
+document.head.appendChild(styleSheet);
 
 export default ProjectChallengeInterface;
