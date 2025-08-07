@@ -18,16 +18,75 @@ class ChallengeAPI {
   }
 
   /**
-   * Get all challenges with filters
+   * Get all challenges with filters - FIXED with proper parameter handling
    * @param {Object} filters - Filter parameters
    * @returns {Promise} - Array of challenges
    */
   static async getChallenges(filters = {}) {
     try {
-      const response = await api.get('/challenges', { params: filters });
+      // Clean and validate parameters before sending
+      const cleanParams = {};
+      
+      if (filters.difficulty_level && filters.difficulty_level !== '') {
+        cleanParams.difficulty_level = filters.difficulty_level;
+      }
+      
+      if (filters.programming_language_id && filters.programming_language_id !== '') {
+        const langId = parseInt(filters.programming_language_id);
+        if (!isNaN(langId) && langId > 0) {
+          cleanParams.programming_language_id = langId;
+        }
+      }
+      
+      if (filters.search && filters.search.trim() !== '') {
+        cleanParams.search = filters.search.trim();
+      }
+
+      // Add pagination defaults if not provided
+      if (!cleanParams.page) cleanParams.page = 1;
+      if (!cleanParams.limit) cleanParams.limit = 20;
+
+      const response = await api.get('/challenges', { params: cleanParams });
       return response.data;
     } catch (error) {
       console.error('Error fetching challenges:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Admin: Get all challenges (admin route) - FIXED
+   * @param {Object} filters - Filter parameters
+   * @returns {Promise} - Array of challenges for admin
+   */
+  static async getAdminChallenges(filters = {}) {
+    try {
+      // Clean and validate parameters before sending
+      const cleanParams = {};
+      
+      if (filters.difficulty_level && filters.difficulty_level !== '') {
+        cleanParams.difficulty_level = filters.difficulty_level;
+      }
+      
+      if (filters.programming_language_id && filters.programming_language_id !== '') {
+        const langId = parseInt(filters.programming_language_id);
+        if (!isNaN(langId) && langId > 0) {
+          cleanParams.programming_language_id = langId;
+        }
+      }
+      
+      if (filters.search && filters.search.trim() !== '') {
+        cleanParams.search = filters.search.trim();
+      }
+
+      // Add pagination defaults if not provided
+      if (!cleanParams.page) cleanParams.page = 1;
+      if (!cleanParams.limit) cleanParams.limit = 20;
+
+      const response = await api.get('/admin/challenges', { params: cleanParams });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching admin challenges:', error);
       throw error;
     }
   }
@@ -86,7 +145,20 @@ class ChallengeAPI {
    */
   static async getChallengesByLanguage(languageId, filters = {}) {
     try {
-      const response = await api.get(`/challenges/language/${languageId}`, { params: filters });
+      const cleanParams = {};
+      
+      if (filters.difficulty_level && filters.difficulty_level !== '') {
+        cleanParams.difficulty_level = filters.difficulty_level;
+      }
+      
+      if (filters.search && filters.search.trim() !== '') {
+        cleanParams.search = filters.search.trim();
+      }
+
+      if (!cleanParams.page) cleanParams.page = 1;
+      if (!cleanParams.limit) cleanParams.limit = 20;
+
+      const response = await api.get(`/challenges/language/${languageId}`, { params: cleanParams });
       return response.data;
     } catch (error) {
       console.error('Error fetching challenges by language:', error);
@@ -97,11 +169,16 @@ class ChallengeAPI {
   /**
    * Get user's challenge attempts
    * @param {Object} params - Parameters (page, limit, etc.)
-   * @returns {Promise} - User's attempts
+   * @returns {Promise} - Array of user attempts
    */
   static async getUserAttempts(params = {}) {
     try {
-      const response = await api.get('/challenges/user/attempts', { params });
+      const cleanParams = {
+        page: params.page || 1,
+        limit: params.limit || 20
+      };
+
+      const response = await api.get('/challenges/attempts', { params: cleanParams });
       return response.data;
     } catch (error) {
       console.error('Error fetching user attempts:', error);
@@ -111,11 +188,11 @@ class ChallengeAPI {
 
   /**
    * Get user's challenge statistics
-   * @returns {Promise} - User's challenge stats
+   * @returns {Promise} - User challenge stats
    */
   static async getUserStats() {
     try {
-      const response = await api.get('/challenges/user/stats');
+      const response = await api.get('/challenges/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -130,7 +207,7 @@ class ChallengeAPI {
    */
   static async getAttemptDetails(attemptId) {
     try {
-      const response = await api.get(`/challenges/attempt/${attemptId}`);
+      const response = await api.get(`/challenges/attempts/${attemptId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching attempt details:', error);
@@ -139,60 +216,36 @@ class ChallengeAPI {
   }
 
   /**
-   * Get project challenge for joining
-   * @param {string} projectId - Project ID
-   * @returns {Promise} - Challenge for project
-   */
-  static async getProjectChallenge(projectId) {
-    try {
-      const response = await api.get(`/challenges/project/${projectId}/challenge`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching project challenge:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Check if user can attempt a project challenge
-   * @param {string} projectId - Project ID
-   * @returns {Promise} - Can attempt status
-   */
-  static async canAttemptChallenge(projectId) {
-    try {
-      const response = await api.get(`/challenges/project/${projectId}/can-attempt`);
-      return response.data;
-    } catch (error) {
-      console.error('Error checking can attempt:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Submit challenge attempt for project
-   * @param {string} projectId - Project ID
-   * @param {Object} attemptData - Attempt data
-   * @returns {Promise} - Attempt result
-   */
-  static async submitChallengeAttempt(projectId, attemptData) {
-    try {
-      const response = await api.post(`/challenges/project/${projectId}/attempt`, attemptData);
-      return response.data;
-    } catch (error) {
-      console.error('Error submitting challenge attempt:', error);
-      throw error;
-    }
-  }
-
-  // FIXED: Add missing getProgrammingLanguages method
-  /**
-   * Get all programming languages
+   * Get all programming languages - FIXED with multiple fallback endpoints
    * @returns {Promise} - Array of programming languages
    */
   static async getProgrammingLanguages() {
     try {
-      const response = await api.get('/onboarding/programming-languages');
-      return response.data;
+      // Try multiple endpoints in order of preference
+      const endpoints = [
+        '/onboarding/programming-languages',
+        '/suggestions/programming-languages',
+        '/admin/programming-languages'
+      ];
+
+      let lastError;
+      for (const endpoint of endpoints) {
+        try {
+          const response = await api.get(endpoint);
+          // Handle different response structures
+          return {
+            success: true,
+            data: response.data?.data || response.data?.languages || response.data || []
+          };
+        } catch (error) {
+          lastError = error;
+          console.log(`Endpoint ${endpoint} failed, trying next...`);
+          continue;
+        }
+      }
+
+      // If all endpoints fail, throw the last error
+      throw lastError;
     } catch (error) {
       console.error('Error fetching programming languages:', error);
       throw error;
@@ -205,8 +258,28 @@ class ChallengeAPI {
    */
   static async getTopics() {
     try {
-      const response = await api.get('/onboarding/topics');
-      return response.data;
+      // Try multiple endpoints
+      const endpoints = [
+        '/onboarding/topics',
+        '/suggestions/topics'
+      ];
+
+      let lastError;
+      for (const endpoint of endpoints) {
+        try {
+          const response = await api.get(endpoint);
+          return {
+            success: true,
+            data: response.data?.data || response.data?.topics || response.data || []
+          };
+        } catch (error) {
+          lastError = error;
+          console.log(`Topic endpoint ${endpoint} failed, trying next...`);
+          continue;
+        }
+      }
+
+      throw lastError;
     } catch (error) {
       console.error('Error fetching topics:', error);
       throw error;
@@ -214,16 +287,47 @@ class ChallengeAPI {
   }
 
   /**
-   * Admin: Get all challenges (admin route)
-   * @param {Object} filters - Filter parameters
-   * @returns {Promise} - Array of challenges for admin
+   * Get project challenge (for recruitment)
+   * @param {string} projectId - Project ID
+   * @returns {Promise} - Project challenge details
    */
-  static async getAdminChallenges(filters = {}) {
+  static async getProjectChallenge(projectId) {
     try {
-      const response = await api.get('/admin/challenges', { params: filters });
+      const response = await api.get(`/projects/${projectId}/challenge`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching admin challenges:', error);
+      console.error('Error fetching project challenge:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user can attempt challenge
+   * @param {string} projectId - Project ID
+   * @returns {Promise} - Attempt eligibility
+   */
+  static async canAttemptChallenge(projectId) {
+    try {
+      const response = await api.get(`/projects/${projectId}/can-attempt`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking challenge attempt eligibility:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit challenge attempt
+   * @param {string} projectId - Project ID
+   * @param {Object} attemptData - Attempt submission data
+   * @returns {Promise} - Submission result
+   */
+  static async submitChallengeAttempt(projectId, attemptData) {
+    try {
+      const response = await api.post(`/projects/${projectId}/attempt`, attemptData);
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting challenge attempt:', error);
       throw error;
     }
   }
