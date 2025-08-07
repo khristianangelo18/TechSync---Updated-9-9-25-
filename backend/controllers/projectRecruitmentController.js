@@ -1,10 +1,5 @@
-// backend/controllers/projectRecruitmentController.js
-const { createClient } = require('@supabase/supabase-js');
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+// backend/controllers/projectRecruitmentController.js - COMPLETELY FIXED
+const supabase = require('../config/supabase');
 
 // GET /api/challenges/project/:projectId/challenge
 const getProjectChallenge = async (req, res) => {
@@ -41,11 +36,11 @@ const getProjectChallenge = async (req, res) => {
 
     console.log(`Found project: ${project.title}`);
 
-    // Step 2: Get project languages
+    // Step 2: Get project languages - FIXED: using language_id
     const { data: projectLanguages, error: languageError } = await supabase
       .from('project_languages')
       .select(`
-        programming_language_id,
+        language_id,
         is_primary,
         programming_languages (
           id,
@@ -80,9 +75,9 @@ const getProjectChallenge = async (req, res) => {
       });
     }
 
-    // Step 3: Process project languages
+    // Step 3: Process project languages - FIXED: using language_id
     const validLanguages = project.project_languages.filter(
-      pl => pl.programming_language_id && pl.programming_languages
+      pl => pl.language_id && pl.programming_languages
     );
 
     if (validLanguages.length === 0) {
@@ -98,7 +93,7 @@ const getProjectChallenge = async (req, res) => {
       });
     }
 
-    const projectLanguageIds = validLanguages.map(pl => pl.programming_language_id);
+    const projectLanguageIds = validLanguages.map(pl => pl.language_id);
     const primaryLanguage = validLanguages.find(pl => pl.is_primary)?.programming_languages ||
                             validLanguages[0]?.programming_languages;
 
@@ -240,7 +235,7 @@ const getProjectChallenge = async (req, res) => {
   }
 };
 
-// GET /api/challenges/project/:projectId/can-attempt
+// GET /api/challenges/project/:projectId/can-attempt - COMPLETELY FIXED
 const canAttemptChallenge = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -274,16 +269,16 @@ const canAttemptChallenge = async (req, res) => {
       });
     }
 
-    // Check recent attempts (limit: 1 attempt per hour)
+    // FIXED: Check recent attempts using correct table name and column
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     
     const { data: recentAttempts, error: attemptError } = await supabase
-      .from('coding_attempts')
-      .select('attempted_at')
+      .from('challenge_attempts') // FIXED: was 'coding_attempts'
+      .select('started_at') // FIXED: was 'attempted_at'
       .eq('project_id', projectId)
       .eq('user_id', userId)
-      .gte('attempted_at', oneHourAgo)
-      .order('attempted_at', { ascending: false })
+      .gte('started_at', oneHourAgo) // FIXED: was 'attempted_at'
+      .order('started_at', { ascending: false }) // FIXED: was 'attempted_at'
       .limit(1);
 
     if (attemptError) {
@@ -295,7 +290,7 @@ const canAttemptChallenge = async (req, res) => {
     }
 
     if (recentAttempts && recentAttempts.length > 0) {
-      const lastAttempt = new Date(recentAttempts[0].attempted_at);
+      const lastAttempt = new Date(recentAttempts[0].started_at); // FIXED: was attempted_at
       const nextAttemptTime = new Date(lastAttempt.getTime() + 60 * 60 * 1000);
       
       return res.json({
@@ -345,7 +340,7 @@ const canAttemptChallenge = async (req, res) => {
   }
 };
 
-// POST /api/challenges/project/:projectId/attempt
+// POST /api/challenges/project/:projectId/attempt - COMPLETELY FIXED
 const submitChallengeAttempt = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -366,8 +361,6 @@ const submitChallengeAttempt = async (req, res) => {
     }
 
     // Check if user can attempt (reuse logic)
-    const canAttemptResult = await canAttemptChallenge(req, { json: () => {} });
-    // Since we can't easily access the result, let's do a quick check
     const { data: membership } = await supabase
       .from('project_members')
       .select('*')
@@ -386,14 +379,15 @@ const submitChallengeAttempt = async (req, res) => {
     const score = calculateCodeScore(submittedCode);
     const passed = score >= 70; // 70% threshold
 
-    // Store the attempt
+    // FIXED: Store the attempt using correct table name and columns
     const attemptData = {
       user_id: userId,
       project_id: projectId,
       submitted_code: submittedCode,
       score: score,
-      passed: passed,
-      attempted_at: new Date().toISOString()
+      status: passed ? 'passed' : 'failed', // FIXED: using status instead of passed
+      started_at: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
+      submitted_at: new Date().toISOString()
     };
 
     // Only add challenge_id if it's not a temporary challenge
@@ -402,7 +396,7 @@ const submitChallengeAttempt = async (req, res) => {
     }
 
     const { data: attempt, error: attemptError } = await supabase
-      .from('coding_attempts')
+      .from('challenge_attempts') // FIXED: was 'coding_attempts'
       .insert(attemptData)
       .select()
       .single();
@@ -427,7 +421,8 @@ const submitChallengeAttempt = async (req, res) => {
           project_id: projectId,
           user_id: userId,
           joined_at: new Date().toISOString(),
-          role: 'member'
+          role: 'member',
+          status: 'active'
         })
         .select()
         .single();
@@ -461,7 +456,8 @@ const submitChallengeAttempt = async (req, res) => {
         passed: passed,
         projectJoined: projectJoined,
         feedback: generateFeedback(score, passed),
-        membership: membershipData
+        membership: membershipData,
+        status: passed ? 'passed' : 'failed'
       }
     };
 

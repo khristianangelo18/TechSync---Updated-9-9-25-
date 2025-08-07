@@ -1,4 +1,4 @@
-// backend/controllers/projectController.js
+// backend/controllers/projectController.js - FINAL COMPLETE VERSION
 const supabase = require('../config/supabase');
 
 // Create new project
@@ -65,83 +65,139 @@ const createProject = async (req, res) => {
 
     // Handle programming languages
     if (programming_languages && programming_languages.length > 0) {
-      for (const langName of programming_languages) {
-        // Get or create programming language
-        let { data: language } = await supabase
-          .from('programming_languages')
-          .select('id')
-          .eq('name', langName)
-          .single();
-
-        if (!language) {
-          const { data: newLang, error: langError } = await supabase
+      for (const langData of programming_languages) {
+        let languageId;
+        
+        // If it's a string, find or create the language
+        if (typeof langData === 'string') {
+          let { data: language } = await supabase
             .from('programming_languages')
-            .insert({ name: langName, is_active: true })
-            .select()
+            .select('id')
+            .eq('name', langData)
             .single();
 
-          if (langError) {
-            console.error('Error creating programming language:', langError);
-            continue;
+          if (!language) {
+            const { data: newLang, error: langError } = await supabase
+              .from('programming_languages')
+              .insert({ 
+                name: langData, 
+                is_active: true,
+                created_by: userId
+              })
+              .select()
+              .single();
+
+            if (langError) {
+              console.error('Error creating language:', langError);
+              continue;
+            }
+            language = newLang;
           }
-          language = newLang;
+          languageId = language.id;
+        } else {
+          // If it's an object with id
+          languageId = langData.id || langData.language_id;
         }
 
-        // Link to project
-        await supabase
+        // FIXED: Add to project_languages with correct column name
+        const { error: projLangError } = await supabase
           .from('project_languages')
           .insert({
             project_id: project.id,
-            programming_language_id: language.id,
-            required_level: 'beginner',
-            is_primary: true
+            language_id: languageId, // FIXED: was programming_language_id
+            is_primary: langData.is_primary || false,
+            required_level: langData.required_level || 'beginner'
           });
+
+        if (projLangError) {
+          console.error('Error adding project language:', projLangError);
+        }
       }
     }
 
     // Handle topics
     if (topics && topics.length > 0) {
-      for (const topicName of topics) {
-        // Get or create topic
-        let { data: topic } = await supabase
-          .from('topics')
-          .select('id')
-          .eq('name', topicName)
-          .single();
-
-        if (!topic) {
-          const { data: newTopic, error: topicError } = await supabase
+      for (const topicData of topics) {
+        let topicId;
+        
+        if (typeof topicData === 'string') {
+          let { data: topic } = await supabase
             .from('topics')
-            .insert({ 
-              name: topicName, 
-              category: 'general',
-              is_active: true 
-            })
-            .select()
+            .select('id')
+            .eq('name', topicData)
             .single();
 
-          if (topicError) {
-            console.error('Error creating topic:', topicError);
-            continue;
+          if (!topic) {
+            const { data: newTopic, error: topicError } = await supabase
+              .from('topics')
+              .insert({ 
+                name: topicData, 
+                is_active: true,
+                created_by: userId
+              })
+              .select()
+              .single();
+
+            if (topicError) {
+              console.error('Error creating topic:', topicError);
+              continue;
+            }
+            topic = newTopic;
           }
-          topic = newTopic;
+          topicId = topic.id;
+        } else {
+          topicId = topicData.id || topicData.topic_id;
         }
 
-        // Link to project
-        await supabase
+        const { error: projTopicError } = await supabase
           .from('project_topics')
           .insert({
             project_id: project.id,
-            topic_id: topic.id,
-            is_primary: true
+            topic_id: topicId,
+            is_primary: topicData.is_primary || false
           });
+
+        if (projTopicError) {
+          console.error('Error adding project topic:', projTopicError);
+        }
       }
+    }
+
+    // Fetch the complete project with relationships
+    const { data: completeProject, error: fetchError } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        project_languages (
+          language_id,
+          is_primary,
+          required_level,
+          programming_languages (id, name)
+        ),
+        project_topics (
+          topic_id,
+          is_primary,
+          topics (id, name, category)
+        ),
+        project_members (
+          user_id,
+          role,
+          status,
+          joined_at,
+          users (id, username, full_name)
+        )
+      `)
+      .eq('id', project.id)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching complete project:', fetchError);
     }
 
     res.status(201).json({
       success: true,
       message: 'Project created successfully',
-      data: { project }
+      data: { project: completeProject || project }
     });
 
   } catch (error) {
@@ -160,9 +216,11 @@ const getProjects = async (req, res) => {
     const {
       page = 1,
       limit = 10,
-      status = 'recruiting',
+      status,
       difficulty_level,
       required_experience_level,
+      programming_language,
+      topic,
       search
     } = req.query;
 
@@ -172,35 +230,31 @@ const getProjects = async (req, res) => {
       .from('projects')
       .select(`
         *,
-        users:owner_id (
-          id,
-          username,
-          full_name,
-          avatar_url
-        ),
         project_languages (
-          programming_languages (
-            id,
-            name,
-            description
-          ),
+          language_id,
+          is_primary,
           required_level,
-          is_primary
+          programming_languages (id, name)
         ),
         project_topics (
-          topics (
-            id,
-            name,
-            category
-          ),
-          is_primary
+          topic_id,
+          is_primary,
+          topics (id, name, category)
+        ),
+        project_members!inner (
+          user_id,
+          role,
+          users (id, username, full_name, avatar_url)
         )
       `)
-      .eq('status', status)
       .range(offset, offset + limit - 1)
       .order('created_at', { ascending: false });
 
     // Apply filters
+    if (status) {
+      query = query.eq('status', status);
+    }
+
     if (difficulty_level) {
       query = query.eq('difficulty_level', difficulty_level);
     }
@@ -254,43 +308,26 @@ const getProjectById = async (req, res) => {
       .from('projects')
       .select(`
         *,
-        users:owner_id (
-          id,
-          username,
-          full_name,
-          avatar_url,
-          years_experience
-        ),
         project_languages (
-          programming_languages (
-            id,
-            name,
-            description
-          ),
+          language_id,
+          is_primary,
           required_level,
-          is_primary
+          programming_languages (id, name)
         ),
         project_topics (
-          topics (
-            id,
-            name,
-            category,
-            description
-          ),
-          is_primary
+          topic_id,
+          is_primary,
+          topics (id, name, category)
         ),
         project_members (
-          users (
-            id,
-            username,
-            full_name,
-            avatar_url
-          ),
+          user_id,
           role,
           status,
           joined_at,
-          contribution_score
-        )
+          contribution_score,
+          users (id, username, full_name, avatar_url)
+        ),
+        users:owner_id (id, username, full_name, avatar_url)
       `)
       .eq('id', id)
       .single();
@@ -321,40 +358,37 @@ const getProjectById = async (req, res) => {
 const getUserProjects = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { role = 'all' } = req.query; // 'owner', 'member', or 'all'
+    const { role, status } = req.query;
 
     let query = supabase
       .from('project_members')
       .select(`
-        project_id,
-        role,
-        status,
-        joined_at,
+        *,
         projects (
           *,
-          users:owner_id (
-            id,
-            username,
-            full_name
-          ),
           project_languages (
-            programming_languages (name),
-            is_primary
+            language_id,
+            is_primary,
+            programming_languages (id, name)
           ),
           project_topics (
-            topics (name),
-            is_primary
+            topic_id,
+            is_primary,
+            topics (id, name, category)
           )
         )
       `)
-      .eq('user_id', userId)
-      .eq('status', 'active');
+      .eq('user_id', userId);
 
-    if (role !== 'all') {
+    if (role) {
       query = query.eq('role', role);
     }
 
-    const { data: memberProjects, error } = await query;
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    const { data: memberships, error } = await query;
 
     if (error) {
       return res.status(500).json({
@@ -364,10 +398,14 @@ const getUserProjects = async (req, res) => {
       });
     }
 
-    const projects = memberProjects.map(mp => ({
-      ...mp.projects,
-      user_role: mp.role,
-      joined_at: mp.joined_at
+    const projects = memberships.map(membership => ({
+      ...membership.projects,
+      membership: {
+        role: membership.role,
+        status: membership.status,
+        joined_at: membership.joined_at,
+        contribution_score: membership.contribution_score
+      }
     }));
 
     res.json({
@@ -385,11 +423,95 @@ const getUserProjects = async (req, res) => {
   }
 };
 
-// Delete project (new function)
+// Update project
+const updateProject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const updateData = req.body;
+
+    // Check if project exists and user is the owner
+    const { data: existingProject, error: findError } = await supabase
+      .from('projects')
+      .select('id, owner_id')
+      .eq('id', id)
+      .single();
+
+    if (findError || !existingProject) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    if (existingProject.owner_id !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only update your own projects'
+      });
+    }
+
+    // Update the project
+    const { data: project, error: updateError } = await supabase
+      .from('projects')
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select(`
+        *,
+        project_languages (
+          language_id,
+          is_primary,
+          required_level,
+          programming_languages (id, name)
+        ),
+        project_topics (
+          topic_id,
+          is_primary,
+          topics (id, name, category)
+        ),
+        project_members (
+          user_id,
+          role,
+          status,
+          users (id, username, full_name)
+        )
+      `)
+      .single();
+
+    if (updateError) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to update project',
+        error: updateError.message
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Project updated successfully',
+      data: { project }
+    });
+
+  } catch (error) {
+    console.error('Update project error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Delete project (only by owner) - COMPLETELY FIXED
 const deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
+
+    console.log(`Delete project request: ${id} by user: ${userId}`);
 
     // First, verify that the user is the owner of the project
     const { data: project, error: projectError } = await supabase
@@ -413,11 +535,83 @@ const deleteProject = async (req, res) => {
       });
     }
 
+    console.log(`Deleting project: ${project.title} (${id})`);
+
     // Delete related records first (due to foreign key constraints)
     
+    // Get project tasks first (needed for dependencies)
+    const { data: projectTasks } = await supabase
+      .from('project_tasks')
+      .select('id')
+      .eq('project_id', id);
+
+    console.log(`Found ${projectTasks?.length || 0} project tasks`);
+
+    // Delete task dependencies first
+    if (projectTasks && projectTasks.length > 0) {
+      const taskIds = projectTasks.map(task => task.id);
+      
+      await supabase
+        .from('task_dependencies')
+        .delete()
+        .in('task_id', taskIds);
+        
+      await supabase
+        .from('task_dependencies')
+        .delete()
+        .in('depends_on_task_id', taskIds);
+
+      // Delete task submissions
+      await supabase
+        .from('task_submissions')
+        .delete()
+        .in('task_id', taskIds);
+    }
+
+    // Get project files for permissions cleanup
+    const { data: projectFiles } = await supabase
+      .from('project_files')
+      .select('id')
+      .eq('project_id', id);
+
+    // Delete file permissions
+    if (projectFiles && projectFiles.length > 0) {
+      const fileIds = projectFiles.map(file => file.id);
+      
+      await supabase
+        .from('file_permissions')
+        .delete()
+        .in('file_id', fileIds);
+    }
+
+    // Get chat rooms for message cleanup
+    const { data: chatRooms } = await supabase
+      .from('chat_rooms')
+      .select('id')
+      .eq('project_id', id);
+
+    // Delete chat messages first
+    if (chatRooms && chatRooms.length > 0) {
+      const roomIds = chatRooms.map(room => room.id);
+      
+      await supabase
+        .from('chat_messages')
+        .delete()
+        .in('room_id', roomIds);
+    }
+
+    // Now delete all project-related records
+    console.log('Deleting project relationships...');
+
     // Delete project recommendations
     await supabase
       .from('project_recommendations')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete recommendation feedback
+    await supabase
+      .from('recommendation_feedback')
       .delete()
       .eq('project_id', id);
 
@@ -439,13 +633,50 @@ const deleteProject = async (req, res) => {
       .delete()
       .eq('project_id', id);
 
-    // Delete coding attempts (if any)
+    // FIXED: Delete challenge attempts using correct table name
     await supabase
-      .from('coding_attempts')
+      .from('challenge_attempts') // FIXED: was 'coding_attempts'
+      .delete()
+      .eq('project_id', id);
+
+    // Delete coding challenges
+    await supabase
+      .from('coding_challenges')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete project files
+    await supabase
+      .from('project_files')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete project tasks
+    await supabase
+      .from('project_tasks')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete chat rooms
+    await supabase
+      .from('chat_rooms')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete notifications
+    await supabase
+      .from('notifications')
+      .delete()
+      .eq('project_id', id);
+
+    // Delete user activity
+    await supabase
+      .from('user_activity')
       .delete()
       .eq('project_id', id);
 
     // Finally, delete the project itself
+    console.log('Deleting main project record...');
     const { error: deleteError } = await supabase
       .from('projects')
       .delete()
@@ -459,6 +690,8 @@ const deleteProject = async (req, res) => {
         error: deleteError.message
       });
     }
+
+    console.log(`Project "${project.title}" deleted successfully`);
 
     res.json({
       success: true,
@@ -480,5 +713,6 @@ module.exports = {
   getProjects,
   getProjectById,
   getUserProjects,
-  deleteProject // Add the new delete function
+  updateProject,
+  deleteProject
 };
