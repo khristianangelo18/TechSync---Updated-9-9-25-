@@ -316,7 +316,7 @@ const deleteChallenge = async (req, res) => {
       });
     }
 
-    // Soft delete - set is_active to false
+    // Soft delete by setting is_active to false
     const { error: deleteError } = await supabase
       .from('coding_challenges')
       .update({ 
@@ -335,7 +335,7 @@ const deleteChallenge = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Challenge "${existingChallenge.title}" has been deleted successfully`
+      message: `Challenge "${existingChallenge.title}" deleted successfully`
     });
 
   } catch (error) {
@@ -348,7 +348,7 @@ const deleteChallenge = async (req, res) => {
   }
 };
 
-// Get challenges for a specific programming language (for project joining)
+// Get challenges by programming language
 const getChallengesByLanguage = async (req, res) => {
   try {
     const { languageId } = req.params;
@@ -399,11 +399,146 @@ const getChallengesByLanguage = async (req, res) => {
   }
 };
 
+// Get user's challenge attempts
+const getUserAttempts = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query;
+    const offset = (page - 1) * limit;
+
+    const { data: attempts, error } = await supabase
+      .from('challenge_attempts') // FIXED: was 'coding_attempts'
+      .select(`
+        *,
+        coding_challenges (id, title, difficulty_level),
+        projects (id, title)
+      `)
+      .eq('user_id', userId)
+      .order('started_at', { ascending: false }) // FIXED: was 'attempted_at'
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch attempts',
+        error: error.message
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        attempts,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: attempts.length
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get user attempts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Get user's challenge statistics
+const getUserStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get attempt statistics
+    const { data: attemptStats, error: statsError } = await supabase
+      .from('challenge_attempts') // FIXED: was 'coding_attempts'
+      .select('status, score')
+      .eq('user_id', userId);
+
+    if (statsError) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch statistics',
+        error: statsError.message
+      });
+    }
+
+    const totalAttempts = attemptStats.length;
+    const passedAttempts = attemptStats.filter(a => a.status === 'passed').length;
+    const averageScore = totalAttempts > 0 
+      ? attemptStats.reduce((sum, a) => sum + (a.score || 0), 0) / totalAttempts 
+      : 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalAttempts,
+        passedAttempts,
+        passRate: totalAttempts > 0 ? (passedAttempts / totalAttempts) * 100 : 0,
+        averageScore: Math.round(averageScore * 100) / 100
+      }
+    });
+
+  } catch (error) {
+    console.error('Get user stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+// Get detailed information about a specific attempt
+const getAttemptDetails = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user.id;
+
+    const { data: attempt, error } = await supabase
+      .from('challenge_attempts') // FIXED: was 'coding_attempts'
+      .select(`
+        *,
+        coding_challenges (id, title, description, test_cases),
+        projects (id, title)
+      `)
+      .eq('id', attemptId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !attempt) {
+      return res.status(404).json({
+        success: false,
+        message: 'Attempt not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: { attempt }
+    });
+
+  } catch (error) {
+    console.error('Get attempt details error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   createChallenge,
   getChallenges,
   getChallengeById,
   updateChallenge,
   deleteChallenge,
-  getChallengesByLanguage
+  getChallengesByLanguage,
+  getUserAttempts,
+  getUserStats,
+  getAttemptDetails
 };
