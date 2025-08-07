@@ -1,4 +1,4 @@
-// backend/routes/challenges.js - FIXED VERSION
+// backend/routes/challenges.js - FIXED ROUTE ORDER
 const express = require('express');
 const router = express.Router();
 const { body, param, query, validationResult } = require('express-validator');
@@ -39,7 +39,7 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
-// Your existing validation rules - FIXED
+// Validation rules
 const createChallengeValidation = [
   body('title')
     .trim()
@@ -76,27 +76,10 @@ const createChallengeValidation = [
   body('expected_solution')
     .optional()
     .isLength({ max: 10000 })
-    .withMessage('Expected solution must be less than 10000 characters'),
-  
-  body('test_cases')
-    .optional()
-    .custom((value) => {
-      if (typeof value === 'string') {
-        try {
-          JSON.parse(value);
-        } catch (error) {
-          throw new Error('Test cases must be valid JSON');
-        }
-      }
-      return true;
-    })
+    .withMessage('Expected solution must be less than 10000 characters')
 ];
 
 const updateChallengeValidation = [
-  param('id')
-    .isUUID()
-    .withMessage('Challenge ID must be a valid UUID'),
-  
   body('title')
     .optional()
     .trim()
@@ -132,20 +115,7 @@ const updateChallengeValidation = [
   body('expected_solution')
     .optional()
     .isLength({ max: 10000 })
-    .withMessage('Expected solution must be less than 10000 characters'),
-  
-  body('test_cases')
-    .optional()
-    .custom((value) => {
-      if (typeof value === 'string') {
-        try {
-          JSON.parse(value);
-        } catch (error) {
-          throw new Error('Test cases must be valid JSON');
-        }
-      }
-      return true;
-    })
+    .withMessage('Expected solution must be less than 10000 characters')
 ];
 
 const getChallengesValidation = [
@@ -162,7 +132,7 @@ const getChallengesValidation = [
   query('difficulty_level')
     .optional()
     .custom((value) => {
-      if (value === '') return true; // Allow empty string
+      if (value === '') return true;
       return ['easy', 'medium', 'hard', 'expert'].includes(value);
     })
     .withMessage('Invalid difficulty level'),
@@ -170,7 +140,7 @@ const getChallengesValidation = [
   query('programming_language_id')
     .optional()
     .custom((value) => {
-      if (value === '' || value === undefined) return true; // Allow empty string
+      if (value === '' || value === undefined) return true;
       return Number.isInteger(parseInt(value)) && parseInt(value) > 0;
     })
     .withMessage('Programming language ID must be a positive integer'),
@@ -178,7 +148,7 @@ const getChallengesValidation = [
   query('created_by')
     .optional()
     .custom((value) => {
-      if (value === '') return true; // Allow empty string
+      if (value === '') return true;
       return value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     })
     .withMessage('Created by must be a valid UUID'),
@@ -186,7 +156,7 @@ const getChallengesValidation = [
   query('project_id')
     .optional()
     .custom((value) => {
-      if (value === '' || value === 'null') return true; // Allow empty string or 'null'
+      if (value === '' || value === 'null') return true;
       return value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     })
     .withMessage('Project ID must be a valid UUID or "null"'),
@@ -194,7 +164,7 @@ const getChallengesValidation = [
   query('search')
     .optional()
     .custom((value) => {
-      if (value === '') return true; // Allow empty string
+      if (value === '') return true;
       return value.length >= 1 && value.length <= 100;
     })
     .withMessage('Search term must be between 1 and 100 characters')
@@ -212,7 +182,6 @@ const languageIdValidation = [
     .withMessage('Language ID must be a positive integer')
 ];
 
-// NEW VALIDATION RULES FOR PROJECT RECRUITMENT - FIXED
 const projectChallengeValidation = [
   param('projectId')
     .isUUID()
@@ -244,29 +213,15 @@ const attemptIdValidation = [
     .withMessage('Attempt ID must be a valid UUID')
 ];
 
-// ============== YOUR EXISTING ROUTES ==============
+// ============== CRITICAL: SPECIFIC ROUTES MUST COME FIRST ==============
 
-// PUBLIC ROUTES (no authentication required)
-router.get('/', getChallengesValidation, handleValidationErrors, getChallenges);
-router.get('/:id', challengeIdValidation, handleValidationErrors, getChallengeById);
-router.get('/language/:languageId', languageIdValidation, handleValidationErrors, getChallengesByLanguage);
-
-// ============== NEW PROJECT RECRUITMENT ROUTES ==============
-
+// PROJECT RECRUITMENT ROUTES (MUST BE BEFORE GENERIC ROUTES)
 // Get coding challenge for a specific project (for joining)
 router.get('/project/:projectId/challenge', 
   authMiddleware,
   projectChallengeValidation,
   handleValidationErrors,
   getProjectChallenge
-);
-
-// Submit coding challenge attempt for project recruitment
-router.post('/project/:projectId/attempt',
-  authMiddleware,
-  submitAttemptValidation,
-  handleValidationErrors,
-  submitChallengeAttempt
 );
 
 // Check if user can attempt a project challenge
@@ -277,10 +232,24 @@ router.get('/project/:projectId/can-attempt',
   canAttemptChallenge
 );
 
+// Submit coding challenge attempt for project recruitment
+router.post('/project/:projectId/attempt',
+  authMiddleware,
+  submitAttemptValidation,
+  handleValidationErrors,
+  submitChallengeAttempt
+);
+
 // Get user's challenge attempts with pagination
 router.get('/user/attempts',
   authMiddleware,
   getUserAttempts
+);
+
+// Get user's challenge statistics
+router.get('/user/stats',
+  authMiddleware,
+  getUserStats
 );
 
 // Get detailed information about a specific attempt
@@ -291,13 +260,22 @@ router.get('/attempt/:attemptId',
   getAttemptDetails
 );
 
-// Get user's challenge statistics
-router.get('/user/stats',
-  authMiddleware,
-  getUserStats
+// Get challenges by language
+router.get('/language/:languageId', 
+  languageIdValidation, 
+  handleValidationErrors, 
+  getChallengesByLanguage
 );
 
-// ============== YOUR EXISTING PROTECTED ROUTES ==============
+// ============== GENERAL ROUTES (MUST COME AFTER SPECIFIC ROUTES) ==============
+
+// PUBLIC ROUTES (no authentication required)
+router.get('/', getChallengesValidation, handleValidationErrors, getChallenges);
+
+// Get challenge by ID (MUST BE LAST AMONG GET ROUTES)
+router.get('/:id', challengeIdValidation, handleValidationErrors, getChallengeById);
+
+// ============== PROTECTED ROUTES (require authentication) ==============
 router.use(authMiddleware); // Apply auth to routes below
 
 // POST /api/challenges - Create new challenge
