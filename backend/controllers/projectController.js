@@ -355,12 +355,44 @@ const getProjectById = async (req, res) => {
 };
 
 // Get user's projects
+// Get user's projects - FIXED VERSION
 const getUserProjects = async (req, res) => {
   try {
     const userId = req.user.id;
     const { role, status } = req.query;
 
-    let query = supabase
+    console.log(`Fetching projects for user: ${userId}`);
+
+    // Query 1: Get projects where user is the owner
+    const { data: ownedProjects, error: ownedError } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        project_languages (
+          language_id,
+          is_primary,
+          programming_languages (id, name)
+        ),
+        project_topics (
+          topic_id,
+          is_primary,
+          topics (id, name, category)
+        ),
+        users:owner_id (id, username, full_name, avatar_url)
+      `)
+      .eq('owner_id', userId);
+
+    if (ownedError) {
+      console.error('Error fetching owned projects:', ownedError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch owned projects',
+        error: ownedError.message
+      });
+    }
+
+    // Query 2: Get projects where user is a member (but not owner)
+    let memberQuery = supabase
       .from('project_members')
       .select(`
         *,
@@ -375,30 +407,45 @@ const getUserProjects = async (req, res) => {
             topic_id,
             is_primary,
             topics (id, name, category)
-          )
+          ),
+          users:owner_id (id, username, full_name, avatar_url)
         )
       `)
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .neq('projects.owner_id', userId); // Exclude owned projects to avoid duplicates
 
     if (role) {
-      query = query.eq('role', role);
+      memberQuery = memberQuery.eq('role', role);
     }
 
     if (status) {
-      query = query.eq('status', status);
+      memberQuery = memberQuery.eq('status', status);
     }
 
-    const { data: memberships, error } = await query;
+    const { data: memberships, error: memberError } = await memberQuery;
 
-    if (error) {
+    if (memberError) {
+      console.error('Error fetching member projects:', memberError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to fetch user projects',
-        error: error.message
+        message: 'Failed to fetch member projects',
+        error: memberError.message
       });
     }
 
-    const projects = memberships.map(membership => ({
+    // Format owned projects (user is owner)
+    const formattedOwnedProjects = (ownedProjects || []).map(project => ({
+      ...project,
+      membership: {
+        role: 'owner',
+        status: 'active',
+        joined_at: project.created_at,
+        contribution_score: 0
+      }
+    }));
+
+    // Format member projects (user is member)
+    const formattedMemberProjects = (memberships || []).map(membership => ({
       ...membership.projects,
       membership: {
         role: membership.role,
@@ -408,9 +455,16 @@ const getUserProjects = async (req, res) => {
       }
     }));
 
+    // Combine both arrays
+    const allProjects = [...formattedOwnedProjects, ...formattedMemberProjects];
+
+    console.log(`Found ${allProjects.length} projects for user ${userId}`);
+    console.log(`Owned projects: ${formattedOwnedProjects.length}`);
+    console.log(`Member projects: ${formattedMemberProjects.length}`);
+
     res.json({
       success: true,
-      data: { projects }
+      data: { projects: allProjects }
     });
 
   } catch (error) {
