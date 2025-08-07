@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Clock, Code, CheckCircle, XCircle, AlertCircle, Users, Trophy, Target } from 'lucide-react';
 
-const ProjectChallengeInterface = ({ projectId }) => {
+const ProjectChallengeInterface = ({ projectId, onClose }) => {
   const [challenge, setChallenge] = useState(null);
   const [submittedCode, setSubmittedCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,13 +36,19 @@ const ProjectChallengeInterface = ({ projectId }) => {
 
   const checkCanAttempt = async () => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/challenges/project/${projectId}/can-attempt`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       const data = await response.json();
-      setCanAttempt(data.data);
+      
+      if (response.ok) {
+        setCanAttempt(data.data);
+      } else {
+        console.error('Error checking attempt eligibility:', data.message);
+      }
     } catch (error) {
       console.error('Error checking attempt eligibility:', error);
     }
@@ -51,9 +56,10 @@ const ProjectChallengeInterface = ({ projectId }) => {
 
   const fetchChallenge = async () => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/challenges/project/${projectId}/challenge`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -88,16 +94,24 @@ const ProjectChallengeInterface = ({ projectId }) => {
     setError(null);
     
     try {
+      const token = localStorage.getItem('token');
+      const payload = {
+        submittedCode,
+        startedAt
+      };
+
+      // Add challengeId for temporary challenges
+      if (challenge?.challenge?.isTemporary) {
+        payload.challengeId = challenge.challenge.id;
+      }
+
       const response = await fetch(`/api/challenges/project/${projectId}/attempt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          submittedCode,
-          startedAt
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
@@ -110,7 +124,10 @@ const ProjectChallengeInterface = ({ projectId }) => {
       
       // Show success/failure message
       if (data.data.projectJoined) {
-        alert('🎉 Congratulations! You passed the challenge and joined the project!');
+        setTimeout(() => {
+          alert('🎉 Congratulations! You passed the challenge and joined the project!');
+          if (onClose) onClose();
+        }, 1000);
       }
       
     } catch (error) {
@@ -140,11 +157,11 @@ const ProjectChallengeInterface = ({ projectId }) => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'passed':
-        return <CheckCircle className="text-green-500" size={20} />;
+        return '✅';
       case 'failed':
-        return <XCircle className="text-red-500" size={20} />;
+        return '❌';
       default:
-        return <AlertCircle className="text-yellow-500" size={20} />;
+        return '⚠️';
     }
   };
 
@@ -173,11 +190,15 @@ const ProjectChallengeInterface = ({ projectId }) => {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+          <div className="text-red-400 text-6xl mb-4">⚠️</div>
           <h3 className="mt-2 text-sm font-medium text-gray-900">Error Loading Challenge</h3>
           <p className="mt-1 text-sm text-red-600">{error}</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              fetchChallenge();
+            }} 
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Try Again
@@ -191,13 +212,21 @@ const ProjectChallengeInterface = ({ projectId }) => {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center">
-          <AlertCircle className="mx-auto h-12 w-12 text-yellow-400" />
+          <div className="text-yellow-400 text-6xl mb-4">⚠️</div>
           <h3 className="mt-2 text-sm font-medium text-gray-900">Cannot Attempt Challenge</h3>
           <p className="mt-1 text-sm text-gray-500">{canAttempt.reason}</p>
           {canAttempt.nextAttemptAt && (
             <p className="mt-2 text-xs text-gray-400">
               Next attempt available: {new Date(canAttempt.nextAttemptAt).toLocaleString()}
             </p>
+          )}
+          {onClose && (
+            <button 
+              onClick={onClose}
+              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            >
+              Close
+            </button>
           )}
         </div>
       </div>
@@ -208,11 +237,19 @@ const ProjectChallengeInterface = ({ projectId }) => {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="text-center">
-          <Code className="mx-auto h-12 w-12 text-gray-400" />
+          <div className="text-gray-400 text-6xl mb-4">💻</div>
           <h3 className="mt-2 text-sm font-medium text-gray-900">No Challenge Available</h3>
           <p className="mt-1 text-sm text-gray-500">
             This project doesn't have an active coding challenge.
           </p>
+          {onClose && (
+            <button 
+              onClick={onClose}
+              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     );
@@ -235,34 +272,44 @@ const ProjectChallengeInterface = ({ projectId }) => {
                 {challenge.challenge.difficulty_level.toUpperCase()}
               </span>
               <span className="flex items-center">
-                <Code size={16} className="mr-1" />
-                {challenge.project.primaryLanguage}
+                💻 {challenge.project.primaryLanguage}
               </span>
               <span className="flex items-center">
-                <Users size={16} className="mr-1" />
-                {challenge.project.spotsRemaining} spots remaining
+                👥 {challenge.project.spotsRemaining} spots remaining
               </span>
             </div>
           </div>
-          {timeRemaining !== null && startedAt && !result && (
-            <div className="text-right">
-              <div className="flex items-center text-lg font-semibold text-orange-600">
-                <Clock size={20} className="mr-2" />
-                {formatTime(timeRemaining)} remaining
+          <div className="flex items-center space-x-4">
+            {timeRemaining !== null && startedAt && !result && (
+              <div className="text-right">
+                <div className="flex items-center text-lg font-semibold text-orange-600">
+                  ⏰ {formatTime(timeRemaining)} remaining
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Project Info Banner */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
         <div className="flex items-start">
-          <Target className="text-blue-500 mr-3 mt-1" size={20} />
+          <span className="text-blue-500 mr-3 text-xl">🎯</span>
           <div>
             <h3 className="font-semibold text-blue-900">Challenge Requirement</h3>
             <p className="text-blue-700 text-sm mt-1">
-              Complete this coding challenge with a score of 70% or higher to automatically join the project.
+              {challenge.isTemporaryChallenge ? 
+                "Complete this welcome challenge to join the project." :
+                "Complete this coding challenge with a score of 70% or higher to automatically join the project."
+              }
             </p>
           </div>
         </div>
@@ -309,8 +356,7 @@ const ProjectChallengeInterface = ({ projectId }) => {
             <h2 className="text-xl font-semibold mb-4">About the Project</h2>
             <p className="text-gray-700 mb-4">{challenge.project.description}</p>
             <div className="flex items-center text-sm text-gray-600">
-              <Users size={16} className="mr-2" />
-              <span>{challenge.project.spotsRemaining} spots remaining</span>
+              👥 <span className="ml-1">{challenge.project.spotsRemaining} spots remaining</span>
             </div>
           </div>
         </div>
@@ -352,8 +398,7 @@ const ProjectChallengeInterface = ({ projectId }) => {
                     </>
                   ) : (
                     <>
-                      <Play size={16} className="mr-2" />
-                      Submit Solution
+                      ▶️ Submit Solution
                     </>
                   )}
                 </button>
@@ -370,7 +415,7 @@ const ProjectChallengeInterface = ({ projectId }) => {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600">Status:</span>
                   <div className="flex items-center space-x-2">
-                    {getStatusIcon(result.evaluation.status)}
+                    <span className="text-xl">{getStatusIcon(result.evaluation.status)}</span>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(result.evaluation.status)}`}>
                       {result.evaluation.status.toUpperCase()}
                     </span>
@@ -381,7 +426,7 @@ const ProjectChallengeInterface = ({ projectId }) => {
                   <span className="text-gray-600">Score:</span>
                   <div className="flex items-center space-x-2">
                     <span className="text-2xl font-bold">{result.evaluation.score}%</span>
-                    {result.evaluation.score >= 70 && <Trophy className="text-yellow-500" size={20} />}
+                    {result.evaluation.score >= 70 && <span className="text-xl">🏆</span>}
                   </div>
                 </div>
                 
@@ -392,15 +437,19 @@ const ProjectChallengeInterface = ({ projectId }) => {
                   </span>
                 </div>
                 
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Code Quality:</span>
-                  <span className="font-medium">{result.evaluation.codeQuality}%</span>
-                </div>
+                {result.evaluation.codeQuality && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Code Quality:</span>
+                    <span className="font-medium">{result.evaluation.codeQuality}%</span>
+                  </div>
+                )}
 
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Execution Time:</span>
-                  <span className="font-medium">{result.evaluation.executionTime}ms</span>
-                </div>
+                {result.evaluation.executionTime && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">Execution Time:</span>
+                    <span className="font-medium">{result.evaluation.executionTime}ms</span>
+                  </div>
+                )}
                 
                 {result.evaluation.feedback && (
                   <div>
@@ -414,17 +463,17 @@ const ProjectChallengeInterface = ({ projectId }) => {
                 {result.projectJoined ? (
                   <div className="bg-green-50 border border-green-200 rounded-md p-4">
                     <div className="flex items-center">
-                      <CheckCircle className="text-green-500 mr-3" size={24} />
+                      <span className="text-green-500 mr-3 text-2xl">✅</span>
                       <div>
                         <h3 className="font-semibold text-green-800">🎉 Welcome to the Project!</h3>
-                        <p className="text-green-700">You successfully passed the coding challenge and joined "{challenge.project.title}"!</p>
+                        <p className="text-green-700">You successfully joined "{challenge.project.title}"!</p>
                       </div>
                     </div>
                   </div>
                 ) : result.evaluation.status === 'failed' && (
                   <div className="bg-red-50 border border-red-200 rounded-md p-4">
                     <div className="flex items-center">
-                      <XCircle className="text-red-500 mr-3" size={24} />
+                      <span className="text-red-500 mr-3 text-2xl">❌</span>
                       <div>
                         <h3 className="font-semibold text-red-800">Challenge Not Passed</h3>
                         <p className="text-red-700">You need at least 70% to join the project. You can try again in 1 hour.</p>

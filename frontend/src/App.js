@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import ChallengeManagement from './pages/ChallengeManagement';
 import AdminDashboard from './pages/AdminDashboard';
 import ManageUsers from './pages/ManageUsers'; // New import
+import ProjectJoinPage from './pages/ProjectJoinPage';
 
 // Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
@@ -118,6 +119,8 @@ function App() {
                 </ProtectedRoute>
               } 
             />
+
+            <Route path="/projects/:projectId/join" element={<ProjectJoinPage />} />
             
             <Route 
               path="/projects" 
