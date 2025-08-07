@@ -1,9 +1,7 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+// Removed unused useParams import and projectId variable
 
 function ProjectChats() {
-  const { projectId } = useParams();
-
   const styles = {
     container: {
       padding: '30px',

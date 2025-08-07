@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const ProjectChallengeInterface = ({ projectId, onClose }) => {
   const [challenge, setChallenge] = useState(null);
@@ -11,64 +11,100 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
   const [error, setError] = useState(null);
   const [canAttempt, setCanAttempt] = useState(null);
 
-  useEffect(() => {
-    if (projectId) {
-      checkCanAttempt();
-      fetchChallenge();
-    }
-  }, [projectId]);
+  // Use empty string for proxy - let the proxy handle routing
+  const API_BASE_URL = '';
+  
+  // Debug logging
+  console.log('Using proxy mode - API_BASE_URL is empty, proxy will handle routing');
 
-  useEffect(() => {
-    let timer;
-    if (challenge && challenge.time_limit_minutes && timeRemaining > 0 && !result) {
-      timer = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 1) {
-            handleTimeUp();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 60000); // Update every minute
-    }
-    return () => clearInterval(timer);
-  }, [challenge, timeRemaining, result]);
-
-  const checkCanAttempt = async () => {
+  const checkCanAttempt = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/challenges/project/${projectId}/can-attempt`, {
+      // Multiple cache busters
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const url = `${API_BASE_URL}/api/challenges/project/${projectId}/can-attempt?t=${timestamp}&r=${randomId}&bust=true`;
+      
+      console.log('Calling can-attempt URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
+
+      console.log('Can-attempt response status:', response.status);
+      console.log('Can-attempt response headers:', [...response.headers.entries()]);
+      
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+      
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Expected JSON, got:', textResponse.substring(0, 200));
+        throw new Error('Server returned HTML instead of JSON. Backend might not be running properly.');
+      }
+
       const data = await response.json();
       
       if (response.ok) {
         setCanAttempt(data.data);
       } else {
         console.error('Error checking attempt eligibility:', data.message);
+        setError(data.message || 'Failed to check attempt eligibility');
       }
     } catch (error) {
       console.error('Error checking attempt eligibility:', error);
+      setError(error.message);
     }
-  };
+  }, [projectId, API_BASE_URL]);
 
-  const fetchChallenge = async () => {
+  const fetchChallenge = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/challenges/project/${projectId}/challenge`, {
+      // Multiple cache busters
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(7);
+      const url = `${API_BASE_URL}/api/challenges/project/${projectId}/challenge?t=${timestamp}&r=${randomId}&bust=true`;
+      
+      console.log('Calling challenge URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
+      console.log('Challenge response status:', response.status);
+      console.log('Challenge response headers:', [...response.headers.entries()]);
+      
+      const contentType = response.headers.get('content-type');
+      console.log('Content-Type:', contentType);
+
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Expected JSON, got:', textResponse.substring(0, 200));
+        throw new Error('Server returned HTML instead of JSON. Backend might not be running properly.');
       }
 
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch challenge');
+      }
+
+      console.log('Challenge data received:', data);
+      
       setChallenge(data.data);
       setSubmittedCode(data.data.challenge.starter_code || '');
       setTimeRemaining(data.data.challenge.time_limit_minutes);
@@ -78,13 +114,35 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
       setError(error.message);
       setLoading(false);
     }
-  };
+  }, [projectId, API_BASE_URL]);
 
-  const handleStartChallenge = () => {
-    setStartedAt(new Date().toISOString());
-  };
+  useEffect(() => {
+    if (projectId) {
+      console.log('Starting challenge fetch for project:', projectId);
+      checkCanAttempt();
+      fetchChallenge();
+    }
+  }, [projectId, checkCanAttempt, fetchChallenge]);
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    let timer;
+    if (challenge && challenge.time_limit_minutes && timeRemaining > 0 && !result) {
+      timer = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            // Handle time up directly using ref to avoid circular dependency
+            alert('Time is up! Your current code will be submitted automatically.');
+            handleSubmitRef.current();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 60000); // Update every minute
+    }
+    return () => clearInterval(timer);
+  }, [challenge, timeRemaining, result]);
+
+  const handleSubmit = useCallback(async () => {
     if (!submittedCode.trim()) {
       alert('Please write your solution before submitting.');
       return;
@@ -105,14 +163,30 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
         payload.challengeId = challenge.challenge.id;
       }
 
-      const response = await fetch(`/api/challenges/project/${projectId}/attempt`, {
+      const url = `${API_BASE_URL}/api/challenges/project/${projectId}/attempt`;
+      
+      console.log('Submitting to URL:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         },
         body: JSON.stringify(payload)
       });
+
+      console.log('Submit response status:', response.status);
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('Expected JSON, got:', textResponse.substring(0, 200));
+        throw new Error('Server returned HTML instead of JSON');
+      }
 
       const data = await response.json();
       
@@ -136,13 +210,14 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [submittedCode, startedAt, challenge, projectId, onClose, API_BASE_URL]);
 
-  const handleTimeUp = () => {
-    if (!result) {
-      alert('Time is up! Your current code will be submitted automatically.');
-      handleSubmit();
-    }
+  // Add a ref to handle auto-submit on time up
+  const handleSubmitRef = React.useRef();
+  handleSubmitRef.current = handleSubmit;
+
+  const handleStartChallenge = () => {
+    setStartedAt(new Date().toISOString());
   };
 
   const formatTime = (minutes) => {
@@ -176,11 +251,23 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
     }
   };
 
+  // Debug info display
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Component state:', {
+      loading,
+      error,
+      canAttempt,
+      challenge: !!challenge,
+      projectId
+    });
+  }
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="ml-4">Loading challenge...</p>
         </div>
       </div>
     );
@@ -193,10 +280,19 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
           <div className="text-red-400 text-6xl mb-4">⚠️</div>
           <h3 className="mt-2 text-sm font-medium text-gray-900">Error Loading Challenge</h3>
           <p className="mt-1 text-sm text-red-600">{error}</p>
+          
+          {/* Debug info */}
+          <div className="mt-4 p-4 bg-gray-100 rounded text-left text-xs">
+            <p><strong>Project ID:</strong> {projectId}</p>
+            <p><strong>API Base URL:</strong> {API_BASE_URL}</p>
+            <p><strong>Token exists:</strong> {localStorage.getItem('token') ? 'Yes' : 'No'}</p>
+          </div>
+          
           <button 
             onClick={() => {
               setError(null);
               setLoading(true);
+              checkCanAttempt();
               fetchChallenge();
             }} 
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -257,209 +353,142 @@ const ProjectChallengeInterface = ({ projectId, onClose }) => {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Join {challenge.project.title}</h1>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <span className={`px-3 py-1 rounded-full font-medium ${
-                challenge.challenge.difficulty_level === 'easy' ? 'bg-green-100 text-green-800' :
-                challenge.challenge.difficulty_level === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                challenge.challenge.difficulty_level === 'hard' ? 'bg-orange-100 text-orange-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {challenge.challenge.difficulty_level.toUpperCase()}
-              </span>
-              <span className="flex items-center">
-                💻 {challenge.project.primaryLanguage}
-              </span>
-              <span className="flex items-center">
-                👥 {challenge.project.spotsRemaining} spots remaining
-              </span>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Join "{challenge.project.title}"
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Complete this coding challenge to join the project
+              </p>
             </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            {timeRemaining !== null && startedAt && !result && (
-              <div className="text-right">
-                <div className="flex items-center text-lg font-semibold text-orange-600">
-                  ⏰ {formatTime(timeRemaining)} remaining
-                </div>
-              </div>
-            )}
             {onClose && (
               <button 
                 onClick={onClose}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                className="text-gray-400 hover:text-gray-600"
               >
-                ×
+                ✕
               </button>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Project Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start">
-          <span className="text-blue-500 mr-3 text-xl">🎯</span>
-          <div>
-            <h3 className="font-semibold text-blue-900">Challenge Requirement</h3>
-            <p className="text-blue-700 text-sm mt-1">
-              {challenge.isTemporaryChallenge ? 
-                "Complete this welcome challenge to join the project." :
-                "Complete this coding challenge with a score of 70% or higher to automatically join the project."
-              }
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Problem Description */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold mb-4">{challenge.challenge.title}</h2>
-            <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-line text-gray-700">
-                {challenge.challenge.description}
+        <div className="p-6">
+          {/* Challenge Info */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-blue-600 text-sm font-medium">Difficulty</div>
+              <div className="text-lg font-semibold capitalize">
+                {challenge.challenge.difficulty_level}
+              </div>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="text-green-600 text-sm font-medium">Language</div>
+              <div className="text-lg font-semibold">
+                {challenge.challenge.programming_languages?.name || challenge.project.primaryLanguage}
+              </div>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="text-purple-600 text-sm font-medium">Time Limit</div>
+              <div className="text-lg font-semibold">
+                {challenge.challenge.time_limit_minutes ? 
+                  formatTime(challenge.challenge.time_limit_minutes) : 
+                  'No limit'
+                }
               </div>
             </div>
           </div>
 
-          {/* Test Cases Preview */}
-          {challenge.challenge.test_cases && challenge.challenge.test_cases.length > 0 && (
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-semibold mb-4">Test Cases</h2>
-              <div className="space-y-3">
-                {challenge.challenge.test_cases.slice(0, 3).map((testCase, index) => (
-                  <div key={index} className="bg-gray-50 rounded-md p-3">
-                    <div className="text-sm text-gray-600 mb-1">
-                      {testCase.description || `Test Case ${index + 1}`}
-                    </div>
-                    <code className="text-sm">
-                      {testCase.function_call} → {JSON.stringify(testCase.expected)}
-                    </code>
-                  </div>
-                ))}
-                {challenge.challenge.test_cases.length > 3 && (
-                  <div className="text-sm text-gray-500 italic">
-                    + {challenge.challenge.test_cases.length - 3} more test cases (hidden)
-                  </div>
-                )}
+          {/* Timer */}
+          {startedAt && timeRemaining !== null && (
+            <div className="mb-6">
+              <div className={`p-4 rounded-lg ${timeRemaining <= 10 ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'}`}>
+                <div className="flex items-center justify-between">
+                  <span className={`font-medium ${timeRemaining <= 10 ? 'text-red-800' : 'text-yellow-800'}`}>
+                    Time Remaining:
+                  </span>
+                  <span className={`text-xl font-bold ${timeRemaining <= 10 ? 'text-red-600' : 'text-yellow-600'}`}>
+                    {formatTime(timeRemaining)}
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Project Info */}
-          <div className="bg-white rounded-lg shadow-sm border p-6">
-            <h2 className="text-xl font-semibold mb-4">About the Project</h2>
-            <p className="text-gray-700 mb-4">{challenge.project.description}</p>
-            <div className="flex items-center text-sm text-gray-600">
-              👥 <span className="ml-1">{challenge.project.spotsRemaining} spots remaining</span>
+          {/* Challenge Description */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3">Challenge Description</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <pre className="whitespace-pre-wrap text-sm">
+                {challenge.challenge.description || challenge.challenge.problem_statement}
+              </pre>
             </div>
           </div>
-        </div>
 
-        {/* Code Editor */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-semibold">Your Solution</h2>
-              {!startedAt && !result && (
-                <button
-                  onClick={handleStartChallenge}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm"
-                >
-                  Start Challenge
-                </button>
-              )}
-            </div>
-            <div className="p-4">
-              <textarea
-                value={submittedCode}
-                onChange={(e) => setSubmittedCode(e.target.value)}
-                className="w-full h-96 font-mono text-sm border rounded-md p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Write your solution here..."
-                disabled={!startedAt || result?.projectJoined}
-              />
-            </div>
-            {startedAt && !result && (
-              <div className="p-4 border-t border-gray-200">
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Evaluating Solution...
-                    </>
-                  ) : (
-                    <>
-                      ▶️ Submit Solution
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+          {/* Code Editor */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-3">Your Solution</h3>
+            <textarea
+              value={submittedCode}
+              onChange={(e) => setSubmittedCode(e.target.value)}
+              className="w-full h-64 p-4 font-mono text-sm border border-gray-300 rounded-lg resize-y"
+              placeholder="Write your solution here..."
+              disabled={isSubmitting || (result && result.evaluation)}
+            />
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {!startedAt && !result && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleStartChallenge}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                disabled={loading || isSubmitting}
+              >
+                Start Challenge
+              </button>
+            </div>
+          )}
+
+          {startedAt && !result && (
+            <div className="flex gap-3">
+              <button
+                onClick={handleSubmit}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Solution'}
+              </button>
+            </div>
+          )}
 
           {/* Results */}
-          {result && (
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-semibold mb-4">Results</h2>
+          {result && result.evaluation && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-3">Results</h3>
               
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Status:</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-xl">{getStatusIcon(result.evaluation.status)}</span>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(result.evaluation.status)}`}>
-                      {result.evaluation.status.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Score:</span>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-2xl font-bold">{result.evaluation.score}%</span>
-                    {result.evaluation.score >= 70 && <span className="text-xl">🏆</span>}
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Test Cases:</span>
-                  <span className="font-medium">
-                    {result.evaluation.passedTests}/{result.evaluation.totalTests} passed
-                  </span>
-                </div>
-                
-                {result.evaluation.codeQuality && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Code Quality:</span>
-                    <span className="font-medium">{result.evaluation.codeQuality}%</span>
-                  </div>
-                )}
-
-                {result.evaluation.executionTime && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Execution Time:</span>
-                    <span className="font-medium">{result.evaluation.executionTime}ms</span>
-                  </div>
-                )}
-                
-                {result.evaluation.feedback && (
-                  <div>
-                    <div className="text-gray-600 mb-2">Feedback:</div>
-                    <div className="bg-gray-50 rounded-md p-3 font-mono text-sm whitespace-pre-line border">
-                      {result.evaluation.feedback}
+                {/* Overall Status */}
+                <div className={`p-4 rounded-lg border ${getStatusColor(result.evaluation.status)}`}>
+                  <div className="flex items-center">
+                    <span className="mr-3 text-2xl">{getStatusIcon(result.evaluation.status)}</span>
+                    <div>
+                      <h4 className="font-semibold capitalize">{result.evaluation.status}</h4>
+                      <p>Score: {result.evaluation.score}% ({result.evaluation.passed_tests}/{result.evaluation.total_tests} tests passed)</p>
                     </div>
                   </div>
-                )}
+                </div>
 
+                {/* Project Join Status */}
                 {result.projectJoined ? (
                   <div className="bg-green-50 border border-green-200 rounded-md p-4">
                     <div className="flex items-center">
