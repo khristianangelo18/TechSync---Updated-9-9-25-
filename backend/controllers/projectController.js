@@ -356,12 +356,15 @@ const getProjectById = async (req, res) => {
 
 // Get user's projects
 // Get user's projects - FIXED VERSION
+// Fixed getUserProjects function in backend/controllers/projectController.js
+
 const getUserProjects = async (req, res) => {
   try {
     const userId = req.user.id;
     const { role, status } = req.query;
 
-    console.log(`Fetching projects for user: ${userId}`);
+    console.log(`\n=== GET USER PROJECTS ===`);
+    console.log(`User ID: ${userId}`);
 
     // Query 1: Get projects where user is the owner
     const { data: ownedProjects, error: ownedError } = await supabase
@@ -391,7 +394,9 @@ const getUserProjects = async (req, res) => {
       });
     }
 
-    // Query 2: Get projects where user is a member (but not owner)
+    console.log(`Found ${ownedProjects?.length || 0} owned projects`);
+
+    // Query 2: Get projects where user is a member (FIXED - removed problematic filter)
     let memberQuery = supabase
       .from('project_members')
       .select(`
@@ -412,14 +417,15 @@ const getUserProjects = async (req, res) => {
         )
       `)
       .eq('user_id', userId)
-      .neq('projects.owner_id', userId); // Exclude owned projects to avoid duplicates
+      .eq('status', 'active'); // Only get active memberships
 
-    if (role) {
+    // Apply filters if provided
+    if (role && role !== 'all') {
       memberQuery = memberQuery.eq('role', role);
     }
 
-    if (status) {
-      memberQuery = memberQuery.eq('status', status);
+    if (status && status !== 'all') {
+      memberQuery = memberQuery.eq('projects.status', status);
     }
 
     const { data: memberships, error: memberError } = await memberQuery;
@@ -430,6 +436,15 @@ const getUserProjects = async (req, res) => {
         success: false,
         message: 'Failed to fetch member projects',
         error: memberError.message
+      });
+    }
+
+    console.log(`Found ${memberships?.length || 0} memberships`);
+    
+    if (memberships?.length > 0) {
+      console.log('Membership details:');
+      memberships.forEach((membership, index) => {
+        console.log(`  ${index + 1}. Project: "${membership.projects?.title}", Role: ${membership.role}, Owner: ${membership.projects?.owner_id}`);
       });
     }
 
@@ -444,23 +459,33 @@ const getUserProjects = async (req, res) => {
       }
     }));
 
-    // Format member projects (user is member)
-    const formattedMemberProjects = (memberships || []).map(membership => ({
-      ...membership.projects,
-      membership: {
-        role: membership.role,
-        status: membership.status,
-        joined_at: membership.joined_at,
-        contribution_score: membership.contribution_score
-      }
-    }));
+    // Format member projects (user is member) - FIXED: Filter out owned projects here instead
+    const formattedMemberProjects = (memberships || [])
+      .filter(membership => membership.projects && membership.projects.owner_id !== userId) // Filter here instead of in query
+      .map(membership => ({
+        ...membership.projects,
+        membership: {
+          role: membership.role,
+          status: membership.status,
+          joined_at: membership.joined_at,
+          contribution_score: membership.contribution_score || 0
+        }
+      }));
 
     // Combine both arrays
     const allProjects = [...formattedOwnedProjects, ...formattedMemberProjects];
 
-    console.log(`Found ${allProjects.length} projects for user ${userId}`);
-    console.log(`Owned projects: ${formattedOwnedProjects.length}`);
-    console.log(`Member projects: ${formattedMemberProjects.length}`);
+    console.log(`📤 Returning ${allProjects.length} total projects:`);
+    console.log(`  - Owned: ${formattedOwnedProjects.length}`);
+    console.log(`  - Member: ${formattedMemberProjects.length}`);
+
+    // Debug: Log the project IDs and titles
+    if (formattedMemberProjects.length > 0) {
+      console.log('Member projects being returned:');
+      formattedMemberProjects.forEach((project, index) => {
+        console.log(`  ${index + 1}. ${project.title} (ID: ${project.id})`);
+      });
+    }
 
     res.json({
       success: true,
@@ -468,7 +493,7 @@ const getUserProjects = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get user projects error:', error);
+    console.error('❌ Error in getUserProjects:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

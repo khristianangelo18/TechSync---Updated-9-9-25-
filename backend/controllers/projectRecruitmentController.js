@@ -341,6 +341,7 @@ const canAttemptChallenge = async (req, res) => {
 };
 
 // POST /api/challenges/project/:projectId/attempt - COMPLETELY FIXED
+// Fixed submitChallengeAttempt function
 const submitChallengeAttempt = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -379,13 +380,13 @@ const submitChallengeAttempt = async (req, res) => {
     const score = calculateCodeScore(submittedCode);
     const passed = score >= 70; // 70% threshold
 
-    // FIXED: Store the attempt using correct table name and columns
+    // Store the attempt using correct table name and columns
     const attemptData = {
       user_id: userId,
       project_id: projectId,
       submitted_code: submittedCode,
       score: score,
-      status: passed ? 'passed' : 'failed', // FIXED: using status instead of passed
+      status: passed ? 'passed' : 'failed',
       started_at: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
       submitted_at: new Date().toISOString()
     };
@@ -396,7 +397,7 @@ const submitChallengeAttempt = async (req, res) => {
     }
 
     const { data: attempt, error: attemptError } = await supabase
-      .from('challenge_attempts') // FIXED: was 'coding_attempts'
+      .from('challenge_attempts')
       .insert(attemptData)
       .select()
       .single();
@@ -434,13 +435,11 @@ const submitChallengeAttempt = async (req, res) => {
         projectJoined = true;
         membershipData = newMember;
 
-        // Update project member count
+        // FIXED: Update project member count using RPC
         const { error: updateError } = await supabase
-          .from('projects')
-          .update({
-            current_members: supabase.sql`current_members + 1`
-          })
-          .eq('id', projectId);
+          .rpc('increment_project_member_count', { 
+            project_uuid: projectId 
+          });
 
         if (updateError) {
           console.error('Error updating member count:', updateError);
@@ -461,16 +460,12 @@ const submitChallengeAttempt = async (req, res) => {
       }
     };
 
-    console.log(`=== ATTEMPT RESULT ===`);
-    console.log(`Score: ${score}%`);
-    console.log(`Passed: ${passed}`);
-    console.log(`Project Joined: ${projectJoined}`);
-
-    return res.json(response);
+    console.log('Challenge attempt completed successfully');
+    res.json(response);
 
   } catch (error) {
     console.error('Error in submitChallengeAttempt:', error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Internal server error',
       error: error.message

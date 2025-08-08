@@ -1,3 +1,5 @@
+// Fixed Projects.js component with proper project filtering
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +27,7 @@ function Projects() {
     try {
       setLoading(true);
       const response = await projectService.getUserProjects();
+      console.log('User projects response:', response.data.projects); // Debug log
       setUserProjects(response.data.projects || []);
     } catch (err) {
       setError('Failed to fetch your projects');
@@ -77,9 +80,18 @@ function Projects() {
   const getDisplayProjects = () => {
     switch (activeTab) {
       case 'my':
-        return userProjects.filter(p => p.owner_id === user?.id);
+        // FIXED: Check both owner_id and membership.role for owned projects
+        return userProjects.filter(p => 
+          p.owner_id === user?.id || 
+          (p.membership && p.membership.role === 'owner')
+        );
       case 'joined':
-        return userProjects.filter(p => p.owner_id !== user?.id);
+        // FIXED: Check for projects where user is a member but not owner
+        return userProjects.filter(p => 
+          p.owner_id !== user?.id && 
+          p.membership && 
+          p.membership.role !== 'owner'
+        );
       case 'starred':
         return starredProjects;
       default:
@@ -109,7 +121,9 @@ function Projects() {
   };
 
   const renderProjectCard = (project) => {
-    const isOwner = project.owner_id === user?.id;
+    // FIXED: Better logic to determine if user is the owner
+    const isOwner = project.owner_id === user?.id || 
+                   (project.membership && project.membership.role === 'owner');
 
     return (
       <div key={project.id} style={styles.projectCard}>
@@ -124,94 +138,56 @@ function Projects() {
             >
               {project.status?.toUpperCase()}
             </span>
-            {project.difficulty_level && (
-              <span 
-                style={{
-                  ...styles.difficultyBadge,
-                  backgroundColor: getDifficultyColor(project.difficulty_level)
-                }}
-              >
-                {project.difficulty_level?.toUpperCase()}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div style={styles.cardDescription}>
-          {project.description}
-        </div>
-
-        <div style={styles.projectMeta}>
-          <div style={styles.metaRow}>
-            <span style={styles.metaLabel}>Members:</span>
-            <span style={styles.metaValue}>
-              {project.current_members || 1}/{project.maximum_members || 10}
+            <span 
+              style={{
+                ...styles.difficultyBadge,
+                backgroundColor: getDifficultyColor(project.difficulty_level)
+              }}
+            >
+              {project.difficulty_level?.toUpperCase()}
             </span>
           </div>
-
-          {project.estimated_duration_weeks && (
-            <div style={styles.metaRow}>
-              <span style={styles.metaLabel}>Duration:</span>
-              <span style={styles.metaValue}>
-                {project.estimated_duration_weeks} weeks
-              </span>
-            </div>
-          )}
-
-          {!isOwner && (
-            <div style={styles.metaRow}>
-              <span style={styles.metaLabel}>Role:</span>
-              <span style={styles.metaValue}>
-                {project.user_role?.charAt(0).toUpperCase() + project.user_role?.slice(1) || 'Member'}
-              </span>
-            </div>
-          )}
         </div>
 
-        {project.project_languages && project.project_languages.length > 0 && (
-          <div style={styles.tagsSection}>
-            <span style={styles.tagLabel}>Languages:</span>
-            <div style={styles.tags}>
-              {project.project_languages.slice(0, 3).map((lang, index) => (
-                <span key={index} style={styles.languageTag}>
-                  {lang.programming_languages?.name || lang.name}
-                </span>
-              ))}
-              {project.project_languages.length > 3 && (
-                <span style={styles.moreTag}>
-                  +{project.project_languages.length - 3} more
-                </span>
-              )}
+        <div style={styles.cardContent}>
+          <p style={styles.cardDescription}>{project.description}</p>
+          
+          <div style={styles.cardDetails}>
+            <div style={styles.memberCount}>
+              {project.current_members || 0}/{project.maximum_members || 0} members
             </div>
+            
+            {project.project_languages && project.project_languages.length > 0 && (
+              <div style={styles.languages}>
+                {project.project_languages
+                  .slice(0, 3)
+                  .map((lang, index) => (
+                    <span key={index} style={styles.languageTag}>
+                      {lang.programming_languages?.name || 'Unknown'}
+                    </span>
+                  ))}
+                {project.project_languages.length > 3 && (
+                  <span style={styles.moreLanguages}>
+                    +{project.project_languages.length - 3} more
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-        )}
 
-        {project.project_topics && project.project_topics.length > 0 && (
-          <div style={styles.tagsSection}>
-            <span style={styles.tagLabel}>Topics:</span>
-            <div style={styles.tags}>
-              {project.project_topics.slice(0, 2).map((topic, index) => (
-                <span key={index} style={styles.topicTag}>
-                  {topic.topics?.name || topic.name}
-                </span>
-              ))}
-              {project.project_topics.length > 2 && (
-                <span style={styles.moreTag}>
-                  +{project.project_topics.length - 2} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div style={styles.cardFooter}>
-          <div style={styles.ownerInfo}>
-            <span style={styles.ownerLabel}>
+          <div style={styles.cardFooter}>
+            <span style={styles.ownerText}>
               {isOwner ? 'You' : 'By:'}
             </span>
             {!isOwner && (
               <span style={styles.ownerName}>
                 {project.users?.full_name || project.users?.username || 'Anonymous'}
+              </span>
+            )}
+            {/* FIXED: Show membership info for joined projects */}
+            {!isOwner && project.membership && (
+              <span style={styles.membershipInfo}>
+                (Joined as {project.membership.role})
               </span>
             )}
           </div>
@@ -250,11 +226,20 @@ function Projects() {
 
   const handleCloseCreateProject = () => {
     setShowCreateProject(false);
-    fetchUserProjects();
+    fetchUserProjects(); // Refresh projects after creating
   };
 
-  const myProjects = userProjects.filter(p => p.owner_id === user?.id);
-  const joinedProjects = userProjects.filter(p => p.owner_id !== user?.id);
+  // FIXED: Better calculation of project counts
+  const myProjectsCount = userProjects.filter(p => 
+    p.owner_id === user?.id || 
+    (p.membership && p.membership.role === 'owner')
+  ).length;
+
+  const joinedProjectsCount = userProjects.filter(p => 
+    p.owner_id !== user?.id && 
+    p.membership && 
+    p.membership.role !== 'owner'
+  ).length;
 
   const styles = {
     container: {
@@ -312,144 +297,110 @@ function Projects() {
     },
     projectsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
       gap: '25px',
       marginBottom: '30px'
     },
     projectCard: {
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
-      borderRadius: '12px',
-      padding: '25px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      transition: 'all 0.3s ease',
+      borderRadius: '10px',
+      overflow: 'hidden',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+      transition: 'all 0.2s ease',
       cursor: 'pointer'
     },
     cardHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '15px'
+      padding: '20px 20px 15px',
+      borderBottom: '1px solid #f8f9fa'
     },
     cardTitle: {
-      fontSize: '18px',
+      fontSize: '20px',
       fontWeight: 'bold',
       color: '#333',
-      marginBottom: '8px',
-      lineHeight: '1.3'
+      marginBottom: '10px'
     },
     cardMeta: {
       display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap'
+      gap: '10px'
     },
     statusBadge: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: 'bold',
+      display: 'inline-block',
+      padding: '4px 12px',
       color: 'white',
-      textTransform: 'uppercase'
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: 'bold'
     },
     difficultyBadge: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: 'bold',
+      display: 'inline-block',
+      padding: '4px 12px',
       color: 'white',
-      textTransform: 'uppercase'
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: 'bold'
+    },
+    cardContent: {
+      padding: '20px'
     },
     cardDescription: {
       color: '#666',
       fontSize: '14px',
       lineHeight: '1.5',
-      marginBottom: '20px'
-    },
-    projectMeta: {
-      marginBottom: '20px'
-    },
-    metaRow: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      marginBottom: '8px',
-      fontSize: '14px'
-    },
-    metaLabel: {
-      color: '#888',
-      fontWeight: '500'
-    },
-    metaValue: {
-      color: '#333',
-      fontWeight: '600'
-    },
-    tagsSection: {
       marginBottom: '15px'
     },
-    tagLabel: {
-      fontSize: '12px',
-      color: '#888',
-      fontWeight: '600',
-      marginBottom: '8px',
-      display: 'block'
+    cardDetails: {
+      marginBottom: '15px'
     },
-    tags: {
+    memberCount: {
+      fontSize: '14px',
+      color: '#6c757d',
+      marginBottom: '10px'
+    },
+    languages: {
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '6px'
+      gap: '8px'
     },
     languageTag: {
-      backgroundColor: '#e3f2fd',
-      color: '#1565c0',
-      padding: '4px 8px',
+      backgroundColor: '#f8f9fa',
+      color: '#495057',
+      padding: '3px 8px',
       borderRadius: '12px',
-      fontSize: '11px',
+      fontSize: '12px',
       fontWeight: '500'
     },
-    topicTag: {
-      backgroundColor: '#f3e5f5',
-      color: '#7b1fa2',
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: '500'
-    },
-    moreTag: {
-      backgroundColor: '#f5f5f5',
-      color: '#666',
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: '500'
+    moreLanguages: {
+      color: '#6c757d',
+      fontSize: '12px',
+      fontStyle: 'italic'
     },
     cardFooter: {
       display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: '20px',
-      paddingTop: '15px',
-      borderTop: '1px solid #f0f0f0'
-    },
-    ownerInfo: {
-      display: 'flex',
       alignItems: 'center',
       gap: '5px',
-      fontSize: '14px'
+      marginBottom: '15px',
+      fontSize: '14px',
+      color: '#6c757d'
     },
-    ownerLabel: {
-      color: '#888',
+    ownerText: {
       fontWeight: '500'
     },
     ownerName: {
-      color: '#333',
-      fontWeight: '600'
+      color: '#495057'
+    },
+    membershipInfo: {
+      color: '#28a745',
+      fontWeight: '500',
+      fontSize: '12px'
     },
     cardActions: {
       display: 'flex',
-      gap: '10px',
-      alignItems: 'center'
+      gap: '10px'
     },
     viewButton: {
-      padding: '8px 16px',
+      flex: 1,
+      padding: '10px',
       backgroundColor: '#007bff',
       color: 'white',
       border: 'none',
@@ -460,36 +411,38 @@ function Projects() {
       transition: 'background-color 0.2s ease'
     },
     deleteButton: {
-      padding: '8px 12px',
+      padding: '10px 15px',
       backgroundColor: '#dc3545',
       color: 'white',
       border: 'none',
       borderRadius: '6px',
-      fontSize: '16px',
+      fontSize: '14px',
+      fontWeight: '500',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
+      transition: 'background-color 0.2s ease'
+    },
+    loading: {
       display: 'flex',
+      justifyContent: 'center',
       alignItems: 'center',
-      justifyContent: 'center'
+      minHeight: '400px',
+      fontSize: '18px',
+      color: '#6c757d'
+    },
+    error: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '400px',
+      fontSize: '18px',
+      color: '#dc3545'
     },
     emptyState: {
       textAlign: 'center',
       padding: '60px 20px',
-      color: '#666'
+      color: '#6c757d'
     },
-    loading: {
-      textAlign: 'center',
-      padding: '60px 20px',
-      fontSize: '18px',
-      color: '#666'
-    },
-    error: {
-      textAlign: 'center',
-      padding: '60px 20px',
-      color: '#dc3545',
-      fontSize: '16px'
-    },
-    // Delete confirmation modal styles
+    // Modal styles for delete confirmation
     modalOverlay: {
       position: 'fixed',
       top: 0,
@@ -502,13 +455,13 @@ function Projects() {
       alignItems: 'center',
       zIndex: 1000
     },
-    modal: {
+    modalContent: {
       backgroundColor: 'white',
-      borderRadius: '8px',
       padding: '30px',
-      width: '90%',
+      borderRadius: '8px',
       maxWidth: '500px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+      width: '90%',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
     },
     modalHeader: {
       marginBottom: '20px'
@@ -588,8 +541,8 @@ function Projects() {
 
       <div style={styles.tabsContainer}>
         {[
-          { key: 'my', label: `My Projects (${myProjects.length})` },
-          { key: 'joined', label: `Joined Projects (${joinedProjects.length})` },
+          { key: 'my', label: `My Projects (${myProjectsCount})` },
+          { key: 'joined', label: `Joined Projects (${joinedProjectsCount})` },
           { key: 'starred', label: `Starred (${starredProjects.length})` }
         ].map(tab => (
           <button
@@ -620,25 +573,26 @@ function Projects() {
         </div>
       )}
 
+      {/* Create Project Modal */}
+      {showCreateProject && (
+        <CreateProject onClose={handleCloseCreateProject} />
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteConfirm.show && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
+          <div style={styles.modalContent}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>Delete Project</h2>
-              <div style={styles.modalMessage}>
-                Are you sure you want to delete <span style={styles.projectTitle}>"{deleteConfirm.project?.title}"</span>?
-                <br /><br />
-                This action cannot be undone. All project data, members, and related information will be permanently deleted.
-              </div>
+              <p style={styles.modalMessage}>
+                Are you sure you want to delete{' '}
+                <span style={styles.projectTitle}>"{deleteConfirm.project?.title}"</span>?
+                This action cannot be undone and will permanently remove all project data.
+              </p>
             </div>
-            
             <div style={styles.modalActions}>
               <button
-                style={{
-                  ...styles.cancelButton,
-                  ...(deleting ? styles.disabledButton : {})
-                }}
+                style={styles.cancelButton}
                 onClick={cancelDelete}
                 disabled={deleting}
               >
@@ -657,10 +611,6 @@ function Projects() {
             </div>
           </div>
         </div>
-      )}
-
-      {showCreateProject && (
-        <CreateProject onClose={handleCloseCreateProject} />
       )}
     </div>
   );
