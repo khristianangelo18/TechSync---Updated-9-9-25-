@@ -1,4 +1,6 @@
-// frontend/src/components/ProjectChallengeInterface.js - CLEAN LAYOUT (Fixed to match working version)
+// Fixed Project Challenge Interface - Based on Working Reference
+// frontend/src/components/ProjectChallengeInterface.js
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
@@ -11,6 +13,8 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [canAttempt, setCanAttempt] = useState(null);
+  const [showHints, setShowHints] = useState(false);
+  const [codeValidation, setCodeValidation] = useState(null);
 
   // Use ref to avoid stale closure issues
   const handleSubmitRef = useRef();
@@ -54,6 +58,31 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     }
     
     return data;
+  }, []);
+
+  // Real-time code validation
+  const validateCodeRealTime = useCallback((code) => {
+    const validation = {
+      length: code.trim().length,
+      hasFunction: /function\s+\w+|def\s+\w+|=>\s*{?|public\s+\w+\s+\w+\s*\(/i.test(code),
+      hasLogic: /if\s*\(|for\s*\(|while\s*\(|switch\s*\(/i.test(code),
+      hasReturn: /return\s+\w/i.test(code),
+      hasComments: /\/\/[^\n]+|\/\*[\s\S]*?\*\/|#[^\n]+/i.test(code),
+      isPlaceholder: /todo|placeholder|your code here|implement/i.test(code),
+      estimatedScore: 0
+    };
+
+    let score = 0;
+    if (validation.length > 20) score += 10;
+    if (validation.hasFunction) score += 25;
+    if (validation.hasLogic) score += 20;
+    if (validation.hasReturn) score += 15;
+    if (validation.hasComments) score += 10;
+    if (validation.length > 100) score += 10;
+    if (validation.isPlaceholder && validation.length < 100) score = Math.min(score, 20);
+
+    validation.estimatedScore = Math.min(100, score);
+    setCodeValidation(validation);
   }, []);
 
   // Check if user can attempt challenge (SAME AS WORKING VERSION)
@@ -127,31 +156,6 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     }
   }, [projectId, canAttempt, API_BASE_URL, getAuthHeaders, handleApiResponse, submittedCode]);
 
-  // Initial load (SAME AS WORKING VERSION)
-  useEffect(() => {
-    console.log('Component mounted, starting checks...');
-    console.log('Project ID:', projectId);
-    console.log('API Base URL:', API_BASE_URL);
-    console.log('Token exists:', !!localStorage.getItem('token'));
-    
-    const initializeChallenge = async () => {
-      setLoading(true);
-      setError(null);
-      
-      // First check if user can attempt
-      await checkCanAttempt();
-    };
-    
-    initializeChallenge();
-  }, [projectId, checkCanAttempt, API_BASE_URL]);
-
-  // Fetch challenge when can attempt status is confirmed (SAME AS WORKING VERSION)
-  useEffect(() => {
-    if (canAttempt?.canAttempt === true && !challenge) {
-      fetchChallenge();
-    }
-  }, [canAttempt, challenge, fetchChallenge]);
-
   // Handle starting the challenge (SAME AS WORKING VERSION)
   const handleStartChallenge = useCallback(() => {
     const now = new Date();
@@ -209,8 +213,22 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
       
       // Show success/failure message
       if (data.data.projectJoined) {
+        // Store success event for other tabs to detect
+        try {
+          localStorage.setItem('projectJoined', Date.now().toString());
+        } catch (e) {
+          console.warn('Could not save to localStorage:', e);
+        }
+        
         setTimeout(() => {
           alert('🎉 Congratulations! You passed the challenge and joined the project!');
+          if (onSuccess) {
+            onSuccess({
+              score: data.data.score,
+              projectJoined: true,
+              projectId: projectId
+            });
+          }
           if (onClose) onClose();
         }, 1000);
       } else if (data.data.passed) {
@@ -225,7 +243,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [submittedCode, startedAt, challenge, projectId, API_BASE_URL, getAuthHeaders, handleApiResponse, onClose]);
+  }, [submittedCode, startedAt, challenge, projectId, API_BASE_URL, getAuthHeaders, handleApiResponse, onClose, onSuccess]);
 
   // Update ref for timer callback (SAME AS WORKING VERSION)
   handleSubmitRef.current = handleSubmit;
@@ -250,6 +268,38 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     return () => clearInterval(timer);
   }, [startedAt, challenge, result]);
 
+  // Initial load (SAME AS WORKING VERSION)
+  useEffect(() => {
+    console.log('Component mounted, starting checks...');
+    console.log('Project ID:', projectId);
+    console.log('API Base URL:', API_BASE_URL);
+    console.log('Token exists:', !!localStorage.getItem('token'));
+    
+    const initializeChallenge = async () => {
+      setLoading(true);
+      setError(null);
+      
+      // First check if user can attempt
+      await checkCanAttempt();
+    };
+    
+    initializeChallenge();
+  }, [projectId, checkCanAttempt, API_BASE_URL]);
+
+  // Fetch challenge when can attempt status is confirmed (SAME AS WORKING VERSION)
+  useEffect(() => {
+    if (canAttempt?.canAttempt === true && !challenge) {
+      fetchChallenge();
+    }
+  }, [canAttempt, challenge, fetchChallenge]);
+
+  // Handle code change
+  const handleCodeChange = (e) => {
+    const newCode = e.target.value;
+    setSubmittedCode(newCode);
+    validateCodeRealTime(newCode);
+  };
+
   // Format time helper (SAME AS WORKING VERSION)
   const formatTime = (minutes) => {
     if (minutes === null || minutes === undefined) return 'No limit';
@@ -271,675 +321,765 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     return colors[difficulty?.toLowerCase()] || '#6c757d';
   };
 
-  // Loading state - CLEAN DESIGN
+  const getValidationScoreColor = () => {
+    if (!codeValidation) return '#6c757d';
+    if (codeValidation.estimatedScore >= 70) return '#28a745';
+    if (codeValidation.estimatedScore >= 50) return '#ffc107';
+    return '#dc3545';
+  };
+
+  // Styles
+  const styles = {
+    container: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'flex-start',
+      zIndex: 1000,
+      padding: '20px',
+      overflowY: 'auto'
+    },
+    modal: {
+      backgroundColor: 'white',
+      borderRadius: '12px',
+      width: '100%',
+      maxWidth: '1000px',
+      maxHeight: '90vh',
+      display: 'flex',
+      flexDirection: 'column',
+      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+      overflow: 'hidden'
+    },
+    centerContent: {
+      textAlign: 'center',
+      padding: '60px 20px',
+      color: '#6b7280'
+    },
+    spinner: {
+      width: '40px',
+      height: '40px',
+      border: '4px solid #f3f4f6',
+      borderTop: '4px solid #3b82f6',
+      borderRadius: '50%',
+      animation: 'spin 1s linear infinite',
+      margin: '0 auto 20px'
+    },
+    header: {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      padding: '24px',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    headerContent: {
+      flex: 1
+    },
+    title: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      margin: '0 0 8px 0'
+    },
+    subtitle: {
+      fontSize: '16px',
+      opacity: 0.9,
+      margin: 0
+    },
+    closeIcon: {
+      background: 'rgba(255, 255, 255, 0.2)',
+      border: 'none',
+      color: 'white',
+      fontSize: '24px',
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    content: {
+      flex: 1,
+      padding: '24px',
+      overflowY: 'auto'
+    },
+    infoGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '16px',
+      marginBottom: '24px'
+    },
+    infoCard: {
+      backgroundColor: '#f8f9fa',
+      padding: '16px',
+      borderRadius: '8px',
+      textAlign: 'center',
+      border: '1px solid #e9ecef'
+    },
+    infoLabel: {
+      color: '#6b7280',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      marginBottom: '8px',
+      textTransform: 'uppercase'
+    },
+    infoValue: {
+      fontSize: '16px',
+      fontWeight: 'bold',
+      textTransform: 'capitalize'
+    },
+    timerContainer: {
+      backgroundColor: '#fef3c7',
+      border: '1px solid #fde68a',
+      borderRadius: '8px',
+      padding: '16px',
+      marginBottom: '24px'
+    },
+    timerContent: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    },
+    timerLabel: {
+      color: '#92400e',
+      fontWeight: '500'
+    },
+    timerValue: {
+      fontSize: '20px',
+      fontWeight: '700',
+      fontFamily: 'monospace'
+    },
+    section: {
+      marginBottom: '24px'
+    },
+    sectionTitle: {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    descriptionBox: {
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #e9ecef',
+      borderRadius: '8px',
+      padding: '16px'
+    },
+    testCasesBox: {
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #e9ecef',
+      borderRadius: '8px',
+      padding: '16px',
+      overflow: 'auto'
+    },
+    codeEditor: {
+      width: '100%',
+      minHeight: '300px',
+      padding: '16px',
+      fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+      fontSize: '14px',
+      border: '2px solid #e9ecef',
+      borderRadius: '8px',
+      resize: 'vertical',
+      outline: 'none'
+    },
+    validationPanel: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 16px',
+      backgroundColor: '#f8f9fa',
+      borderRadius: '6px',
+      marginTop: '8px',
+      fontSize: '14px'
+    },
+    validationLeft: {
+      display: 'flex',
+      gap: '16px'
+    },
+    validationItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px'
+    },
+    validationScore: {
+      fontWeight: 'bold',
+      padding: '4px 8px',
+      borderRadius: '4px',
+      color: 'white'
+    },
+    characterCount: {
+      fontSize: '12px',
+      color: '#6c757d',
+      marginTop: '8px',
+      textAlign: 'right'
+    },
+    hintSection: {
+      backgroundColor: '#e7f3ff',
+      border: '1px solid #b8daff',
+      borderRadius: '8px',
+      padding: '16px',
+      marginBottom: '24px'
+    },
+    hintToggle: {
+      background: 'none',
+      border: 'none',
+      color: '#0066cc',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: 'bold',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    hintContent: {
+      marginTop: '12px',
+      fontSize: '14px',
+      lineHeight: '1.5'
+    },
+    errorBox: {
+      backgroundColor: '#f8d7da',
+      color: '#721c24',
+      padding: '16px',
+      borderRadius: '8px',
+      border: '1px solid #f5c6cb',
+      marginBottom: '20px'
+    },
+    resultBox: {
+      padding: '20px',
+      borderRadius: '8px',
+      border: '2px solid',
+      marginBottom: '20px'
+    },
+    resultHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '12px'
+    },
+    resultTitle: {
+      fontSize: '18px',
+      fontWeight: 'bold'
+    },
+    resultScore: {
+      fontSize: '24px',
+      fontWeight: 'bold'
+    },
+    resultFeedback: {
+      fontSize: '14px',
+      marginBottom: '12px'
+    },
+    joinedNotice: {
+      backgroundColor: 'rgba(40, 167, 69, 0.1)',
+      padding: '16px',
+      borderRadius: '8px',
+      border: '1px solid rgba(40, 167, 69, 0.3)'
+    },
+    joinedText: {
+      color: '#155724',
+      fontWeight: 'bold',
+      margin: 0
+    },
+    actionButtons: {
+      display: 'flex',
+      gap: '12px',
+      justifyContent: 'flex-end',
+      paddingTop: '20px',
+      borderTop: '1px solid #e9ecef'
+    },
+    button: {
+      padding: '12px 24px',
+      borderRadius: '8px',
+      border: 'none',
+      fontSize: '16px',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease'
+    },
+    primaryButton: {
+      backgroundColor: '#667eea',
+      color: 'white'
+    },
+    secondaryButton: {
+      backgroundColor: '#6c757d',
+      color: 'white'
+    },
+    retryButton: {
+      backgroundColor: '#28a745',
+      color: 'white'
+    },
+    disabledButton: {
+      opacity: 0.6,
+      cursor: 'not-allowed'
+    }
+  };
+
+  // Loading state
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={styles.centerContent}>
-          <div style={styles.spinner}></div>
-          <h3 style={styles.loadingTitle}>Loading Challenge</h3>
-          <p style={styles.loadingText}>Please wait while we prepare your coding challenge...</p>
+        <div style={styles.modal}>
+          <div style={styles.centerContent}>
+            <div style={styles.spinner}></div>
+            <h3>Loading Challenge</h3>
+            <p>Please wait while we prepare your coding challenge...</p>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Error state - CLEAN DESIGN  
+  // Error state
   if (error) {
     return (
       <div style={styles.container}>
-        <div style={styles.centerContent}>
-          <div style={styles.errorIcon}>⚠️</div>
-          <h3 style={styles.errorTitle}>Error Loading Challenge</h3>
-          <p style={styles.errorMessage}>{error}</p>
-          <div style={styles.debugInfo}>
-            <p><strong>Project ID:</strong> {projectId}</p>
-            <p><strong>API Base URL:</strong> {API_BASE_URL || 'Using proxy'}</p>
-            <p><strong>Token exists:</strong> {localStorage.getItem('token') ? 'Yes' : 'No'}</p>
+        <div style={styles.modal}>
+          <div style={styles.centerContent}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+            <h3 style={{ color: '#dc2626' }}>Error Loading Challenge</h3>
+            <p>{error}</p>
+            <div style={{ marginBottom: '20px', fontSize: '12px', color: '#6b7280' }}>
+              <p><strong>Project ID:</strong> {projectId}</p>
+              <p><strong>API Base URL:</strong> {API_BASE_URL || 'Using proxy'}</p>
+              <p><strong>Token exists:</strong> {localStorage.getItem('token') ? 'Yes' : 'No'}</p>
+            </div>
+            <button 
+              onClick={() => {
+                setError(null);
+                setLoading(true);
+                checkCanAttempt();
+              }}
+              style={{ ...styles.button, ...styles.retryButton }}
+            >
+              🔄 Try Again
+            </button>
           </div>
-          
-          <button 
-            onClick={() => {
-              setError(null);
-              setLoading(true);
-              checkCanAttempt();
-            }}
-            style={styles.retryButton}
-          >
-            Try Again
-          </button>
         </div>
       </div>
     );
   }
 
-  // Cannot attempt state - CLEAN DESIGN
+  // Cannot attempt state
   if (canAttempt && !canAttempt.canAttempt) {
     return (
       <div style={styles.container}>
-        <div style={styles.centerContent}>
-          <div style={styles.warningIcon}>⚠️</div>
-          <h3 style={styles.warningTitle}>Cannot Attempt Challenge</h3>
-          <p style={styles.warningMessage}>{canAttempt.reason}</p>
-          {canAttempt.nextAttemptAt && (
-            <p style={styles.nextAttemptText}>
-              Next attempt available: {new Date(canAttempt.nextAttemptAt).toLocaleString()}
-            </p>
-          )}
-          {onClose && (
-            <button onClick={onClose} style={styles.closeButton}>Close</button>
-          )}
+        <div style={styles.modal}>
+          <div style={styles.centerContent}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+            <h3>Cannot Attempt Challenge</h3>
+            <p>{canAttempt.reason}</p>
+            {canAttempt.nextAttemptAt && (
+              <p style={{ fontSize: '12px' }}>
+                Next attempt available: {new Date(canAttempt.nextAttemptAt).toLocaleString()}
+              </p>
+            )}
+            {onClose && (
+              <button onClick={onClose} style={{ ...styles.button, ...styles.secondaryButton }}>
+                Close
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
-  // No challenge available - CLEAN DESIGN
+  // No challenge available
   if (!challenge) {
     return (
       <div style={styles.container}>
-        <div style={styles.centerContent}>
-          <div style={styles.emptyIcon}>💻</div>
-          <h3 style={styles.emptyTitle}>No Challenge Available</h3>
-          <p style={styles.emptyMessage}>This project doesn't have an active coding challenge.</p>
-          {onClose && (
-            <button onClick={onClose} style={styles.closeButton}>Close</button>
-          )}
+        <div style={styles.modal}>
+          <div style={styles.centerContent}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>💻</div>
+            <h3>No Challenge Available</h3>
+            <p>This project doesn't have an active coding challenge.</p>
+            {onClose && (
+              <button onClick={onClose} style={{ ...styles.button, ...styles.secondaryButton }}>
+                Close
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
   }
 
-  // Main challenge interface - CLEAN DESIGN
+  // Main challenge interface
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <div style={styles.headerContent}>
-          <h1 style={styles.title}>Join "{challenge.project?.title || 'Project'}"</h1>
-          <p style={styles.subtitle}>Complete this coding challenge to join the project</p>
-        </div>
-        {onClose && (
-          <button onClick={onClose} style={styles.closeIcon}>×</button>
-        )}
-      </div>
-
-      <div style={styles.content}>
-        {/* Challenge Info Cards */}
-        <div style={styles.infoGrid}>
-          <div style={styles.infoCard}>
-            <div style={styles.infoLabel}>Difficulty</div>
-            <div style={{
-              ...styles.infoValue, 
-              color: getDifficultyColor(challenge.challenge?.difficulty_level)
-            }}>
-              {challenge.challenge?.difficulty_level || 'Medium'}
-            </div>
+      <div style={styles.modal}>
+        {/* Header */}
+        <div style={styles.header}>
+          <div style={styles.headerContent}>
+            <h1 style={styles.title}>Join "{challenge.project?.title || 'Project'}"</h1>
+            <p style={styles.subtitle}>Complete this coding challenge to join the project</p>
           </div>
-          
-          <div style={styles.infoCard}>
-            <div style={styles.infoLabel}>Language</div>
-            <div style={styles.infoValue}>
-              {challenge.challenge?.programming_languages?.name || challenge.project?.primaryLanguage || 'JavaScript'}
-            </div>
-          </div>
-          
-          <div style={styles.infoCard}>
-            <div style={styles.infoLabel}>Time Limit</div>
-            <div style={styles.infoValue}>
-              {formatTime(challenge.challenge?.time_limit_minutes)}
-            </div>
-          </div>
+          {onClose && (
+            <button onClick={onClose} style={styles.closeIcon}>×</button>
+          )}
         </div>
 
-        {/* Timer */}
-        {startedAt && timeRemaining !== null && (
-          <div style={styles.timerContainer}>
-            <div style={styles.timerContent}>
-              <span style={styles.timerLabel}>Time Remaining:</span>
-              <span style={{
-                ...styles.timerValue,
-                color: timeRemaining <= 10 ? '#dc3545' : '#28a745'
+        <div style={styles.content}>
+          {/* Challenge Info Cards */}
+          <div style={styles.infoGrid}>
+            <div style={styles.infoCard}>
+              <div style={styles.infoLabel}>Difficulty</div>
+              <div style={{
+                ...styles.infoValue, 
+                color: getDifficultyColor(challenge.challenge?.difficulty_level)
               }}>
-                {formatTime(timeRemaining)}
-              </span>
+                {challenge.challenge?.difficulty_level || 'Medium'}
+              </div>
+            </div>
+            
+            <div style={styles.infoCard}>
+              <div style={styles.infoLabel}>Language</div>
+              <div style={styles.infoValue}>
+                {challenge.challenge?.programming_languages?.name || 
+                 challenge.project?.primaryLanguage || 
+                 'JavaScript'}
+              </div>
+            </div>
+            
+            <div style={styles.infoCard}>
+              <div style={styles.infoLabel}>Time Limit</div>
+              <div style={styles.infoValue}>
+                {formatTime(challenge.challenge?.time_limit_minutes)}
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Challenge Description */}
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Challenge Description</h3>
-          <div style={styles.descriptionBox}>
-            <pre style={styles.descriptionText}>
-              {challenge.challenge?.description || 'No description available.'}
-            </pre>
-          </div>
-        </div>
+          {/* Timer */}
+          {startedAt && timeRemaining !== null && (
+            <div style={styles.timerContainer}>
+              <div style={styles.timerContent}>
+                <span style={styles.timerLabel}>Time Remaining:</span>
+                <span style={{
+                  ...styles.timerValue,
+                  color: timeRemaining <= 10 ? '#dc3545' : '#28a745'
+                }}>
+                  {formatTime(timeRemaining)}
+                </span>
+              </div>
+            </div>
+          )}
 
-        {/* Test Cases */}
-        {challenge.challenge?.test_cases && (
+          {/* Challenge Description */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Test Cases</h3>
-            <div style={styles.testCasesBox}>
-              <pre style={styles.codeText}>
-                {typeof challenge.challenge.test_cases === 'string' 
-                  ? challenge.challenge.test_cases 
-                  : JSON.stringify(challenge.challenge.test_cases, null, 2)
-                }
+            <h3 style={styles.sectionTitle}>📋 Challenge Description</h3>
+            <div style={styles.descriptionBox}>
+              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                {challenge.challenge?.description || 'No description available.'}
               </pre>
             </div>
           </div>
-        )}
 
-        {/* Code Editor */}
-        <div style={styles.section}>
-          <h3 style={styles.sectionTitle}>Your Solution</h3>
-          <textarea
-            value={submittedCode}
-            onChange={(e) => setSubmittedCode(e.target.value)}
-            style={styles.codeEditor}
-            placeholder="Write your solution here..."
-            disabled={isSubmitting || (result && result.evaluation)}
-          />
-          <div style={styles.characterCount}>
-            Character count: {submittedCode.length}
-          </div>
-        </div>
-
-        {/* Error Display */}
-        {error && (
-          <div style={styles.errorBox}>{error}</div>
-        )}
-
-        {/* Result Display */}
-        {result && (
-          <div style={{
-            ...styles.resultBox,
-            backgroundColor: result.passed ? '#d4edda' : '#f8d7da',
-            borderColor: result.passed ? '#c3e6cb' : '#f5c6cb',
-            color: result.passed ? '#155724' : '#721c24'
-          }}>
-            <div style={styles.resultHeader}>
-              <span style={styles.resultTitle}>
-                {result.passed ? '✅ Challenge Passed!' : '❌ Challenge Not Passed'}
-              </span>
-              <span style={{
-                ...styles.resultScore,
-                color: result.passed ? '#155724' : '#721c24'
-              }}>
-                {result.score}%
-              </span>
+          {/* Test Cases */}
+          {challenge.challenge?.test_cases && (
+            <div style={styles.section}>
+              <h3 style={styles.sectionTitle}>🧪 Test Cases</h3>
+              <div style={styles.testCasesBox}>
+                <pre style={{ margin: 0, fontSize: '13px', fontFamily: 'Monaco, Consolas, monospace' }}>
+                  {typeof challenge.challenge.test_cases === 'string' 
+                    ? challenge.challenge.test_cases 
+                    : JSON.stringify(challenge.challenge.test_cases, null, 2)
+                  }
+                </pre>
+              </div>
             </div>
-            
-            {result.feedback && (
-              <p style={styles.resultFeedback}>{result.feedback}</p>
-            )}
-            
-            {result.projectJoined && (
-              <div style={styles.joinedNotice}>
-                <p style={styles.joinedText}>
-                  🎉 Congratulations! You have been added to the project as a member.
-                </p>
+          )}
+
+          {/* Hints */}
+          <div style={styles.hintSection}>
+            <button 
+              onClick={() => setShowHints(!showHints)}
+              style={styles.hintToggle}
+            >
+              💡 {showHints ? 'Hide' : 'Show'} Hints
+              <span>{showHints ? '▲' : '▼'}</span>
+            </button>
+            {showHints && (
+              <div style={styles.hintContent}>
+                <ul>
+                  <li>Read the requirements carefully before starting</li>
+                  <li>Make sure your solution handles all test cases</li>
+                  <li>Include proper function definitions and logic</li>
+                  <li>Add comments to explain your approach</li>
+                  <li>Test your solution with the provided examples</li>
+                  <li>Use appropriate variable names and code structure</li>
+                </ul>
               </div>
             )}
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div style={styles.actionButtons}>
-          {!startedAt && !result && (
-            <button
-              onClick={handleStartChallenge}
-              disabled={loading || isSubmitting}
-              style={{
-                ...styles.startButton,
-                opacity: (loading || isSubmitting) ? 0.6 : 1
-              }}
-            >
-              Start Challenge
-            </button>
+          {/* Code Editor */}
+          <div style={styles.section}>
+            <h3 style={styles.sectionTitle}>💻 Your Solution</h3>
+            <textarea
+              value={submittedCode}
+              onChange={handleCodeChange}
+              style={styles.codeEditor}
+              placeholder="Write your solution here..."
+              disabled={isSubmitting || (result && result.passed)}
+            />
+            
+            {/* Real-time Code Validation */}
+            {codeValidation && (
+              <div style={styles.validationPanel}>
+                <div style={styles.validationLeft}>
+                  <div style={styles.validationItem}>
+                    <span>{codeValidation.hasFunction ? '✅' : '❌'}</span>
+                    <span>Function</span>
+                  </div>
+                  <div style={styles.validationItem}>
+                    <span>{codeValidation.hasLogic ? '✅' : '❌'}</span>
+                    <span>Logic</span>
+                  </div>
+                  <div style={styles.validationItem}>
+                    <span>{codeValidation.hasReturn ? '✅' : '❌'}</span>
+                    <span>Return</span>
+                  </div>
+                  <div style={styles.validationItem}>
+                    <span>{codeValidation.hasComments ? '✅' : '❌'}</span>
+                    <span>Comments</span>
+                  </div>
+                  {codeValidation.isPlaceholder && (
+                    <div style={styles.validationItem}>
+                      <span>⚠️</span>
+                      <span>Placeholder detected</span>
+                    </div>
+                  )}
+                </div>
+                <div style={{
+                  ...styles.validationScore,
+                  backgroundColor: getValidationScoreColor()
+                }}>
+                  ~{codeValidation.estimatedScore}%
+                </div>
+              </div>
+            )}
+            
+            <div style={styles.characterCount}>
+              Characters: {submittedCode.length} | Lines: {submittedCode.split('\n').length}
+            </div>
+          </div>
+
+          {/* Error Display */}
+          {error && (
+            <div style={styles.errorBox}>
+              <strong>⚠️ Error:</strong> {error}
+            </div>
           )}
 
-          {startedAt && !result && (
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              style={{
-                ...styles.submitButton,
-                opacity: isSubmitting ? 0.6 : 1
-              }}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Solution'}
-            </button>
-          )}
-
+          {/* Result Display */}
           {result && (
-            <>
-              {onClose && (
-                <button onClick={onClose} style={styles.closeButton}>Close</button>
+            <div style={{
+              ...styles.resultBox,
+              backgroundColor: result.passed ? '#d4edda' : '#f8d7da',
+              borderColor: result.passed ? '#c3e6cb' : '#f5c6cb',
+              color: result.passed ? '#155724' : '#721c24'
+            }}>
+              <div style={styles.resultHeader}>
+                <span style={styles.resultTitle}>
+                  {result.passed ? '🎉 Challenge Passed!' : '❌ Challenge Not Passed'}
+                </span>
+                <span style={styles.resultScore}>
+                  {result.score}%
+                </span>
+              </div>
+              
+              {result.feedback && (
+                <p style={styles.resultFeedback}>{result.feedback}</p>
               )}
               
-              {!result.projectJoined && (
-                <button
-                  onClick={() => window.location.reload()}
-                  style={styles.retryLaterButton}
-                >
-                  Try Again Later
-                </button>
+              {result.projectJoined && (
+                <div style={styles.joinedNotice}>
+                  <p style={styles.joinedText}>
+                    🎉 Congratulations! You have been added to the project as a member.
+                    You can now access the project workspace and collaborate with the team.
+                  </p>
+                </div>
               )}
-            </>
+
+              {result.evaluation && result.evaluation.details && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '16px',
+                  backgroundColor: 'rgba(0,0,0,0.05)',
+                  borderRadius: '8px'
+                }}>
+                  <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+                    📊 Evaluation Breakdown:
+                  </p>
+                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                      {result.evaluation.details.hasFunction ? '✅' : '❌'} 
+                      Function Definition (25 pts)
+                    </li>
+                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                      {result.evaluation.details.hasLogic ? '✅' : '❌'} 
+                      Control Structures & Logic (20 pts)
+                    </li>
+                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                      {result.evaluation.details.languageMatch ? '✅' : '❌'} 
+                      Language Syntax Match (20 pts)
+                    </li>
+                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                      {result.evaluation.details.properStructure ? '✅' : '❌'} 
+                      Code Structure (10 pts)
+                    </li>
+                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                      {result.evaluation.details.hasComments ? '✅' : '❌'} 
+                      Comments & Documentation (10 pts)
+                    </li>
+                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                      📈 Complexity Score: {result.evaluation.details.complexity * 3}/15 pts
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {!result.passed && (
+                <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                  <button 
+                    onClick={() => {
+                      setResult(null);
+                      setError(null);
+                      // Reset timer if needed
+                      if (challenge?.challenge?.time_limit_minutes && !startedAt) {
+                        setTimeRemaining(challenge.challenge.time_limit_minutes);
+                      }
+                    }}
+                    style={{ ...styles.button, ...styles.retryButton }}
+                  >
+                    🔄 Try Again
+                  </button>
+                </div>
+              )}
+            </div>
           )}
+
+          {/* Action Buttons */}
+          <div style={styles.actionButtons}>
+            {!startedAt && !result && (
+              <>
+                <button 
+                  onClick={onClose}
+                  style={{ ...styles.button, ...styles.secondaryButton }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleStartChallenge}
+                  disabled={loading || isSubmitting}
+                  style={{
+                    ...styles.button,
+                    ...styles.primaryButton,
+                    ...(loading || isSubmitting ? styles.disabledButton : {})
+                  }}
+                >
+                  🚀 Start Challenge
+                </button>
+              </>
+            )}
+
+            {startedAt && !result && (
+              <>
+                <button 
+                  onClick={onClose}
+                  style={{ ...styles.button, ...styles.secondaryButton }}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !submittedCode.trim() || submittedCode.trim().length < 10}
+                  style={{
+                    ...styles.button,
+                    ...styles.primaryButton,
+                    ...(isSubmitting || !submittedCode.trim() || submittedCode.trim().length < 10 ? styles.disabledButton : {})
+                  }}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span style={{
+                        display: 'inline-block',
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid transparent',
+                        borderTop: '2px solid white',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite',
+                        marginRight: '8px'
+                      }}></span>
+                      Submitting...
+                    </>
+                  ) : (
+                    '📤 Submit Solution'
+                  )}
+                </button>
+              </>
+            )}
+
+            {result && (
+              <button 
+                onClick={onClose}
+                style={{ ...styles.button, ...styles.primaryButton }}
+              >
+                {result.projectJoined ? '🎉 Go to Project' : 'Close'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        textarea:focus {
+          border-color: #667eea !important;
+          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+        }
+        
+        button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        button:disabled {
+          cursor: not-allowed !important;
+          transform: none !important;
+        }
+        
+        .result-box {
+          animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   );
 };
-
-const styles = {
-  container: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '20px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    backgroundColor: '#fff',
-    borderRadius: '12px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-    border: '1px solid #e5e7eb'
-  },
-
-  centerContent: {
-    textAlign: 'center',
-    padding: '60px 20px'
-  },
-
-  spinner: {
-    width: '40px',
-    height: '40px',
-    border: '4px solid #f3f4f6',
-    borderTop: '4px solid #3b82f6',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    margin: '0 auto 20px'
-  },
-
-  loadingTitle: {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#1f2937',
-    margin: '0 0 8px 0'
-  },
-
-  loadingText: {
-    color: '#6b7280',
-    fontSize: '16px'
-  },
-
-  errorIcon: {
-    fontSize: '48px',
-    marginBottom: '16px'
-  },
-
-  errorTitle: {
-    color: '#dc2626',
-    fontSize: '20px',
-    fontWeight: '600',
-    marginBottom: '8px'
-  },
-
-  errorMessage: {
-    color: '#6b7280',
-    marginBottom: '20px',
-    fontSize: '14px'
-  },
-
-  debugInfo: {
-    backgroundColor: '#f9fafb',
-    padding: '12px',
-    borderRadius: '6px',
-    marginBottom: '20px',
-    fontSize: '12px',
-    color: '#6b7280',
-    textAlign: 'left'
-  },
-
-  retryButton: {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '10px 20px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-
-  warningIcon: {
-    fontSize: '48px',
-    marginBottom: '16px',
-    color: '#f59e0b'
-  },
-
-  warningTitle: {
-    color: '#1f2937',
-    fontSize: '20px',
-    fontWeight: '600',
-    marginBottom: '8px'
-  },
-
-  warningMessage: {
-    color: '#6b7280',
-    marginBottom: '12px'
-  },
-
-  nextAttemptText: {
-    color: '#6b7280',
-    fontSize: '12px',
-    marginBottom: '20px'
-  },
-
-  emptyIcon: {
-    fontSize: '48px',
-    marginBottom: '16px',
-    color: '#6b7280'
-  },
-
-  emptyTitle: {
-    color: '#1f2937',
-    fontSize: '20px',
-    fontWeight: '600',
-    marginBottom: '8px'
-  },
-
-  emptyMessage: {
-    color: '#6b7280',
-    marginBottom: '20px'
-  },
-
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: '30px',
-    paddingBottom: '20px',
-    borderBottom: '2px solid #e5e7eb'
-  },
-
-  headerContent: {
-    flex: 1
-  },
-
-  title: {
-    color: '#1f2937',
-    fontSize: '28px',
-    fontWeight: '700',
-    marginBottom: '8px'
-  },
-
-  subtitle: {
-    color: '#6b7280',
-    fontSize: '16px'
-  },
-
-  closeIcon: {
-    background: 'none',
-    border: 'none',
-    fontSize: '24px',
-    color: '#9ca3af',
-    cursor: 'pointer',
-    padding: '4px 8px',
-    borderRadius: '4px'
-  },
-
-  content: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '24px'
-  },
-
-  infoGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '16px'
-  },
-
-  infoCard: {
-    backgroundColor: '#f9fafb',
-    padding: '20px',
-    borderRadius: '8px',
-    textAlign: 'center',
-    border: '1px solid #e5e7eb'
-  },
-
-  infoLabel: {
-    color: '#6b7280',
-    fontSize: '14px',
-    fontWeight: '500',
-    marginBottom: '8px'
-  },
-
-  infoValue: {
-    color: '#1f2937',
-    fontSize: '18px',
-    fontWeight: '600',
-    textTransform: 'capitalize'
-  },
-
-  timerContainer: {
-    backgroundColor: '#fef3c7',
-    border: '1px solid #fde68a',
-    borderRadius: '8px',
-    padding: '16px'
-  },
-
-  timerContent: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-
-  timerLabel: {
-    color: '#92400e',
-    fontWeight: '500'
-  },
-
-  timerValue: {
-    fontSize: '20px',
-    fontWeight: '700',
-    fontFamily: 'monospace'
-  },
-
-  section: {
-    marginBottom: '8px'
-  },
-
-  sectionTitle: {
-    color: '#1f2937',
-    fontSize: '18px',
-    fontWeight: '600',
-    marginBottom: '12px'
-  },
-
-  descriptionBox: {
-    backgroundColor: '#f9fafb',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    padding: '20px'
-  },
-
-  descriptionText: {
-    color: '#1f2937',
-    fontSize: '14px',
-    lineHeight: '1.6',
-    margin: 0,
-    whiteSpace: 'pre-wrap',
-    fontFamily: 'inherit'
-  },
-
-  testCasesBox: {
-    backgroundColor: '#f9fafb',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    padding: '20px',
-    overflow: 'auto'
-  },
-
-  codeText: {
-    color: '#1f2937',
-    fontSize: '13px',
-    lineHeight: '1.5',
-    margin: 0,
-    fontFamily: 'Monaco, Consolas, "Ubuntu Mono", monospace'
-  },
-
-  codeEditor: {
-    width: '100%',
-    minHeight: '300px',
-    padding: '16px',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontFamily: 'Monaco, Consolas, "Ubuntu Mono", monospace',
-    lineHeight: '1.5',
-    resize: 'vertical',
-    outline: 'none',
-    backgroundColor: '#fff'
-  },
-
-  characterCount: {
-    color: '#6b7280',
-    fontSize: '12px',
-    marginTop: '8px',
-    textAlign: 'right'
-  },
-
-  errorBox: {
-    backgroundColor: '#fef2f2',
-    color: '#991b1b',
-    padding: '12px 16px',
-    borderRadius: '6px',
-    border: '1px solid #fecaca'
-  },
-
-  resultBox: {
-    padding: '20px',
-    borderRadius: '8px',
-    border: '1px solid'
-  },
-
-  resultHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px'
-  },
-
-  resultTitle: {
-    fontSize: '16px',
-    fontWeight: '600'
-  },
-
-  resultScore: {
-    fontSize: '20px',
-    fontWeight: '700'
-  },
-
-  resultFeedback: {
-    fontSize: '14px',
-    margin: '8px 0'
-  },
-
-  joinedNotice: {
-    marginTop: '16px',
-    padding: '12px',
-    backgroundColor: '#dbeafe',
-    border: '1px solid #bfdbfe',
-    borderRadius: '6px'
-  },
-
-  joinedText: {
-    color: '#1e40af',
-    fontWeight: '500',
-    margin: 0
-  },
-
-  actionButtons: {
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'flex-end',
-    paddingTop: '20px',
-    borderTop: '1px solid #e5e7eb'
-  },
-
-  startButton: {
-    backgroundColor: '#10b981',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-
-  submitButton: {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-
-  closeButton: {
-    backgroundColor: '#6b7280',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-
-  retryLaterButton: {
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    padding: '12px 24px',
-    fontSize: '16px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  }
-};
-
-// Add CSS for spinner animation
-const styleSheet = document.createElement("style");
-styleSheet.innerText = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-  
-  textarea:focus {
-    border-color: #3b82f6 !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
-  }
-  
-  button:hover {
-    opacity: 0.9 !important;
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-  }
-  
-  button:disabled {
-    cursor: not-allowed !important;
-    transform: none !important;
-  }
-`;
-document.head.appendChild(styleSheet);
 
 export default ProjectChallengeInterface;
