@@ -1,16 +1,9 @@
 // backend/server.js
-const app = require('./app');
-const http = require('http');
-
-// Load environment variables
-require('dotenv').config();
+const { server, io } = require('./app');
 
 const PORT = process.env.PORT || 5000;
 
-// Create HTTP server
-const server = http.createServer(app);
-
-// Enhanced error handling
+// Enhanced error handling (keep your existing error handling)
 server.on('error', (error) => {
   if (error.syscall !== 'listen') {
     throw error;
@@ -61,18 +54,19 @@ server.on('listening', () => {
   console.log(`🌐 Local: http://localhost:${addr.port}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  console.log(`📡 Socket.io server is ready for real-time chat`); // New line
   
   // Health check endpoints
   console.log('\n📋 Available endpoints:');
   console.log(`   GET  http://localhost:${addr.port}/api/health`);
   console.log(`   GET  http://localhost:${addr.port}/api/challenges`);
-  console.log(`   GET  http://localhost:${addr.port}/api/challenges/project/:projectId/challenge`);
-  console.log(`   POST http://localhost:${addr.port}/api/challenges/project/:projectId/attempt`);
+  console.log(`   GET  http://localhost:${addr.port}/api/chat/projects/:projectId/rooms`); // New line
+  console.log(`   POST http://localhost:${addr.port}/api/chat/projects/:projectId/rooms/:roomId/messages`); // New line
   
   console.log('\n✅ Server startup complete\n');
 });
 
-// Graceful shutdown
+// Keep your existing graceful shutdown code...
 process.on('SIGTERM', () => {
   console.log('\nSIGTERM received, shutting down gracefully...');
   server.close(() => {

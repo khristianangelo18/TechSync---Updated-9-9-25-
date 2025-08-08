@@ -3,6 +3,10 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
+const { createServer } = require('http');
+const { Server } = require('socket.io')
+
+const setupSocketHandlers = require('./utils/socketHandler');
 
 // Load environment variables
 dotenv.config();
@@ -15,6 +19,7 @@ const suggestionsRoutes = require('./routes/suggestions');
 const skillMatchingRoutes = require('./routes/skillMatching'); 
 const challengeRoutes = require('./routes/challenges');
 const adminRoutes = require('./routes/admin');
+const chatRoutes = require('./routes/chat');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -137,6 +142,7 @@ app.use('/api/suggestions', suggestionsRoutes);
 app.use('/api/skill-matching', skillMatchingRoutes);
 app.use('/api/challenges', challengeRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -205,4 +211,21 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-module.exports = app;
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
+});
+
+// Setup Socket.io handlers
+setupSocketHandlers(io);
+
+// Make io available to routes via app.locals
+app.locals.io = io;
+
+// Export both app and server for socket.io support
+module.exports = { app, server, io };

@@ -1,48 +1,38 @@
-import React from 'react';
-// Removed unused useParams import and projectId variable
+// frontend/src/pages/project/ProjectChats.js
+import React, { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import ChatInterface from '../../components/chat/ChatInterface';
+import { useChat } from '../../contexts/ChatContext';
 
-function ProjectChats() {
-  const styles = {
-    container: {
-      padding: '30px',
-      maxWidth: '1200px',
-      margin: '0 auto'
-    },
-    header: {
-      marginBottom: '30px',
-      paddingBottom: '20px',
-      borderBottom: '2px solid #e9ecef'
-    },
-    title: {
-      color: '#333',
-      fontSize: '28px',
-      margin: '0 0 10px 0'
-    },
-    subtitle: {
-      color: '#6c757d',
-      fontSize: '16px',
-      margin: 0
-    },
-    comingSoon: {
-      textAlign: 'center',
-      padding: '60px 20px',
-      color: '#6c757d'
-    }
-  };
+const ProjectChats = () => {
+  const { projectId } = useParams();
+  const { clearMessages } = useChat();
+
+  // Clear messages when component unmounts (leaving project or navigating away)
+  useEffect(() => {
+    return () => {
+      clearMessages();
+    };
+  }, [clearMessages]);
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <h1 style={styles.title}>Chats</h1>
-        <p style={styles.subtitle}>Team communication and collaboration</p>
-      </div>
-
-      <div style={styles.comingSoon}>
-        <h2>Team Chat Coming Soon</h2>
-        <p>Communicate with your team members in real-time.</p>
+    <div style={{ 
+      height: 'calc(100vh - 140px)', // Adjust based on your header/navigation height
+      display: 'flex',
+      backgroundColor: '#f8fafc'
+    }}>
+      
+      
+      {/* Main Chat Interface */}
+      <div style={{ 
+        flex: 1, 
+        marginTop: '40px', // Account for security notice
+        display: 'flex'
+      }}>
+        <ChatInterface projectId={projectId} />
       </div>
     </div>
   );
-}
+};
 
 export default ProjectChats;
