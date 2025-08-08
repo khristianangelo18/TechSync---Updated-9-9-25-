@@ -1,54 +1,60 @@
+// frontend/src/pages/Onboarding.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { onboardingService } from '../services/onboardingService';
 
 function Onboarding() {
+  const { user, token, updateUser, refreshUser } = useAuth();
+  const navigate = useNavigate();
+
+  // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
-  // Available data from API
+
+  // Data state
   const [programmingLanguages, setProgrammingLanguages] = useState([]);
   const [topics, setTopics] = useState([]);
-  
-  // User selections
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [yearsExperience, setYearsExperience] = useState(0);
-  
-  const { user, token, updateUser, refreshUser } = useAuth();
-  const navigate = useNavigate();
 
-  // Fetch programming languages and topics on component mount
+  // Load initial data
   useEffect(() => {
-    const fetchData = async () => {
+    const loadInitialData = async () => {
       try {
         setLoading(true);
-        
+        setError('');
+
+        // Load programming languages and topics in parallel
         const [languagesResponse, topicsResponse] = await Promise.all([
           onboardingService.getProgrammingLanguages(),
           onboardingService.getTopics()
         ]);
-        
+
         if (languagesResponse.success) {
           setProgrammingLanguages(languagesResponse.data);
+        } else {
+          throw new Error('Failed to load programming languages');
         }
-        
+
         if (topicsResponse.success) {
           setTopics(topicsResponse.data);
+        } else {
+          throw new Error('Failed to load topics');
         }
-        
+
       } catch (error) {
+        console.error('Error loading onboarding data:', error);
         setError('Failed to load onboarding data. Please refresh the page.');
-        console.error('Fetch onboarding data error:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    loadInitialData();
   }, []);
 
   // Handle language selection
@@ -61,13 +67,12 @@ function Onboarding() {
       setSelectedLanguages([...selectedLanguages, {
         language_id: language.id,
         name: language.name,
-        proficiency_level: 'intermediate', // default
-        years_experience: 1 // default
+        proficiency_level: 'intermediate' // default
       }]);
     }
   };
 
-  // Handle proficiency level change for a language
+  // Handle proficiency change
   const handleProficiencyChange = (languageId, level) => {
     setSelectedLanguages(selectedLanguages.map(lang => 
       lang.language_id === languageId 
@@ -110,13 +115,14 @@ function Onboarding() {
     ));
   };
 
-  // Complete onboarding
+  // FIXED: Complete onboarding with proper error handling
   const handleCompleteOnboarding = async () => {
     try {
       setLoading(true);
       setError('');
+      setSuccessMessage('');
 
-      // Validate selections
+      // Validate selections before submission
       if (selectedLanguages.length === 0) {
         setError('Please select at least one programming language.');
         return;
@@ -127,49 +133,65 @@ function Onboarding() {
         return;
       }
 
-      // Complete onboarding
+      console.log('Starting onboarding completion with:', {
+        languages: selectedLanguages,
+        topics: selectedTopics,
+        years_experience: yearsExperience
+      });
+
+      // Complete onboarding with all data
       const result = await onboardingService.completeOnboarding({
         languages: selectedLanguages,
         topics: selectedTopics,
         years_experience: yearsExperience
       }, token);
 
+      console.log('Onboarding completion result:', result);
+
       if (result.success) {
         setSuccessMessage('Onboarding completed successfully!');
         
-        // Update user context with the returned user data (includes languages and topics)
-        if (result.data && result.data.user) {
-          await updateUser(result.data.user, true); // true for complete replacement
+        // Update user context with the returned user data
+        if (result.data?.user) {
+          console.log('Updating user context with:', result.data.user);
+          
+          // Use complete replacement to ensure needsOnboarding is updated
+          await updateUser(result.data.user, true);
+          
+          console.log('User context updated successfully');
         } else {
-          // Fallback: refresh user profile if data not returned
+          console.log('No user data in response, refreshing user profile');
+          // Fallback: refresh user profile
           await refreshUser();
         }
         
-        // Redirect to dashboard after a short delay
+        // Redirect to dashboard after success
         setTimeout(() => {
+          console.log('Navigating to dashboard...');
           navigate('/');
         }, 1500);
       } else {
-        setError(result.message || 'Failed to complete onboarding');
+        const errorMsg = result.message || 'Failed to complete onboarding. Please try again.';
+        console.error('Onboarding completion failed:', errorMsg);
+        setError(errorMsg);
       }
 
     } catch (error) {
-      setError('Failed to complete onboarding. Please try again.');
-      console.error('Complete onboarding error:', error);
+      console.error('Onboarding completion error:', error);
+      const errorMessage = error.message || 'Failed to complete onboarding. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  // Styles
+  // Styles (keeping existing styles)
   const styles = {
     container: {
       maxWidth: '800px',
-      margin: '20px auto',
+      margin: '0 auto',
       padding: '20px',
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+      fontFamily: 'Arial, sans-serif'
     },
     header: {
       textAlign: 'center',
@@ -181,21 +203,18 @@ function Onboarding() {
     },
     subtitle: {
       color: '#666',
-      fontSize: '16px'
+      marginBottom: '20px'
     },
     stepContainer: {
       marginBottom: '30px'
     },
     stepTitle: {
-      fontSize: '20px',
       color: '#333',
-      marginBottom: '15px',
-      borderBottom: '2px solid #007bff',
-      paddingBottom: '5px'
+      marginBottom: '20px'
     },
     buttonGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
       gap: '10px',
       marginBottom: '20px'
     },
@@ -203,44 +222,21 @@ function Onboarding() {
       padding: '10px 15px',
       border: '2px solid #ddd',
       borderRadius: '6px',
-      backgroundColor: 'white',
+      backgroundColor: '#fff',
       cursor: 'pointer',
-      textAlign: 'center',
       transition: 'all 0.2s ease',
       fontSize: '14px'
     },
-    buttonSelected: {
-      borderColor: '#007bff',
+    selectedButton: {
       backgroundColor: '#007bff',
-      color: 'white'
+      color: 'white',
+      borderColor: '#007bff'
     },
-    languageItem: {
-      border: '1px solid #ddd',
-      borderRadius: '6px',
+    proficiencyContainer: {
+      marginTop: '20px',
       padding: '15px',
-      marginBottom: '10px',
-      backgroundColor: '#f9f9f9'
-    },
-    languageHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '10px'
-    },
-    languageName: {
-      fontWeight: 'bold',
-      color: '#333'
-    },
-    selectContainer: {
-      display: 'flex',
-      gap: '10px',
-      alignItems: 'center'
-    },
-    select: {
-      padding: '5px 10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      fontSize: '14px'
+      backgroundColor: '#f8f9fa',
+      borderRadius: '6px'
     },
     topicItem: {
       border: '1px solid #ddd',
@@ -248,23 +244,6 @@ function Onboarding() {
       padding: '15px',
       marginBottom: '10px',
       backgroundColor: '#f9f9f9'
-    },
-    topicHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '10px'
-    },
-    topicName: {
-      fontWeight: 'bold',
-      color: '#333'
-    },
-    topicCategory: {
-      fontSize: '12px',
-      color: '#666',
-      backgroundColor: '#e9ecef',
-      padding: '2px 6px',
-      borderRadius: '3px'
     },
     experienceContainer: {
       textAlign: 'center',
@@ -339,6 +318,7 @@ function Onboarding() {
     }
   };
 
+  // Loading state
   if (loading && programmingLanguages.length === 0) {
     return (
       <div style={styles.container}>
@@ -376,7 +356,7 @@ function Onboarding() {
                 onClick={() => handleLanguageToggle(language)}
                 style={{
                   ...styles.button,
-                  ...(selectedLanguages.find(l => l.language_id === language.id) ? styles.buttonSelected : {})
+                  ...(selectedLanguages.find(l => l.language_id === language.id) ? styles.selectedButton : {})
                 }}
               >
                 {language.name}
@@ -384,26 +364,27 @@ function Onboarding() {
             ))}
           </div>
 
+          {/* Proficiency Selection */}
           {selectedLanguages.length > 0 && (
-            <div style={{ marginTop: '20px' }}>
-              <h3>Set your proficiency levels:</h3>
+            <div style={styles.proficiencyContainer}>
+              <h3>Set your proficiency level:</h3>
               {selectedLanguages.map(lang => (
-                <div key={lang.language_id} style={styles.languageItem}>
-                  <div style={styles.languageHeader}>
-                    <span style={styles.languageName}>{lang.name}</span>
-                    <div style={styles.selectContainer}>
-                      <label>Proficiency:</label>
-                      <select
-                        value={lang.proficiency_level}
-                        onChange={(e) => handleProficiencyChange(lang.language_id, e.target.value)}
-                        style={styles.select}
-                      >
-                        <option value="beginner">Beginner</option>
-                        <option value="intermediate">Intermediate</option>
-                        <option value="advanced">Advanced</option>
-                        <option value="expert">Expert</option>
-                      </select>
-                    </div>
+                <div key={lang.language_id} style={{ marginBottom: '15px' }}>
+                  <div style={{ marginBottom: '5px', fontWeight: 'bold' }}>{lang.name}:</div>
+                  <div>
+                    {['beginner', 'intermediate', 'advanced', 'expert'].map(level => (
+                      <label key={level} style={{ marginRight: '15px', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name={`proficiency-${lang.language_id}`}
+                          value={level}
+                          checked={lang.proficiency_level === level}
+                          onChange={() => handleProficiencyChange(lang.language_id, level)}
+                          style={{ marginRight: '5px' }}
+                        />
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                      </label>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -415,8 +396,8 @@ function Onboarding() {
       {/* Step 2: Topics */}
       {currentStep === 2 && (
         <div style={styles.stepContainer}>
-          <h2 style={styles.stepTitle}>What technology topics are you most interested in?</h2>
-          <p style={{ marginBottom: '20px', color: '#666' }}>Choose your areas of interest</p>
+          <h2 style={styles.stepTitle}>What topics interest you?</h2>
+          <p style={{ marginBottom: '20px', color: '#666' }}>Select your areas of interest</p>
           
           <div style={styles.buttonGrid}>
             {topics.map(topic => (
@@ -425,52 +406,55 @@ function Onboarding() {
                 onClick={() => handleTopicToggle(topic)}
                 style={{
                   ...styles.button,
-                  ...(selectedTopics.find(t => t.topic_id === topic.id) ? styles.buttonSelected : {})
+                  ...(selectedTopics.find(t => t.topic_id === topic.id) ? styles.selectedButton : {})
                 }}
               >
-                {topic.name}
+                <div>{topic.name}</div>
+                <small style={{ opacity: 0.8 }}>{topic.category}</small>
               </button>
             ))}
           </div>
 
+          {/* Topic Interest and Experience Levels */}
           {selectedTopics.length > 0 && (
             <div style={{ marginTop: '20px' }}>
-              <h3>Set your interest and experience levels:</h3>
+              <h3>Customize your selections:</h3>
               {selectedTopics.map(topic => (
                 <div key={topic.topic_id} style={styles.topicItem}>
-                  <div style={styles.topicHeader}>
-                    <div>
-                      <span style={styles.topicName}>{topic.name}</span>
-                      {topics.find(t => t.id === topic.topic_id)?.category && (
-                        <span style={styles.topicCategory}>
-                          {topics.find(t => t.id === topic.topic_id).category}
-                        </span>
-                      )}
-                    </div>
+                  <div style={{ fontWeight: 'bold', marginBottom: '10px' }}>{topic.name}</div>
+                  
+                  <div style={{ marginBottom: '10px' }}>
+                    <span style={{ marginRight: '10px' }}>Interest Level:</span>
+                    {['low', 'medium', 'high'].map(level => (
+                      <label key={level} style={{ marginRight: '10px', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name={`interest-${topic.topic_id}`}
+                          value={level}
+                          checked={topic.interest_level === level}
+                          onChange={() => handleInterestChange(topic.topic_id, level)}
+                          style={{ marginRight: '3px' }}
+                        />
+                        {level}
+                      </label>
+                    ))}
                   </div>
-                  <div style={styles.selectContainer}>
-                    <label>Interest:</label>
-                    <select
-                      value={topic.interest_level}
-                      onChange={(e) => handleInterestChange(topic.topic_id, e.target.value)}
-                      style={styles.select}
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                    
-                    <label>Experience:</label>
-                    <select
-                      value={topic.experience_level}
-                      onChange={(e) => handleTopicExperienceChange(topic.topic_id, e.target.value)}
-                      style={styles.select}
-                    >
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                      <option value="expert">Expert</option>
-                    </select>
+                  
+                  <div>
+                    <span style={{ marginRight: '10px' }}>Experience:</span>
+                    {['beginner', 'intermediate', 'advanced', 'expert'].map(level => (
+                      <label key={level} style={{ marginRight: '10px', cursor: 'pointer' }}>
+                        <input
+                          type="radio"
+                          name={`experience-${topic.topic_id}`}
+                          value={level}
+                          checked={topic.experience_level === level}
+                          onChange={() => handleTopicExperienceChange(topic.topic_id, level)}
+                          style={{ marginRight: '3px' }}
+                        />
+                        {level}
+                      </label>
+                    ))}
                   </div>
                 </div>
               ))}
@@ -483,17 +467,18 @@ function Onboarding() {
       {currentStep === 3 && (
         <div style={styles.stepContainer}>
           <h2 style={styles.stepTitle}>How many years of programming experience do you have?</h2>
+          
           <div style={styles.experienceContainer}>
             <input
               type="number"
-              value={yearsExperience}
-              onChange={(e) => setYearsExperience(Math.max(0, parseInt(e.target.value) || 0))}
-              style={styles.experienceInput}
               min="0"
               max="50"
+              value={yearsExperience}
+              onChange={(e) => setYearsExperience(parseInt(e.target.value) || 0)}
+              style={styles.experienceInput}
             />
             <p style={{ marginTop: '15px', color: '#666' }}>
-              {yearsExperience === 0 ? 'Just getting started' : 
+              You have {yearsExperience === 0 ? 'Just getting started' : 
                yearsExperience === 1 ? '1 year' : 
                `${yearsExperience} years`} of experience
             </p>
