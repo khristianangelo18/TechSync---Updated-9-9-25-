@@ -625,59 +625,71 @@ const ChatInterface = ({ projectId }) => {
               </div>
             )}
 
-            {/* Message Input - Fixed at Bottom */}
+          {/* Message Input - Fixed at Bottom */}
+          <div style={{ 
+            padding: '16px', 
+            borderTop: '1px solid #e2e8f0', 
+            backgroundColor: 'white',
+            flexShrink: 0,
+            marginTop: 'auto'
+          }}>
             <div style={{ 
-              padding: '16px', 
-              borderTop: '1px solid #e2e8f0', 
-              backgroundColor: 'white',
-              flexShrink: 0,
-              marginTop: 'auto'
+              display: 'flex', 
+              alignItems: 'flex-end', 
+              gap: '12px' // Increased from 8px to 12px for better spacing
             }}>
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
-                <div style={{ flex: 1 }}>
-                  <textarea
-                    ref={messageInputRef}
-                    value={messageInput}
-                    onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
-                    placeholder={
-                      editingMessage 
-                        ? 'Edit your message...' 
-                        : `Message #${activeRoomData.name}`
-                    }
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      resize: 'none',
-                      minHeight: '40px',
-                      maxHeight: '120px',
-                      fontFamily: 'inherit',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                    rows="1"
-                  />
-                </div>
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!messageInput.trim()}
+              <div style={{ flex: 1, minWidth: 0 }}> {/* Added minWidth: 0 */}
+                <textarea
+                  ref={messageInputRef}
+                  value={messageInput}
+                  onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
+                  placeholder={
+                    editingMessage 
+                      ? 'Edit your message...' 
+                      : `Message #${activeRoomData.name}`
+                  }
                   style={{
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    border: 'none',
-                    cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
-                    backgroundColor: messageInput.trim() ? '#3b82f6' : '#e5e7eb',
-                    color: messageInput.trim() ? 'white' : '#9ca3af',
+                    width: '100%',
+                    padding: '12px 16px', // Increased horizontal padding
+                    border: '1px solid #d1d5db',
+                    borderRadius: '12px', // Increased border radius for better look
+                    resize: 'none',
+                    minHeight: '44px', // Increased from 40px
+                    maxHeight: '120px',
+                    fontFamily: 'inherit',
                     fontSize: '14px',
-                    fontWeight: 500
+                    lineHeight: '1.5', // Added line height
+                    boxSizing: 'border-box',
+                    outline: 'none' // Remove default outline
                   }}
-                >
-                  Send
-                </button>
+                  rows="1"
+                />
               </div>
+              <button
+                onClick={handleSendMessage}
+                disabled={!messageInput.trim()}
+                style={{
+                  padding: '12px 20px', // Increased padding to match textarea height
+                  borderRadius: '12px', // Match textarea border radius
+                  border: 'none',
+                  cursor: messageInput.trim() ? 'pointer' : 'not-allowed',
+                  backgroundColor: messageInput.trim() ? '#3b82f6' : '#e5e7eb',
+                  color: messageInput.trim() ? 'white' : '#9ca3af',
+                  fontSize: '14px',
+                  fontWeight: 600, // Increased from 500
+                  minHeight: '44px', // Ensure same height as textarea
+                  display: 'flex', // Center content
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0, // Prevent shrinking
+                  transition: 'all 0.2s ease' // Smooth transitions
+                }}
+              >
+                Send
+              </button>
             </div>
+          </div>
           </>
         ) : (
           /* No Room Selected */

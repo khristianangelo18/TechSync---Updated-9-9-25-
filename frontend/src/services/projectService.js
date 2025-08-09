@@ -43,6 +43,17 @@ export const projectService = {
     }
   },
 
+  // Get project members
+  getProjectMembers: async (projectId) => {
+    try {
+      const response = await api.get(`/projects/${projectId}/members`);
+      return response.data;
+    } catch (error) {
+      console.error('Get project members error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
   // Get current user's projects
   getUserProjects: async (role = 'all') => {
     try {
@@ -94,6 +105,44 @@ export const projectService = {
       return response.data;
     } catch (error) {
       console.error('Leave project error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Add project member (for project owners)
+  addProjectMember: async (projectId, userId, role = 'member') => {
+    try {
+      const response = await api.post(`/projects/${projectId}/members`, {
+        user_id: userId,
+        role: role
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Add project member error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Remove project member (for project owners)
+  removeProjectMember: async (projectId, userId) => {
+    try {
+      const response = await api.delete(`/projects/${projectId}/members/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Remove project member error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Update project member role (for project owners)
+  updateProjectMemberRole: async (projectId, userId, role) => {
+    try {
+      const response = await api.put(`/projects/${projectId}/members/${userId}`, {
+        role: role
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Update project member role error:', error.response?.data || error.message);
       throw error;
     }
   }
