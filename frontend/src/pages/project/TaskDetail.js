@@ -71,18 +71,25 @@ const TaskDetail = () => {
         }
     };
 
-    const handleStatusChange = async (newStatus) => {
-        try {
-            const response = await taskService.updateTask(projectId, taskId, {
-                ...task,
-                status: newStatus
-            });
+  const handleStatusChange = async (newStatus) => {
+    try {
+        console.log('🔄 Updating task status to:', newStatus);
+        
+        const response = await taskService.updateTask(projectId, taskId, {
+            status: newStatus
+        });
+
+        if (response && response.data && response.data.task) {
             setTask(response.data.task);
-        } catch (error) {
-            console.error('Error updating status:', error);
-            alert('Failed to update status');
+            console.log('✅ Task status updated successfully');
         }
-    };
+
+    } catch (error) {
+        console.error('💥 Error updating status:', error);
+        alert(`Failed to update status: ${error.response?.data?.message || error.message}`);
+    }
+};
+
 
     const formatDate = (dateString) => {
         if (!dateString) return 'Not set';

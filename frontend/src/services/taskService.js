@@ -45,14 +45,18 @@ export const taskService = {
 
   // Update a task
   updateTask: async (projectId, taskId, updateData) => {
-    try {
-      const response = await api.put(`/projects/${projectId}/tasks/${taskId}`, updateData);
-      return response.data;
-    } catch (error) {
-      console.error('Update task error:', error.response?.data || error.message);
-      throw error;
-    }
-  },
+      try {
+          console.log('🔄 TaskService: Updating task', { projectId, taskId, updateData });
+          
+          const response = await api.put(`/projects/${projectId}/tasks/${taskId}`, updateData);
+          
+          console.log('✅ TaskService: Update response', response.data);
+          return response.data;
+      } catch (error) {
+          console.error('💥 TaskService: Update error:', error.response?.data || error.message);
+          throw error;
+      }
+    },
 
   // Delete a task
   deleteTask: async (projectId, taskId) => {

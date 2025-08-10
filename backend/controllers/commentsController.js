@@ -5,81 +5,109 @@ const { validateUUID, sanitizeInput } = require('../utils/validation');
 class CommentsController {
     // Get comments for a task
     async getTaskComments(req, res) {
-        try {
-            const { taskId } = req.params;
-            const { page = 1, limit = 20 } = req.query;
-            const userId = req.user.id;
+    try {
+        const { taskId } = req.params;
+        const { page = 1, limit = 20 } = req.query;
+        const userId = req.user.id;
 
-            if (!validateUUID(taskId)) {
-                return res.status(400).json({ error: 'Invalid task ID' });
-            }
+        console.log('🔍 Getting comments for task:', taskId, 'by user:', userId);
 
-            // Check if user has access to the task
-            const { data: task, error: taskError } = await supabase
-                .from('project_tasks')
-                .select(`
-                    id, project_id,
-                    projects!inner(
-                        project_members!inner(user_id)
-                    )
-                `)
-                .eq('id', taskId)
-                .eq('projects.project_members.user_id', userId)
-                .single();
-
-            if (taskError || !task) {
-                return res.status(404).json({ error: 'Task not found or access denied' });
-            }
-
-            // Get comments with author info and reply counts
-            const { data: comments, error } = await supabase
-                .from('task_comments')
-                .select(`
-                    *,
-                    author:users!user_id(
-                        id,
-                        full_name,
-                        avatar_url
-                    ),
-                    reply_count:task_comments!parent_comment_id(count)
-                `)
-                .eq('task_id', taskId)
-                .is('parent_comment_id', null) // Only top-level comments
-                .order('created_at', { ascending: false })
-                .range((page - 1) * limit, page * limit - 1);
-
-            if (error) {
-                console.error('Error fetching comments:', error);
-                return res.status(500).json({ error: 'Failed to fetch comments' });
-            }
-
-            // Get total count for pagination
-            const { count, error: countError } = await supabase
-                .from('task_comments')
-                .select('*', { count: 'exact', head: true })
-                .eq('task_id', taskId)
-                .is('parent_comment_id', null);
-
-            if (countError) {
-                console.error('Error counting comments:', countError);
-                return res.status(500).json({ error: 'Failed to count comments' });
-            }
-
-            res.json({
-                comments,
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    total: count,
-                    pages: Math.ceil(count / limit)
-                }
-            });
-
-        } catch (error) {
-            console.error('Error in getTaskComments:', error);
-            res.status(500).json({ error: 'Internal server error' });
+        if (!validateUUID(taskId)) {
+            return res.status(400).json({ error: 'Invalid task ID' });
         }
+
+        // First, get the task and check if it exists
+        const { data: task, error: taskError } = await supabase
+            .from('project_tasks')
+            .select('id, project_id')
+            .eq('id', taskId)
+            .single();
+
+        if (taskError || !task) {
+            console.error('Task not found:', taskError);
+            return res.status(404).json({ error: 'Task not found' });
+        }
+
+        // Check if user has access to the project
+        const { data: membership, error: memberError } = await supabase
+            .from('project_members')
+            .select('user_id')
+            .eq('project_id', task.project_id)
+            .eq('user_id', userId)
+            .single();
+
+        if (memberError || !membership) {
+            console.error('Access denied - user not a project member:', memberError);
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        console.log('✅ User has access to project');
+
+        // Get comments with author info - simplified query
+        const { data: comments, error } = await supabase
+            .from('task_comments')
+            .select(`
+                *,
+                author:users!user_id(
+                    id,
+                    full_name,
+                    avatar_url
+                )
+            `)
+            .eq('task_id', taskId)
+            .is('parent_comment_id', null) // Only top-level comments
+            .order('created_at', { ascending: false })
+            .range((page - 1) * limit, page * limit - 1);
+
+        if (error) {
+            console.error('Error fetching comments:', error);
+            return res.status(500).json({ error: 'Failed to fetch comments: ' + error.message });
+        }
+
+        // Get total count for pagination
+        const { count, error: countError } = await supabase
+            .from('task_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('task_id', taskId)
+            .is('parent_comment_id', null);
+
+        if (countError) {
+            console.error('Error counting comments:', countError);
+            // Don't fail the request for count errors, just use 0
+        }
+
+        // Add reply count manually (since the complex query might be failing)
+        const commentsWithReplyCounts = await Promise.all(
+            comments.map(async (comment) => {
+                const { count: replyCount } = await supabase
+                    .from('task_comments')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('parent_comment_id', comment.id);
+                
+                return {
+                    ...comment,
+                    reply_count: replyCount || 0
+                };
+            })
+        );
+
+        console.log('✅ Successfully fetched', commentsWithReplyCounts.length, 'comments');
+
+        res.json({
+            comments: commentsWithReplyCounts,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total: count || 0,
+                pages: Math.ceil((count || 0) / limit)
+            }
+        });
+
+    } catch (error) {
+        console.error('💥 Error in getTaskComments:', error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
+}
 
     // Get replies to a comment
     async getCommentReplies(req, res) {
@@ -145,6 +173,8 @@ class CommentsController {
             const { content, parentCommentId, mentions = [] } = req.body;
             const userId = req.user.id;
 
+            console.log('🚀 Creating comment:', { taskId, userId, content, parentCommentId, mentions });
+
             if (!validateUUID(taskId)) {
                 return res.status(400).json({ error: 'Invalid task ID' });
             }
@@ -158,6 +188,7 @@ class CommentsController {
             }
 
             const sanitizedContent = sanitizeInput(content);
+            console.log('✅ Content sanitized:', sanitizedContent);
 
             // Validate parentCommentId if provided
             if (parentCommentId && !validateUUID(parentCommentId)) {
@@ -167,40 +198,64 @@ class CommentsController {
             // Validate mentions
             const validMentions = [];
             if (mentions.length > 0) {
-                for (const userId of mentions) {
-                    if (validateUUID(userId)) {
-                        validMentions.push(userId);
+                for (const mentionUserId of mentions) {
+                    if (validateUUID(mentionUserId)) {
+                        validMentions.push(mentionUserId);
                     }
                 }
             }
+            console.log('✅ Valid mentions:', validMentions);
 
-            // Check if user has access to the task
+            // Check if user has access to the task - SIMPLIFIED
+            console.log('🔍 Checking task access...');
             const { data: task, error: taskError } = await supabase
                 .from('project_tasks')
-                .select(`
-                    id, project_id,
-                    projects!inner(
-                        project_members!inner(user_id)
-                    )
-                `)
+                .select('id, project_id')
                 .eq('id', taskId)
-                .eq('projects.project_members.user_id', userId)
                 .single();
 
             if (taskError || !task) {
-                return res.status(404).json({ error: 'Task not found or access denied' });
+                console.error('❌ Task not found:', taskError);
+                return res.status(404).json({ error: 'Task not found' });
             }
 
-            // Create the comment
-            const { data: comment, error } = await supabase
+            console.log('✅ Task found:', task);
+
+            // Check project membership
+            const { data: membership, error: memberError } = await supabase
+                .from('project_members')
+                .select('user_id')
+                .eq('project_id', task.project_id)
+                .eq('user_id', userId)
+                .single();
+
+            if (memberError || !membership) {
+                console.error('❌ Access denied:', memberError);
+                return res.status(403).json({ error: 'Access denied - not a project member' });
+            }
+
+            console.log('✅ User has project access');
+
+            // Create the comment - TRY WITHOUT MENTIONS FIRST
+            console.log('🔄 Inserting comment...');
+            
+            const commentData = {
+                task_id: taskId,
+                user_id: userId,
+                content: sanitizedContent,
+                parent_comment_id: parentCommentId || null
+            };
+
+            // Only add mentions if the column exists
+            if (validMentions.length > 0) {
+                commentData.mentions = validMentions;
+            }
+
+            console.log('📝 Comment data to insert:', commentData);
+
+            const { data: comment, error: insertError } = await supabase
                 .from('task_comments')
-                .insert({
-                    task_id: taskId,
-                    user_id: userId,
-                    content: sanitizedContent,
-                    parent_comment_id: parentCommentId || null,
-                    mentions: validMentions
-                })
+                .insert(commentData)
                 .select(`
                     *,
                     author:users!user_id(
@@ -211,19 +266,32 @@ class CommentsController {
                 `)
                 .single();
 
-            if (error) {
-                console.error('Error creating comment:', error);
-                return res.status(500).json({ error: 'Failed to create comment' });
+            if (insertError) {
+                console.error('💥 Insert error:', insertError);
+                return res.status(500).json({ 
+                    error: 'Failed to create comment: ' + insertError.message,
+                    details: insertError
+                });
             }
 
-            // Create notifications for mentions and task watchers
-            await this.createCommentNotifications(comment, task.project_id);
+            console.log('✅ Comment created successfully:', comment);
+
+            // Try to create notifications (but don't fail if this fails)
+            try {
+                await this.createCommentNotifications(comment, task.project_id);
+                console.log('✅ Notifications created');
+            } catch (notifError) {
+                console.error('⚠️ Notification error (non-fatal):', notifError);
+            }
 
             res.status(201).json({ comment });
 
         } catch (error) {
-            console.error('Error in createComment:', error);
-            res.status(500).json({ error: 'Internal server error' });
+            console.error('💥 Error in createComment:', error);
+            res.status(500).json({ 
+                error: 'Internal server error: ' + error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            });
         }
     }
 
