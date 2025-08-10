@@ -10,7 +10,7 @@ function ProjectTasks() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [project, setProject] = useState(null);
-  // const [projectMembers, setProjectMembers] = useState([]); // TODO: Add when member management is implemented
+  const [projectMembers, setProjectMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -31,15 +31,51 @@ function ProjectTasks() {
     due_date: ''
   });
 
-  // Fetch project details only (remove members for now)
+  // Fetch project details and members
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
         const projectResponse = await projectService.getProjectById(projectId);
         setProject(projectResponse.data.project);
         
-        // For now, just set empty members array - we'll add this functionality later
-        // setProjectMembers([]);
+        // Try to fetch members, but don't fail if the endpoint doesn't exist yet
+        try {
+          const membersResponse = await projectService.getProjectMembers(projectId);
+          
+          // Combine owner and members into a single array for assignment dropdown
+          const allMembers = [];
+          if (membersResponse.data.owner) {
+            allMembers.push({
+              id: membersResponse.data.owner.id,
+              name: membersResponse.data.owner.full_name || membersResponse.data.owner.username,
+              role: 'Owner'
+            });
+          }
+          if (membersResponse.data.members) {
+            membersResponse.data.members.forEach(member => {
+              if (member.users) {
+                allMembers.push({
+                  id: member.users.id,
+                  name: member.users.full_name || member.users.username,
+                  role: member.role
+                });
+              }
+            });
+          }
+          
+          setProjectMembers(allMembers);
+        } catch (memberError) {
+          console.log('⚠️ Member management not set up yet, using basic member list');
+          // Fallback: Just use project owner as the only assignable member
+          if (projectResponse.data.project) {
+            setProjectMembers([{
+              id: projectResponse.data.project.owner_id,
+              name: 'Project Owner',
+              role: 'Owner'
+            }]);
+          }
+        }
+        
       } catch (error) {
         console.error('Error fetching project data:', error);
         setError('Failed to load project information');
@@ -76,71 +112,63 @@ function ProjectTasks() {
   }, [fetchTasks]);
 
   // Create new task
-const createTask = async () => {
-  try {
-    console.log('🚀 Creating task with form data:', taskForm);
-    
-    // Prepare task data with proper validation handling
-    const taskData = {
-      title: taskForm.title.trim(), // Required field
-      description: taskForm.description.trim() || undefined, // Send undefined instead of empty string
-      task_type: taskForm.task_type || 'development',
-      priority: taskForm.priority || 'medium',
-      status: taskForm.status || 'todo',
-      // Handle assigned_to - send undefined instead of empty string for UUID validation
-      assigned_to: taskForm.assigned_to && taskForm.assigned_to.trim() ? taskForm.assigned_to.trim() : undefined,
-      // Handle estimated_hours - convert to integer or send undefined
-      estimated_hours: taskForm.estimated_hours && taskForm.estimated_hours.trim() ? parseInt(taskForm.estimated_hours) : undefined,
-      // Handle due_date - ensure proper ISO format or send undefined
-      due_date: taskForm.due_date && taskForm.due_date.trim() ? new Date(taskForm.due_date).toISOString() : undefined
-    };
-    
-    // Remove any undefined values (backend validation prefers this)
-    Object.keys(taskData).forEach(key => {
-      if (taskData[key] === undefined) {
-        delete taskData[key];
-      }
-    });
-    
-    console.log('📝 Cleaned task data being sent:', taskData);
-    console.log('🎯 Project ID:', projectId);
-    
-    const response = await taskService.createTask(projectId, taskData);
-    
-    console.log('✅ Task creation response:', response);
-    
-    if (response.success) {
-      // Add the new task to the beginning of the list
-      setTasks(prev => [response.data.task, ...prev]);
-      setShowCreateModal(false);
-      resetForm();
-      setError(null); // Clear any previous errors
-    }
-    
-  } catch (error) {
-    console.error('❌ Task creation failed:', error);
-    console.error('❌ Error response:', error.response?.data);
-    console.error('❌ Error status:', error.response?.status);
-    
-    if (error.response?.data?.message) {
-      setError(`Failed to create task: ${error.response.data.message}`);
-    } else if (error.response?.data?.errors) {
-      const errorMessages = error.response.data.errors.map(e => e.msg || e.message).join(', ');
-      setError(`Validation errors: ${errorMessages}`);
-    } else {
-      setError('Failed to create task. Please check the console for details.');
-    }
-  }
-};
-
-  // Update task
-  const updateTask = async (taskId, updateData) => {
+  const createTask = async () => {
     try {
-      await taskService.updateTask(projectId, taskId, updateData);
-      await fetchTasks(); // Refresh tasks list
+      console.log('🚀 Creating task with form data:', taskForm);
+      
+      // Prepare task data with proper validation handling
+      const taskData = {
+        title: taskForm.title.trim(), // Required field
+        description: taskForm.description.trim() || undefined, // Send undefined instead of empty string
+        task_type: taskForm.task_type || 'development',
+        priority: taskForm.priority || 'medium',
+        status: taskForm.status || 'todo',
+        // Handle assigned_to - send undefined instead of empty string for UUID validation
+        assigned_to: taskForm.assigned_to && taskForm.assigned_to.trim() ? taskForm.assigned_to.trim() : undefined,
+        // Handle estimated_hours - convert to integer or send undefined
+        estimated_hours: taskForm.estimated_hours && taskForm.estimated_hours.trim() ? parseInt(taskForm.estimated_hours) : undefined,
+        // Handle due_date - ensure proper ISO format or send undefined
+        due_date: taskForm.due_date && taskForm.due_date.trim() ? new Date(taskForm.due_date).toISOString() : undefined
+      };
+      
+      // Remove any undefined values (backend validation prefers this)
+      Object.keys(taskData).forEach(key => {
+        if (taskData[key] === undefined) {
+          delete taskData[key];
+        }
+      });
+      
+      console.log('📝 Cleaned task data being sent:', taskData);
+      console.log('🎯 Project ID:', projectId);
+      
+      const response = await taskService.createTask(projectId, taskData);
+      
+      console.log('✅ Task creation response:', response);
+      
+      if (response.success) {
+        // Add the new task to the beginning of the list
+        setTasks(prev => [response.data.task, ...prev]);
+        
+        // Close modal and reset form
+        setShowCreateModal(false);
+        resetForm();
+        setError(null); // Clear any previous errors
+        setEditingTask(null); // Clear editing state
+      }
+      
     } catch (error) {
-      console.error('Error updating task:', error);
-      setError('Failed to update task');
+      console.error('❌ Task creation failed:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      
+      if (error.response?.data?.message) {
+        setError(`Failed to create task: ${error.response.data.message}`);
+      } else if (error.response?.data?.errors) {
+        const errorMessages = error.response.data.errors.map(e => e.msg || e.message).join(', ');
+        setError(`Validation errors: ${errorMessages}`);
+      } else {
+        setError('Failed to create task. Please check the console for details.');
+      }
     }
   };
 
@@ -150,7 +178,7 @@ const createTask = async () => {
 
     try {
       await taskService.deleteTask(projectId, taskId);
-      await fetchTasks(); // Refresh tasks list
+      setTasks(prev => prev.filter(task => task.id !== taskId));
     } catch (error) {
       console.error('Error deleting task:', error);
       setError('Failed to delete task');
@@ -171,8 +199,10 @@ const createTask = async () => {
     });
   };
 
-  // Edit task
+  // Edit task - FIXED VERSION
   const editTask = (task) => {
+    console.log('📝 Editing task:', task);
+    
     setTaskForm({
       title: task.title || '',
       description: task.description || '',
@@ -183,17 +213,60 @@ const createTask = async () => {
       estimated_hours: task.estimated_hours ? task.estimated_hours.toString() : '',
       due_date: task.due_date ? task.due_date.split('T')[0] : ''
     });
+    
     setEditingTask(task);
+    setError(null); // Clear any existing errors
     setShowCreateModal(true);
   };
 
-  // Save task (create or update)
+  // Save task (create or update) - FIXED VERSION
   const saveTask = async () => {
-    if (editingTask) {
-      await updateTask(editingTask.id, taskForm);
-      setEditingTask(null);
-    } else {
-      await createTask();
+    try {
+      if (editingTask) {
+        // Prepare update data the same way as create
+        const updateData = {
+          title: taskForm.title.trim(),
+          description: taskForm.description.trim() || undefined,
+          task_type: taskForm.task_type || 'development',
+          priority: taskForm.priority || 'medium',
+          status: taskForm.status || 'todo',
+          assigned_to: taskForm.assigned_to && taskForm.assigned_to.trim() ? taskForm.assigned_to.trim() : undefined,
+          estimated_hours: taskForm.estimated_hours && taskForm.estimated_hours.trim() ? parseInt(taskForm.estimated_hours) : undefined,
+          due_date: taskForm.due_date && taskForm.due_date.trim() ? new Date(taskForm.due_date).toISOString() : undefined
+        };
+        
+        // Remove undefined values
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] === undefined) {
+            delete updateData[key];
+          }
+        });
+        
+        console.log('🔄 Updating task:', editingTask.id, 'with data:', updateData);
+        
+        const response = await taskService.updateTask(projectId, editingTask.id, updateData);
+        
+        if (response.success) {
+          // Update the task in the list
+          setTasks(prev => prev.map(task => 
+            task.id === editingTask.id ? { ...task, ...response.data.task } : task
+          ));
+          
+          console.log('✅ Task updated successfully - closing modal');
+          
+          // Force close modal and reset everything
+          setShowCreateModal(false);
+          setEditingTask(null);
+          resetForm();
+          setError(null);
+        }
+      } else {
+        // Create new task - call the existing createTask function
+        await createTask();
+      }
+    } catch (error) {
+      console.error('💥 Save task error:', error);
+      setError(error.response?.data?.message || 'Failed to save task');
     }
   };
 
@@ -505,9 +578,9 @@ const createTask = async () => {
   };
 
   const getMemberName = (userId) => {
-    // For now, just return 'Assigned' since we don't have member data
-    // TODO: Implement proper member lookup when member management is added
-    return userId ? 'Assigned' : 'Unassigned';
+    if (!userId) return 'Unassigned';
+    const member = projectMembers.find(m => m.id === userId);
+    return member ? member.name : 'Unknown User';
   };
 
   if (loading && tasks.length === 0) {
@@ -789,16 +862,41 @@ const createTask = async () => {
               />
             </div>
 
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Assign To</label>
+              <select
+                style={styles.select}
+                value={taskForm.assigned_to}
+                onChange={(e) => setTaskForm({ ...taskForm, assigned_to: e.target.value })}
+              >
+                <option value="">Unassigned</option>
+                {projectMembers.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name} ({member.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div style={styles.modalActions}>
               <button
                 style={styles.secondaryButton}
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  console.log('🚫 Cancel button clicked - closing modal');
+                  setShowCreateModal(false);
+                  setEditingTask(null);
+                  resetForm();
+                  setError(null);
+                }}
               >
                 Cancel
               </button>
               <button
                 style={styles.primaryButton}
-                onClick={saveTask}
+                onClick={() => {
+                  console.log('💾 Save button clicked');
+                  saveTask();
+                }}
                 disabled={!taskForm.title.trim()}
               >
                 {editingTask ? 'Update Task' : 'Create Task'}

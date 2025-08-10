@@ -1,26 +1,129 @@
+// frontend/src/pages/project/ProjectMembers.js
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { projectService } from '../../services/projectService';
 
 function ProjectMembers() {
   const { projectId } = useParams();
+  const { user } = useAuth();
   const [project, setProject] = useState(null);
+  const [memberData, setMemberData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newMemberForm, setNewMemberForm] = useState({
+    email: '',
+    role: 'member'
+  });
 
+  // Fetch project and member data
   useEffect(() => {
-    const fetchProject = async () => {
+    const fetchData = async () => {
       try {
-        const response = await projectService.getProjectById(projectId);
-        setProject(response.data.project);
+        setLoading(true);
+        setError(null);
+
+        const [projectResponse, membersResponse] = await Promise.all([
+          projectService.getProjectById(projectId),
+          projectService.getProjectMembers(projectId)
+        ]);
+
+        setProject(projectResponse.data.project);
+        setMemberData(membersResponse.data);
       } catch (error) {
-        console.error('Error fetching project:', error);
+        console.error('Error fetching data:', error);
+        setError('Failed to load project members');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProject();
+    fetchData();
   }, [projectId]);
+
+  // Add member
+  const handleAddMember = async () => {
+    try {
+      if (!newMemberForm.email.trim()) {
+        setError('Email is required');
+        return;
+      }
+
+      // For demo purposes, we'll need to implement user search by email
+      // For now, let's show a placeholder message
+      setError('User search by email not yet implemented. Use user ID directly for testing.');
+      
+      // TODO: Implement user search by email endpoint
+      // const userResponse = await userService.findUserByEmail(newMemberForm.email);
+      // await projectService.addProjectMember(projectId, userResponse.data.user.id, newMemberForm.role);
+      
+      // Refresh member data
+      // const membersResponse = await projectService.getProjectMembers(projectId);
+      // setMemberData(membersResponse.data);
+      
+      // Reset form
+      setNewMemberForm({ email: '', role: 'member' });
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Error adding member:', error);
+      setError(error.response?.data?.message || 'Failed to add member');
+    }
+  };
+
+  // Update member role
+  const handleUpdateRole = async (memberId, newRole) => {
+    try {
+      await projectService.updateMemberRole(projectId, memberId, newRole);
+      
+      // Refresh member data
+      const membersResponse = await projectService.getProjectMembers(projectId);
+      setMemberData(membersResponse.data);
+      
+      setError(null);
+    } catch (error) {
+      console.error('Error updating role:', error);
+      setError(error.response?.data?.message || 'Failed to update member role');
+    }
+  };
+
+  // Remove member
+  const handleRemoveMember = async (memberId, memberName) => {
+    if (!window.confirm(`Are you sure you want to remove ${memberName} from this project?`)) {
+      return;
+    }
+
+    try {
+      await projectService.removeMember(projectId, memberId);
+      
+      // Refresh member data
+      const membersResponse = await projectService.getProjectMembers(projectId);
+      setMemberData(membersResponse.data);
+      
+      setError(null);
+    } catch (error) {
+      console.error('Error removing member:', error);
+      setError(error.response?.data?.message || 'Failed to remove member');
+    }
+  };
+
+  // Leave project
+  const handleLeaveProject = async () => {
+    if (!window.confirm('Are you sure you want to leave this project?')) {
+      return;
+    }
+
+    try {
+      await projectService.leaveProject(projectId);
+      window.location.href = '/projects'; // Redirect to projects page
+    } catch (error) {
+      console.error('Error leaving project:', error);
+      setError(error.response?.data?.message || 'Failed to leave project');
+    }
+  };
+
+  const isOwner = project && user && project.owner_id === user.id;
+  // const isAdmin = memberData?.members?.find(m => m.user_id === user.id && m.role === 'lead'); // TODO: Use when implementing admin-specific features
 
   const styles = {
     container: {
@@ -29,9 +132,19 @@ function ProjectMembers() {
       margin: '0 auto'
     },
     header: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
       marginBottom: '30px',
       paddingBottom: '20px',
       borderBottom: '2px solid #e9ecef'
+    },
+    headerLeft: {
+      flex: 1
+    },
+    headerRight: {
+      display: 'flex',
+      gap: '10px'
     },
     title: {
       color: '#333',
@@ -43,9 +156,50 @@ function ProjectMembers() {
       fontSize: '16px',
       margin: 0
     },
+    button: {
+      backgroundColor: '#28a745',
+      color: 'white',
+      border: 'none',
+      padding: '12px 24px',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
+    },
+    leaveButton: {
+      backgroundColor: '#dc3545',
+      color: 'white',
+      border: 'none',
+      padding: '12px 24px',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
+    },
+    errorMessage: {
+      backgroundColor: '#f8d7da',
+      color: '#721c24',
+      padding: '12px',
+      borderRadius: '4px',
+      marginBottom: '20px',
+      border: '1px solid #f5c6cb'
+    },
+    successMessage: {
+      backgroundColor: '#d4edda',
+      color: '#155724',
+      padding: '12px',
+      borderRadius: '4px',
+      marginBottom: '20px',
+      border: '1px solid #c3e6cb'
+    },
+    loadingState: {
+      textAlign: 'center',
+      padding: '40px',
+      color: '#6c757d'
+    },
     membersGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
       gap: '20px',
       marginBottom: '30px'
     },
@@ -55,6 +209,10 @@ function ProjectMembers() {
       borderRadius: '8px',
       padding: '20px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    },
+    ownerCard: {
+      backgroundColor: '#f8f9fa',
+      border: '2px solid #007bff',
     },
     memberHeader: {
       display: 'flex',
@@ -78,67 +236,269 @@ function ProjectMembers() {
       flex: 1
     },
     memberName: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 5px 0'
+      fontSize: '18px',
+      fontWeight: '600',
+      margin: '0 0 5px 0',
+      color: '#333'
     },
     memberRole: {
       fontSize: '14px',
       color: '#6c757d',
-      textTransform: 'capitalize'
+      marginBottom: '5px'
+    },
+    memberEmail: {
+      fontSize: '12px',
+      color: '#666'
+    },
+    ownerBadge: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      padding: '2px 8px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: '500'
+    },
+    roleBadge: {
+      padding: '2px 8px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: '500',
+      backgroundColor: '#e9ecef',
+      color: '#495057'
     },
     memberMeta: {
       fontSize: '12px',
-      color: '#6c757d'
+      color: '#666',
+      marginBottom: '15px'
     },
-    ownerBadge: {
-      display: 'inline-block',
-      padding: '2px 8px',
-      backgroundColor: '#28a745',
-      color: 'white',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: 'bold',
-      textTransform: 'uppercase'
+    memberActions: {
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap'
     },
-    loading: {
+    actionButton: {
+      padding: '6px 12px',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '500'
+    },
+    updateButton: {
+      backgroundColor: '#007bff',
+      color: 'white'
+    },
+    removeButton: {
+      backgroundColor: '#dc3545',
+      color: 'white'
+    },
+    roleSelect: {
+      padding: '4px 8px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: '12px',
+      marginRight: '8px'
+    },
+    modal: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      minHeight: '400px',
-      fontSize: '18px',
-      color: '#6c757d'
+      zIndex: 1000
+    },
+    modalContent: {
+      backgroundColor: 'white',
+      padding: '30px',
+      borderRadius: '8px',
+      width: '90%',
+      maxWidth: '500px',
+      maxHeight: '90vh',
+      overflow: 'auto'
+    },
+    modalHeader: {
+      marginBottom: '20px'
+    },
+    modalTitle: {
+      fontSize: '24px',
+      fontWeight: '600',
+      margin: '0 0 10px 0'
+    },
+    formGroup: {
+      marginBottom: '20px'
+    },
+    label: {
+      display: 'block',
+      marginBottom: '5px',
+      fontWeight: '500',
+      color: '#333'
+    },
+    input: {
+      width: '100%',
+      padding: '10px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: '14px'
+    },
+    select: {
+      width: '100%',
+      padding: '10px',
+      border: '1px solid #ddd',
+      borderRadius: '4px',
+      fontSize: '14px'
+    },
+    modalActions: {
+      display: 'flex',
+      gap: '10px',
+      justifyContent: 'flex-end',
+      marginTop: '20px'
+    },
+    primaryButton: {
+      backgroundColor: '#28a745',
+      color: 'white',
+      border: 'none',
+      padding: '10px 20px',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
+    },
+    secondaryButton: {
+      backgroundColor: '#6c757d',
+      color: 'white',
+      border: 'none',
+      padding: '10px 20px',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
     },
     emptyState: {
       textAlign: 'center',
       padding: '60px 20px',
       color: '#6c757d'
+    },
+    stats: {
+      display: 'flex',
+      gap: '20px',
+      marginBottom: '30px',
+      flexWrap: 'wrap'
+    },
+    statCard: {
+      backgroundColor: 'white',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      padding: '20px',
+      textAlign: 'center',
+      minWidth: '120px'
+    },
+    statNumber: {
+      fontSize: '32px',
+      fontWeight: 'bold',
+      color: '#007bff',
+      margin: '0 0 5px 0'
+    },
+    statLabel: {
+      fontSize: '14px',
+      color: '#6c757d',
+      margin: 0
     }
   };
 
   if (loading) {
-    return <div style={styles.loading}>Loading team members...</div>;
+    return (
+      <div style={styles.container}>
+        <div style={styles.loadingState}>
+          <h3>Loading members...</h3>
+        </div>
+      </div>
+    );
   }
 
-  if (!project) {
-    return <div style={styles.loading}>Project not found</div>;
+  if (!project || !memberData) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.errorMessage}>
+          Failed to load project or member data.
+        </div>
+      </div>
+    );
   }
 
-  const owner = project.users;
-  const members = project.project_members || [];
+  const { owner, members, total_members } = memberData;
 
   return (
     <div style={styles.container}>
+      {/* Header */}
       <div style={styles.header}>
-        <h1 style={styles.title}>Members</h1>
-        <p style={styles.subtitle}>Project team members and collaborators</p>
+        <div style={styles.headerLeft}>
+          <h1 style={styles.title}>Members</h1>
+          <p style={styles.subtitle}>
+            Project team management • {total_members} member{total_members !== 1 ? 's' : ''}
+          </p>
+        </div>
+        <div style={styles.headerRight}>
+          {isOwner && (
+            <button
+              style={styles.button}
+              onClick={() => setShowAddModal(true)}
+            >
+              + Add Member
+            </button>
+          )}
+          {!isOwner && (
+            <button
+              style={styles.leaveButton}
+              onClick={handleLeaveProject}
+            >
+              Leave Project
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div style={styles.errorMessage}>
+          {error}
+          <button 
+            onClick={() => setError(null)}
+            style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div style={styles.stats}>
+        <div style={styles.statCard}>
+          <div style={styles.statNumber}>{total_members}</div>
+          <div style={styles.statLabel}>Total Members</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statNumber}>{members.filter(m => m.role === 'lead').length}</div>
+          <div style={styles.statLabel}>Team Leads</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statNumber}>{members.filter(m => m.role === 'moderator').length}</div>
+          <div style={styles.statLabel}>Moderators</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statNumber}>{members.filter(m => m.role === 'member').length}</div>
+          <div style={styles.statLabel}>Members</div>
+        </div>
+      </div>
+
+      {/* Members Grid */}
       <div style={styles.membersGrid}>
         {/* Project Owner */}
         {owner && (
-          <div style={styles.memberCard}>
+          <div style={{...styles.memberCard, ...styles.ownerCard}}>
             <div style={styles.memberHeader}>
               <div style={styles.memberAvatar}>
                 {owner.full_name?.charAt(0)?.toUpperCase() || 
@@ -146,25 +506,29 @@ function ProjectMembers() {
               </div>
               <div style={styles.memberInfo}>
                 <h3 style={styles.memberName}>
-                  {owner.full_name || owner.username}
+                  {owner.full_name || owner.username || 'Project Owner'}
                 </h3>
                 <div style={styles.memberRole}>
                   <span style={styles.ownerBadge}>Owner</span>
                 </div>
+                <div style={styles.memberEmail}>{owner.email}</div>
               </div>
             </div>
             <div style={styles.memberMeta}>
               {owner.years_experience && (
                 <div>Experience: {owner.years_experience} years</div>
               )}
-              <div>Joined: {new Date(project.created_at).toLocaleDateString()}</div>
+              <div>Since: {new Date(project.created_at).toLocaleDateString()}</div>
+              {owner.github_username && (
+                <div>GitHub: @{owner.github_username}</div>
+              )}
             </div>
           </div>
         )}
 
         {/* Project Members */}
-        {members.map((member, index) => (
-          <div key={member.id || index} style={styles.memberCard}>
+        {members.map((member) => (
+          <div key={member.id} style={styles.memberCard}>
             <div style={styles.memberHeader}>
               <div style={styles.memberAvatar}>
                 {member.users?.full_name?.charAt(0)?.toUpperCase() || 
@@ -175,8 +539,9 @@ function ProjectMembers() {
                   {member.users?.full_name || member.users?.username || 'Team Member'}
                 </h3>
                 <div style={styles.memberRole}>
-                  {member.role || 'Member'}
+                  <span style={styles.roleBadge}>{member.role}</span>
                 </div>
+                <div style={styles.memberEmail}>{member.users?.email}</div>
               </div>
             </div>
             <div style={styles.memberMeta}>
@@ -189,7 +554,31 @@ function ProjectMembers() {
               {member.contribution_score && (
                 <div>Contribution Score: {member.contribution_score}</div>
               )}
+              {member.users?.github_username && (
+                <div>GitHub: @{member.users.github_username}</div>
+              )}
             </div>
+
+            {/* Member Actions (only for owner) */}
+            {isOwner && (
+              <div style={styles.memberActions}>
+                <select
+                  style={styles.roleSelect}
+                  value={member.role}
+                  onChange={(e) => handleUpdateRole(member.id, e.target.value)}
+                >
+                  <option value="member">Member</option>
+                  <option value="moderator">Moderator</option>
+                  <option value="lead">Team Lead</option>
+                </select>
+                <button
+                  style={{...styles.actionButton, ...styles.removeButton}}
+                  onClick={() => handleRemoveMember(member.id, member.users?.full_name || member.users?.username)}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -198,7 +587,66 @@ function ProjectMembers() {
       {members.length === 0 && (
         <div style={styles.emptyState}>
           <h2>Looking for Team Members</h2>
-          <p>This project is currently looking for collaborators. Share the project to invite more team members!</p>
+          <p>This project is currently looking for collaborators.</p>
+          {isOwner && (
+            <button
+              style={styles.button}
+              onClick={() => setShowAddModal(true)}
+            >
+              Add Your First Member
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddModal && (
+        <div style={styles.modal} onClick={() => setShowAddModal(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Add Team Member</h2>
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Email Address *</label>
+              <input
+                type="email"
+                style={styles.input}
+                value={newMemberForm.email}
+                onChange={(e) => setNewMemberForm({ ...newMemberForm, email: e.target.value })}
+                placeholder="Enter member's email address"
+              />
+            </div>
+
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Role</label>
+              <select
+                style={styles.select}
+                value={newMemberForm.role}
+                onChange={(e) => setNewMemberForm({ ...newMemberForm, role: e.target.value })}
+              >
+                <option value="member">Member</option>
+                <option value="moderator">Moderator</option>
+                <option value="lead">Team Lead</option>
+              </select>
+            </div>
+
+            <div style={styles.modalActions}>
+              <button
+                style={styles.secondaryButton}
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={styles.primaryButton}
+                onClick={handleAddMember}
+                disabled={!newMemberForm.email.trim()}
+              >
+                Add Member
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
