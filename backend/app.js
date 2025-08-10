@@ -24,7 +24,7 @@ const adminRoutes = require('./routes/admin');
 const chatRoutes = require('./routes/chat');
 const projectMemberRoutes = require('./routes/projectMembers');
 const commentsRoutes = require('./routes/comments');
-
+const notificationsRoutes = require('./routes/notifications');
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
 
@@ -149,7 +149,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/projects', projectMemberRoutes);
 app.use('/api/comments', commentsRoutes);
-
+app.use('/api/notifications', notificationsRoutes);
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({

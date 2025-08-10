@@ -1,10 +1,11 @@
+// backend/routes/notifications.js - FIXED VERSION
 const express = require('express');
 const router = express.Router();
 const notificationsController = require('../controllers/notificationsController');
-const { authenticateToken } = require('../middleware/auth');
+const authMiddleware = require('../middleware/auth'); // Import the default export
 
 // Apply authentication to all routes
-router.use(authenticateToken);
+router.use(authMiddleware);
 
 // Get comment notifications
 router.get('/comments', notificationsController.getCommentNotifications);
