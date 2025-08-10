@@ -14,7 +14,7 @@ import ChallengeManagement from './pages/ChallengeManagement';
 import AdminDashboard from './pages/AdminDashboard';
 import ManageUsers from './pages/ManageUsers';
 import ProjectJoinPage from './pages/ProjectJoinPage';
-
+import TaskDetail from './pages/project/TaskDetail';
 
 // Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
@@ -107,6 +107,28 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Onboarding />
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
+                path="/project/:projectId/tasks" 
+                element={
+                  <ProtectedRoute>
+                    <ProjectLayout>
+                      <ProjectTasks />
+                    </ProjectLayout>
+                  </ProtectedRoute>
+                } 
+              />
+
+              <Route 
+                path="/project/:projectId/tasks/:taskId" 
+                element={
+                  <ProtectedRoute>
+                    <ProjectLayout>
+                      <TaskDetail />
+                    </ProjectLayout>
                   </ProtectedRoute>
                 } 
               />
