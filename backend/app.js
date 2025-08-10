@@ -1,20 +1,22 @@
+// backend/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const { createServer } = require('http');
-const { Server } = require('socket.io')
+const { Server } = require('socket.io');
 
 const setupSocketHandlers = require('./utils/socketHandler');
 
 // Load environment variables
 dotenv.config();
 
-// import routes
+// Import routes
 const authRoutes = require('./routes/auth');
 const onboardingRoutes = require('./routes/onboarding');
 const projectRoutes = require('./routes/projects');
+const taskRoutes = require('./routes/tasks'); // ADD THIS LINE
 const suggestionsRoutes = require('./routes/suggestions');
 const skillMatchingRoutes = require('./routes/skillMatching'); 
 const challengeRoutes = require('./routes/challenges');
@@ -31,7 +33,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration - UPDATED to fix the CORS issues
+// CORS configuration
 app.use(cors({
   origin: [
     'http://localhost:3000', 
@@ -50,7 +52,7 @@ app.use(cors({
     'X-Requested-With',
     'Accept'
   ],
-  optionsSuccessStatus: 200 // For legacy browser support
+  optionsSuccessStatus: 200
 }));
 
 // Handle preflight requests explicitly
@@ -73,7 +75,6 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Expires');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   
-  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -82,7 +83,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add no-cache headers for API routes to prevent caching issues
+// Add no-cache headers for API routes
 app.use('/api', (req, res, next) => {
   res.set({
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -95,20 +96,20 @@ app.use('/api', (req, res, next) => {
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100,
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again later.'
   },
-  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 app.use('/api/', limiter);
 
-// Auth rate limiting (more restrictive)
+// Auth rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 auth requests per windowMs
+  max: 5,
   message: {
     success: false,
     message: 'Too many authentication attempts, please try again later.'
@@ -138,6 +139,7 @@ if (process.env.NODE_ENV === 'development') {
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/projects', taskRoutes); // ADD THIS LINE - Mount task routes under /api/projects
 app.use('/api/suggestions', suggestionsRoutes);
 app.use('/api/skill-matching', skillMatchingRoutes);
 app.use('/api/challenges', challengeRoutes);
@@ -165,6 +167,7 @@ app.get('/', (req, res) => {
       health: '/api/health',
       auth: '/api/auth',
       projects: '/api/projects',
+      tasks: '/api/projects/:projectId/tasks', // Document the task endpoints
       challenges: '/api/challenges',
       admin: '/api/admin'
     }
@@ -181,6 +184,8 @@ app.use('/api/*', (req, res) => {
       'POST /api/auth/login',
       'POST /api/auth/register',
       'GET /api/projects',
+      'GET /api/projects/:projectId/tasks', // Add task routes to available routes
+      'POST /api/projects/:projectId/tasks',
       'GET /api/challenges',
       'GET /api/challenges/project/:projectId/challenge',
       'POST /api/challenges/project/:projectId/attempt'

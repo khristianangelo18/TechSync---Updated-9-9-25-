@@ -10,7 +10,7 @@ function ProjectTasks() {
   const { user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [project, setProject] = useState(null);
-  const [projectMembers, setProjectMembers] = useState([]);
+  // const [projectMembers, setProjectMembers] = useState([]); // TODO: Add when member management is implemented
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -31,17 +31,15 @@ function ProjectTasks() {
     due_date: ''
   });
 
-  // Fetch project details and members
+  // Fetch project details only (remove members for now)
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
-        const [projectResponse, membersResponse] = await Promise.all([
-          projectService.getProjectById(projectId),
-          projectService.getProjectMembers ? projectService.getProjectMembers(projectId) : Promise.resolve({ data: { members: [] } })
-        ]);
-        
+        const projectResponse = await projectService.getProjectById(projectId);
         setProject(projectResponse.data.project);
-        setProjectMembers(membersResponse.data.members || []);
+        
+        // For now, just set empty members array - we'll add this functionality later
+        // setProjectMembers([]);
       } catch (error) {
         console.error('Error fetching project data:', error);
         setError('Failed to load project information');
@@ -55,11 +53,15 @@ function ProjectTasks() {
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null); // Clear any previous errors
+      
       const response = await taskService.getProjectTasks(projectId, {
         sort_by: sortBy,
         sort_order: sortOrder
       });
+      
       setTasks(response.data.tasks || []);
+      console.log('✅ Tasks loaded successfully:', response.data.tasks?.length || 0, 'tasks');
     } catch (error) {
       console.error('Error fetching tasks:', error);
       setError('Failed to load tasks');
@@ -74,44 +76,68 @@ function ProjectTasks() {
   }, [fetchTasks]);
 
   // Create new task
-  const createTask = async () => {
-    try {
-      const taskData = {
-        ...taskForm,
-        estimated_hours: taskForm.estimated_hours ? parseInt(taskForm.estimated_hours) : null,
-        due_date: taskForm.due_date || null,
-        assigned_to: taskForm.assigned_to || null
-      };
-
-      const response = await taskService.createTask(projectId, taskData);
-      
-      if (response.success) {
-        setTasks(prev => [response.data.task, ...prev]);
-        resetForm();
-        setShowCreateModal(false);
+const createTask = async () => {
+  try {
+    console.log('🚀 Creating task with form data:', taskForm);
+    
+    // Prepare task data with proper validation handling
+    const taskData = {
+      title: taskForm.title.trim(), // Required field
+      description: taskForm.description.trim() || undefined, // Send undefined instead of empty string
+      task_type: taskForm.task_type || 'development',
+      priority: taskForm.priority || 'medium',
+      status: taskForm.status || 'todo',
+      // Handle assigned_to - send undefined instead of empty string for UUID validation
+      assigned_to: taskForm.assigned_to && taskForm.assigned_to.trim() ? taskForm.assigned_to.trim() : undefined,
+      // Handle estimated_hours - convert to integer or send undefined
+      estimated_hours: taskForm.estimated_hours && taskForm.estimated_hours.trim() ? parseInt(taskForm.estimated_hours) : undefined,
+      // Handle due_date - ensure proper ISO format or send undefined
+      due_date: taskForm.due_date && taskForm.due_date.trim() ? new Date(taskForm.due_date).toISOString() : undefined
+    };
+    
+    // Remove any undefined values (backend validation prefers this)
+    Object.keys(taskData).forEach(key => {
+      if (taskData[key] === undefined) {
+        delete taskData[key];
       }
-    } catch (error) {
-      console.error('Error creating task:', error);
-      setError('Failed to create task');
+    });
+    
+    console.log('📝 Cleaned task data being sent:', taskData);
+    console.log('🎯 Project ID:', projectId);
+    
+    const response = await taskService.createTask(projectId, taskData);
+    
+    console.log('✅ Task creation response:', response);
+    
+    if (response.success) {
+      // Add the new task to the beginning of the list
+      setTasks(prev => [response.data.task, ...prev]);
+      setShowCreateModal(false);
+      resetForm();
+      setError(null); // Clear any previous errors
     }
-  };
+    
+  } catch (error) {
+    console.error('❌ Task creation failed:', error);
+    console.error('❌ Error response:', error.response?.data);
+    console.error('❌ Error status:', error.response?.status);
+    
+    if (error.response?.data?.message) {
+      setError(`Failed to create task: ${error.response.data.message}`);
+    } else if (error.response?.data?.errors) {
+      const errorMessages = error.response.data.errors.map(e => e.msg || e.message).join(', ');
+      setError(`Validation errors: ${errorMessages}`);
+    } else {
+      setError('Failed to create task. Please check the console for details.');
+    }
+  }
+};
 
   // Update task
-  const updateTask = async (taskId, updates) => {
+  const updateTask = async (taskId, updateData) => {
     try {
-      const response = await taskService.updateTask(projectId, taskId, updates);
-      
-      if (response.success) {
-        setTasks(prev => prev.map(task => 
-          task.id === taskId ? { ...task, ...response.data.task } : task
-        ));
-        
-        if (editingTask) {
-          setEditingTask(null);
-          resetForm();
-          setShowCreateModal(false);
-        }
-      }
+      await taskService.updateTask(projectId, taskId, updateData);
+      await fetchTasks(); // Refresh tasks list
     } catch (error) {
       console.error('Error updating task:', error);
       setError('Failed to update task');
@@ -121,21 +147,17 @@ function ProjectTasks() {
   // Delete task
   const deleteTask = async (taskId) => {
     if (!window.confirm('Are you sure you want to delete this task?')) return;
-    
+
     try {
       await taskService.deleteTask(projectId, taskId);
-      setTasks(prev => prev.filter(task => task.id !== taskId));
+      await fetchTasks(); // Refresh tasks list
     } catch (error) {
       console.error('Error deleting task:', error);
       setError('Failed to delete task');
     }
   };
 
-  // Form handlers
-  const handleFormChange = (field, value) => {
-    setTaskForm(prev => ({ ...prev, [field]: value }));
-  };
-
+  // Reset form
   const resetForm = () => {
     setTaskForm({
       title: '',
@@ -149,54 +171,76 @@ function ProjectTasks() {
     });
   };
 
-  const handleEditTask = (task) => {
-    setEditingTask(task);
+  // Edit task
+  const editTask = (task) => {
     setTaskForm({
-      title: task.title,
+      title: task.title || '',
       description: task.description || '',
       task_type: task.task_type || 'development',
       priority: task.priority || 'medium',
       status: task.status || 'todo',
       assigned_to: task.assigned_to || '',
-      estimated_hours: task.estimated_hours || '',
+      estimated_hours: task.estimated_hours ? task.estimated_hours.toString() : '',
       due_date: task.due_date ? task.due_date.split('T')[0] : ''
     });
+    setEditingTask(task);
     setShowCreateModal(true);
   };
 
-  // Filter and sort tasks
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'all') return true;
-    if (filter === 'my_tasks') return task.assigned_to === user?.id;
-    return task.status === filter;
-  });
-
-  // Check permissions
-  const canCreateTasks = project?.owner_id === user?.id || 
-    projectMembers.some(member => member.user_id === user?.id);
-
-  const canEditTask = (task) => {
-    return project?.owner_id === user?.id || 
-           task.created_by === user?.id || 
-           task.assigned_to === user?.id;
+  // Save task (create or update)
+  const saveTask = async () => {
+    if (editingTask) {
+      await updateTask(editingTask.id, taskForm);
+      setEditingTask(null);
+    } else {
+      await createTask();
+    }
   };
 
+  // Filter tasks based on current filter
+  const filteredTasks = tasks.filter(task => {
+    switch (filter) {
+      case 'my_tasks':
+        return task.assigned_to === user.id;
+      case 'todo':
+        return task.status === 'todo';
+      case 'in_progress':
+        return task.status === 'in_progress';
+      case 'in_review':
+        return task.status === 'in_review';
+      case 'completed':
+        return task.status === 'completed';
+      case 'blocked':
+        return task.status === 'blocked';
+      default:
+        return true;
+    }
+  });
+
+  // Check if user can create tasks (project owner or member)
+  const canCreateTasks = project && (project.owner_id === user.id);
+
+  // Component styles
   const styles = {
     container: {
       padding: '30px',
-      maxWidth: '1400px',
+      maxWidth: '1200px',
       margin: '0 auto'
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       marginBottom: '30px',
       paddingBottom: '20px',
       borderBottom: '2px solid #e9ecef'
     },
     headerLeft: {
       flex: 1
+    },
+    headerRight: {
+      display: 'flex',
+      gap: '10px'
     },
     title: {
       color: '#333',
@@ -208,16 +252,11 @@ function ProjectTasks() {
       fontSize: '16px',
       margin: 0
     },
-    headerRight: {
-      display: 'flex',
-      gap: '10px',
-      alignItems: 'center'
-    },
     createButton: {
-      backgroundColor: '#007bff',
+      backgroundColor: '#28a745',
       color: 'white',
       border: 'none',
-      padding: '10px 20px',
+      padding: '12px 24px',
       borderRadius: '6px',
       cursor: 'pointer',
       fontSize: '14px',
@@ -226,7 +265,7 @@ function ProjectTasks() {
     controls: {
       display: 'flex',
       gap: '15px',
-      marginBottom: '25px',
+      marginBottom: '30px',
       alignItems: 'center',
       flexWrap: 'wrap'
     },
@@ -241,10 +280,20 @@ function ProjectTasks() {
       gap: '10px',
       alignItems: 'center'
     },
+    actionButton: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      padding: '8px 12px',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '14px'
+    },
     tasksGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-      gap: '20px'
+      gap: '20px',
+      marginBottom: '30px'
     },
     taskCard: {
       backgroundColor: 'white',
@@ -252,20 +301,17 @@ function ProjectTasks() {
       borderRadius: '8px',
       padding: '20px',
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      transition: 'transform 0.2s, box-shadow 0.2s'
-    },
-    taskCardHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      cursor: 'pointer'
     },
     taskHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: '12px'
+      marginBottom: '15px'
     },
     taskTitle: {
-      fontSize: '16px',
+      fontSize: '18px',
       fontWeight: '600',
       color: '#333',
       margin: '0 0 8px 0',
@@ -273,52 +319,74 @@ function ProjectTasks() {
     },
     taskMeta: {
       display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap',
-      marginBottom: '12px'
+      gap: '10px',
+      marginBottom: '10px',
+      flexWrap: 'wrap'
     },
-    badge: {
+    statusBadge: {
       padding: '4px 8px',
       borderRadius: '12px',
       fontSize: '12px',
       fontWeight: '500'
     },
-    statusBadge: {
-      backgroundColor: '#e3f2fd',
-      color: '#1565c0'
-    },
     priorityBadge: {
-      backgroundColor: '#fff3e0',
-      color: '#ef6c00'
-    },
-    typeBadge: {
-      backgroundColor: '#f3e5f5',
-      color: '#7b1fa2'
+      padding: '4px 8px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      fontWeight: '500'
     },
     taskDescription: {
       color: '#666',
       fontSize: '14px',
-      lineHeight: '1.5',
-      marginBottom: '15px'
+      marginBottom: '15px',
+      lineHeight: '1.4'
     },
     taskFooter: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      fontSize: '12px',
-      color: '#888'
+      paddingTop: '15px',
+      borderTop: '1px solid #eee'
     },
     taskActions: {
       display: 'flex',
       gap: '8px'
     },
-    actionButton: {
-      padding: '5px 10px',
-      border: '1px solid #ddd',
+    taskButton: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      padding: '6px 12px',
       borderRadius: '4px',
-      backgroundColor: 'white',
       cursor: 'pointer',
       fontSize: '12px'
+    },
+    deleteButton: {
+      backgroundColor: '#dc3545',
+      color: 'white',
+      border: 'none',
+      padding: '6px 12px',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px'
+    },
+    emptyState: {
+      textAlign: 'center',
+      padding: '60px 20px',
+      color: '#6c757d'
+    },
+    errorMessage: {
+      backgroundColor: '#f8d7da',
+      color: '#721c24',
+      padding: '12px',
+      borderRadius: '4px',
+      marginBottom: '20px',
+      border: '1px solid #f5c6cb'
+    },
+    loadingState: {
+      textAlign: 'center',
+      padding: '40px',
+      color: '#6c757d'
     },
     modal: {
       position: 'fixed',
@@ -328,36 +396,26 @@ function ProjectTasks() {
       bottom: 0,
       backgroundColor: 'rgba(0,0,0,0.5)',
       display: 'flex',
-      alignItems: 'center',
       justifyContent: 'center',
+      alignItems: 'center',
       zIndex: 1000
     },
     modalContent: {
       backgroundColor: 'white',
-      borderRadius: '8px',
       padding: '30px',
+      borderRadius: '8px',
       width: '90%',
-      maxWidth: '600px',
+      maxWidth: '500px',
       maxHeight: '90vh',
       overflow: 'auto'
     },
     modalHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
       marginBottom: '20px'
     },
     modalTitle: {
-      fontSize: '20px',
-      fontWeight: '600',
-      margin: 0
-    },
-    closeButton: {
-      background: 'none',
-      border: 'none',
       fontSize: '24px',
-      cursor: 'pointer',
-      color: '#666'
+      fontWeight: '600',
+      margin: '0 0 10px 0'
     },
     formGroup: {
       marginBottom: '20px'
@@ -381,7 +439,7 @@ function ProjectTasks() {
       border: '1px solid #ddd',
       borderRadius: '4px',
       fontSize: '14px',
-      minHeight: '80px',
+      minHeight: '100px',
       resize: 'vertical'
     },
     select: {
@@ -391,14 +449,14 @@ function ProjectTasks() {
       borderRadius: '4px',
       fontSize: '14px'
     },
-    formActions: {
+    modalActions: {
       display: 'flex',
       gap: '10px',
       justifyContent: 'flex-end',
-      marginTop: '25px'
+      marginTop: '20px'
     },
     primaryButton: {
-      backgroundColor: '#007bff',
+      backgroundColor: '#28a745',
       color: 'white',
       border: 'none',
       padding: '10px 20px',
@@ -416,24 +474,6 @@ function ProjectTasks() {
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '60px 20px',
-      color: '#6c757d'
-    },
-    errorMessage: {
-      backgroundColor: '#f8d7da',
-      color: '#721c24',
-      padding: '12px',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      border: '1px solid #f5c6cb'
-    },
-    loadingState: {
-      textAlign: 'center',
-      padding: '40px',
-      color: '#6c757d'
     }
   };
 
@@ -465,8 +505,9 @@ function ProjectTasks() {
   };
 
   const getMemberName = (userId) => {
-    const member = projectMembers.find(m => m.user_id === userId);
-    return member ? `${member.first_name} ${member.last_name}` : 'Unassigned';
+    // For now, just return 'Assigned' since we don't have member data
+    // TODO: Implement proper member lookup when member management is added
+    return userId ? 'Assigned' : 'Unassigned';
   };
 
   if (loading && tasks.length === 0) {
@@ -561,8 +602,8 @@ function ProjectTasks() {
           <h3>No tasks found</h3>
           <p>
             {filter === 'all' 
-              ? 'No tasks have been created yet.' 
-              : `No tasks match the current filter: ${filter}`
+              ? 'No tasks have been created yet.'
+              : `No tasks match the "${filter}" filter.`
             }
           </p>
           {canCreateTasks && filter === 'all' && (
@@ -574,13 +615,13 @@ function ProjectTasks() {
                 setShowCreateModal(true);
               }}
             >
-              Create First Task
+              Create your first task
             </button>
           )}
         </div>
       ) : (
         <div style={styles.tasksGrid}>
-          {filteredTasks.map(task => {
+          {filteredTasks.map((task) => {
             const statusColor = getStatusColor(task.status);
             const priorityColor = getPriorityColor(task.priority);
             
@@ -589,62 +630,57 @@ function ProjectTasks() {
                 <div style={styles.taskHeader}>
                   <h3 style={styles.taskTitle}>{task.title}</h3>
                 </div>
-                
+
                 <div style={styles.taskMeta}>
                   <span 
                     style={{
-                      ...styles.badge,
                       ...styles.statusBadge,
                       backgroundColor: statusColor.bg,
                       color: statusColor.color
                     }}
                   >
-                    {task.status.replace('_', ' ')}
+                    {task.status.replace('_', ' ').toUpperCase()}
                   </span>
                   <span 
                     style={{
-                      ...styles.badge,
                       ...styles.priorityBadge,
                       backgroundColor: priorityColor.bg,
                       color: priorityColor.color
                     }}
                   >
-                    {task.priority}
-                  </span>
-                  <span style={{...styles.badge, ...styles.typeBadge}}>
-                    {task.task_type}
+                    {task.priority.toUpperCase()}
                   </span>
                 </div>
 
                 {task.description && (
-                  <p style={styles.taskDescription}>{task.description}</p>
+                  <p style={styles.taskDescription}>
+                    {task.description.length > 150 
+                      ? task.description.substring(0, 150) + '...'
+                      : task.description
+                    }
+                  </p>
                 )}
 
                 <div style={styles.taskFooter}>
-                  <div>
-                    <div>Assigned: {getMemberName(task.assigned_to)}</div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>
                     <div>Due: {formatDate(task.due_date)}</div>
-                    {task.estimated_hours && (
-                      <div>Est: {task.estimated_hours}h</div>
-                    )}
+                    <div>Assigned: {getMemberName(task.assigned_to)}</div>
                   </div>
                   
-                  {canEditTask(task) && (
+                  {canCreateTasks && (
                     <div style={styles.taskActions}>
                       <button
-                        style={styles.actionButton}
-                        onClick={() => handleEditTask(task)}
+                        style={styles.taskButton}
+                        onClick={() => editTask(task)}
                       >
                         Edit
                       </button>
-                      {(project?.owner_id === user?.id || task.created_by === user?.id) && (
-                        <button
-                          style={{...styles.actionButton, color: '#dc3545'}}
-                          onClick={() => deleteTask(task.id)}
-                        >
-                          Delete
-                        </button>
-                      )}
+                      <button
+                        style={styles.deleteButton}
+                        onClick={() => deleteTask(task.id)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   )}
                 </div>
@@ -656,168 +692,118 @@ function ProjectTasks() {
 
       {/* Create/Edit Task Modal */}
       {showCreateModal && (
-        <div style={styles.modal} onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            setShowCreateModal(false);
-            setEditingTask(null);
-            resetForm();
-          }
-        }}>
-          <div style={styles.modalContent}>
+        <div style={styles.modal} onClick={() => setShowCreateModal(false)}>
+          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>
                 {editingTask ? 'Edit Task' : 'Create New Task'}
               </h2>
-              <button
-                style={styles.closeButton}
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setEditingTask(null);
-                  resetForm();
-                }}
-              >
-                ×
-              </button>
             </div>
 
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              if (editingTask) {
-                updateTask(editingTask.id, taskForm);
-              } else {
-                createTask();
-              }
-            }}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Title *</label>
-                <input
-                  type="text"
-                  style={styles.input}
-                  value={taskForm.title}
-                  onChange={(e) => handleFormChange('title', e.target.value)}
-                  required
-                  placeholder="Enter task title"
-                />
-              </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Title *</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={taskForm.title}
+                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                placeholder="Enter task title"
+              />
+            </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Description</label>
-                <textarea
-                  style={styles.textarea}
-                  value={taskForm.description}
-                  onChange={(e) => handleFormChange('description', e.target.value)}
-                  placeholder="Describe the task..."
-                />
-              </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Description</label>
+              <textarea
+                style={styles.textarea}
+                value={taskForm.description}
+                onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                placeholder="Enter task description"
+              />
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Type</label>
-                  <select
-                    style={styles.select}
-                    value={taskForm.task_type}
-                    onChange={(e) => handleFormChange('task_type', e.target.value)}
-                  >
-                    <option value="development">Development</option>
-                    <option value="design">Design</option>
-                    <option value="testing">Testing</option>
-                    <option value="documentation">Documentation</option>
-                    <option value="research">Research</option>
-                    <option value="meeting">Meeting</option>
-                    <option value="review">Review</option>
-                  </select>
-                </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Type</label>
+              <select
+                style={styles.select}
+                value={taskForm.task_type}
+                onChange={(e) => setTaskForm({ ...taskForm, task_type: e.target.value })}
+              >
+                <option value="development">Development</option>
+                <option value="design">Design</option>
+                <option value="testing">Testing</option>
+                <option value="documentation">Documentation</option>
+                <option value="research">Research</option>
+                <option value="meeting">Meeting</option>
+                <option value="review">Review</option>
+              </select>
+            </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Priority</label>
-                  <select
-                    style={styles.select}
-                    value={taskForm.priority}
-                    onChange={(e) => handleFormChange('priority', e.target.value)}
-                  >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-                </div>
-              </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Priority</label>
+              <select
+                style={styles.select}
+                value={taskForm.priority}
+                onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Status</label>
-                  <select
-                    style={styles.select}
-                    value={taskForm.status}
-                    onChange={(e) => handleFormChange('status', e.target.value)}
-                  >
-                    <option value="todo">To Do</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="in_review">In Review</option>
-                    <option value="completed">Completed</option>
-                    <option value="blocked">Blocked</option>
-                  </select>
-                </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Status</label>
+              <select
+                style={styles.select}
+                value={taskForm.status}
+                onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
+              >
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="in_review">In Review</option>
+                <option value="completed">Completed</option>
+                <option value="blocked">Blocked</option>
+              </select>
+            </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Assign To</label>
-                  <select
-                    style={styles.select}
-                    value={taskForm.assigned_to}
-                    onChange={(e) => handleFormChange('assigned_to', e.target.value)}
-                  >
-                    <option value="">Unassigned</option>
-                    {projectMembers.map(member => (
-                      <option key={member.user_id} value={member.user_id}>
-                        {member.first_name} {member.last_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Estimated Hours</label>
+              <input
+                type="number"
+                style={styles.input}
+                value={taskForm.estimated_hours}
+                onChange={(e) => setTaskForm({ ...taskForm, estimated_hours: e.target.value })}
+                placeholder="Enter estimated hours"
+                min="0"
+              />
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Estimated Hours</label>
-                  <input
-                    type="number"
-                    style={styles.input}
-                    value={taskForm.estimated_hours}
-                    onChange={(e) => handleFormChange('estimated_hours', e.target.value)}
-                    min="0"
-                    step="0.5"
-                    placeholder="e.g., 8"
-                  />
-                </div>
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Due Date</label>
+              <input
+                type="date"
+                style={styles.input}
+                value={taskForm.due_date}
+                onChange={(e) => setTaskForm({ ...taskForm, due_date: e.target.value })}
+              />
+            </div>
 
-                <div style={styles.formGroup}>
-                  <label style={styles.label}>Due Date</label>
-                  <input
-                    type="date"
-                    style={styles.input}
-                    value={taskForm.due_date}
-                    onChange={(e) => handleFormChange('due_date', e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div style={styles.formActions}>
-                <button
-                  type="button"
-                  style={styles.secondaryButton}
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setEditingTask(null);
-                    resetForm();
-                  }}
-                >
-                  Cancel
-                </button>
-                <button type="submit" style={styles.primaryButton}>
-                  {editingTask ? 'Update Task' : 'Create Task'}
-                </button>
-              </div>
-            </form>
+            <div style={styles.modalActions}>
+              <button
+                style={styles.secondaryButton}
+                onClick={() => setShowCreateModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                style={styles.primaryButton}
+                onClick={saveTask}
+                disabled={!taskForm.title.trim()}
+              >
+                {editingTask ? 'Update Task' : 'Create Task'}
+              </button>
+            </div>
           </div>
         </div>
       )}

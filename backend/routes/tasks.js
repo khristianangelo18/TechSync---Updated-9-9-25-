@@ -9,7 +9,7 @@ const {
   getTask,
   getTaskStats
 } = require('../controllers/taskController');
-const authMiddleware = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/auth'); // FIXED: Changed from authMiddleware to auth
 
 const router = express.Router();
 
@@ -73,13 +73,13 @@ const createTaskValidation = [
   
   body('estimated_hours')
     .optional()
-    .isInt({ min: 0, max: 1000 })
-    .withMessage('Estimated hours must be between 0 and 1000'),
+    .isInt({ min: 0 })
+    .withMessage('Estimated hours must be a positive integer'),
   
   body('due_date')
     .optional()
     .isISO8601()
-    .withMessage('Due date must be a valid ISO date')
+    .withMessage('Due date must be a valid date')
 ];
 
 const updateTaskValidation = [
@@ -112,45 +112,23 @@ const updateTaskValidation = [
   
   body('assigned_to')
     .optional()
-    .custom((value) => {
-      if (value === null || value === '') return true; // Allow null/empty for unassigning
-      if (typeof value === 'string' && value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-        return true;
-      }
-      throw new Error('Assigned to must be a valid user ID or null');
-    }),
+    .isUUID()
+    .withMessage('Assigned to must be a valid user ID'),
   
   body('estimated_hours')
     .optional()
-    .custom((value) => {
-      if (value === null || value === '') return true; // Allow null/empty
-      const num = parseInt(value);
-      if (isNaN(num) || num < 0 || num > 1000) {
-        throw new Error('Estimated hours must be between 0 and 1000');
-      }
-      return true;
-    }),
+    .isInt({ min: 0 })
+    .withMessage('Estimated hours must be a positive integer'),
   
   body('actual_hours')
     .optional()
-    .custom((value) => {
-      if (value === null || value === '') return true; // Allow null/empty
-      const num = parseInt(value);
-      if (isNaN(num) || num < 0 || num > 1000) {
-        throw new Error('Actual hours must be between 0 and 1000');
-      }
-      return true;
-    }),
+    .isInt({ min: 0 })
+    .withMessage('Actual hours must be a positive integer'),
   
   body('due_date')
     .optional()
-    .custom((value) => {
-      if (value === null || value === '') return true; // Allow null/empty
-      if (!value.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        throw new Error('Due date must be in YYYY-MM-DD format or null');
-      }
-      return true;
-    })
+    .isISO8601()
+    .withMessage('Due date must be a valid date')
 ];
 
 const getTasksValidation = [

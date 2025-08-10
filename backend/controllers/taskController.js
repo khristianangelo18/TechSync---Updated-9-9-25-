@@ -1,55 +1,101 @@
 // backend/controllers/taskController.js
 const { createClient } = require('@supabase/supabase-js');
 
+// Use SERVICE_KEY for backend operations (not ANON_KEY)
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
 
 // Get all tasks for a project
 const getProjectTasks = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { sort_by = 'created_at', sort_order = 'desc', status, assigned_to } = req.query;
+    const { sort_by = 'created_at', sort_order = 'desc', status, assigned_to, priority } = req.query;
     const userId = req.user.id;
 
-    // Verify user has access to the project
-    const { data: projectMember, error: memberError } = await supabase
-      .from('project_members')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('user_id', userId)
-      .single();
+    console.log('🔍 Getting tasks for project:', projectId, 'by user:', userId);
+    console.log('🔍 Query parameters:', { sort_by, sort_order, status, assigned_to, priority });
 
+    // First, verify the project exists
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('owner_id')
+      .select('id, title, owner_id, status')
       .eq('id', projectId)
       .single();
 
-    if (projectError || (!projectMember && project?.owner_id !== userId)) {
+    if (projectError) {
+      console.error('❌ Project error:', projectError);
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    console.log('✅ Project found:', project.title, 'Owner:', project.owner_id);
+
+    // Check if user is the project owner
+    const isOwner = project.owner_id === userId;
+    console.log('👑 User is owner:', isOwner);
+
+    let isMember = false;
+    if (!isOwner) {
+      // Check if user is a project member
+      const { data: projectMember, error: memberError } = await supabase
+        .from('project_members')
+        .select('id, role, status')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .eq('status', 'active') // Only check active members
+        .single();
+
+      if (!memberError && projectMember) {
+        isMember = true;
+        console.log('👥 User is member:', projectMember.role, 'Status:', projectMember.status);
+      } else {
+        console.log('❌ Member error or not found:', memberError?.message || 'Not a member');
+      }
+    }
+
+    // Check access permissions
+    if (!isOwner && !isMember) {
+      console.log('🚫 Access denied - user is neither owner nor active member');
       return res.status(403).json({
         success: false,
         message: 'Access denied. You must be a project member to view tasks.'
       });
     }
 
-    // Build query
+    console.log('✅ Access granted - fetching tasks');
+
+    // Build query for tasks
     let query = supabase
       .from('project_tasks')
       .select(`
         *,
-        assigned_user:assigned_to(id, first_name, last_name, email),
-        creator:created_by(id, first_name, last_name, email)
+        assigned_user:assigned_to(id, full_name, username, email),
+        creator:created_by(id, full_name, username, email)
       `)
       .eq('project_id', projectId);
 
     // Apply filters
     if (status) {
       query = query.eq('status', status);
+      console.log('🔍 Filtering by status:', status);
     }
     if (assigned_to) {
       query = query.eq('assigned_to', assigned_to);
+      console.log('🔍 Filtering by assigned_to:', assigned_to);
+    }
+    if (priority) {
+      query = query.eq('priority', priority);
+      console.log('🔍 Filtering by priority:', priority);
     }
 
     // Apply sorting
@@ -57,16 +103,27 @@ const getProjectTasks = async (req, res) => {
     const sortColumn = validSortColumns.includes(sort_by) ? sort_by : 'created_at';
     const sortDirection = sort_order === 'asc' ? { ascending: true } : { ascending: false };
     
+    console.log('📋 Sorting by:', sortColumn, sortDirection.ascending ? 'ASC' : 'DESC');
     query = query.order(sortColumn, sortDirection);
 
     const { data: tasks, error: tasksError } = await query;
 
     if (tasksError) {
-      console.error('Error fetching tasks:', tasksError);
+      console.error('❌ Error fetching tasks:', tasksError);
       return res.status(500).json({
         success: false,
         message: 'Failed to fetch tasks',
         error: tasksError.message
+      });
+    }
+
+    console.log(`✅ Found ${tasks?.length || 0} tasks for project ${projectId}`);
+
+    // Debug: Log first few tasks if any exist
+    if (tasks && tasks.length > 0) {
+      console.log('📋 Sample tasks:');
+      tasks.slice(0, 3).forEach((task, index) => {
+        console.log(`  ${index + 1}. ${task.title} - ${task.status} - ${task.priority}`);
       });
     }
 
@@ -76,7 +133,7 @@ const getProjectTasks = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get project tasks error:', error);
+    console.error('💥 Get project tasks error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -101,21 +158,41 @@ const createTask = async (req, res) => {
       due_date
     } = req.body;
 
-    // Verify user has access to create tasks in this project
-    const { data: projectMember, error: memberError } = await supabase
-      .from('project_members')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('user_id', userId)
-      .single();
+    console.log('🆕 Creating task for project:', projectId, 'by user:', userId);
+    console.log('📝 Task data:', { title, task_type, priority, status, assigned_to });
 
+    // Verify user has access to create tasks in this project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('owner_id')
       .eq('id', projectId)
       .single();
 
-    if (projectError || (!projectMember && project?.owner_id !== userId)) {
+    if (projectError) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    const isOwner = project.owner_id === userId;
+    let isMember = false;
+
+    if (!isOwner) {
+      const { data: projectMember, error: memberError } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+
+      if (!memberError && projectMember) {
+        isMember = true;
+      }
+    }
+
+    if (!isOwner && !isMember) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. You must be a project member to create tasks.'
@@ -137,11 +214,12 @@ const createTask = async (req, res) => {
         .select('*')
         .eq('project_id', projectId)
         .eq('user_id', assigned_to)
+        .eq('status', 'active')
         .single();
 
-      const isOwner = project?.owner_id === assigned_to;
+      const isAssignedOwner = project.owner_id === assigned_to;
       
-      if (assignedError && !isOwner) {
+      if (assignedError && !isAssignedOwner) {
         return res.status(400).json({
           success: false,
           message: 'Assigned user must be a project member'
@@ -163,18 +241,20 @@ const createTask = async (req, res) => {
       due_date: due_date || null
     };
 
+    console.log('💾 Inserting task:', taskData);
+
     const { data: task, error: createError } = await supabase
       .from('project_tasks')
-      .insert([taskData])
+      .insert(taskData)
       .select(`
         *,
-        assigned_user:assigned_to(id, first_name, last_name, email),
-        creator:created_by(id, first_name, last_name, email)
+        assigned_user:assigned_to(id, full_name, username, email),
+        creator:created_by(id, full_name, username, email)
       `)
       .single();
 
     if (createError) {
-      console.error('Error creating task:', createError);
+      console.error('❌ Error creating task:', createError);
       return res.status(500).json({
         success: false,
         message: 'Failed to create task',
@@ -182,14 +262,16 @@ const createTask = async (req, res) => {
       });
     }
 
+    console.log('✅ Task created successfully:', task.id);
+
     res.status(201).json({
       success: true,
-      message: 'Task created successfully',
-      data: { task }
+      data: { task },
+      message: 'Task created successfully'
     });
 
   } catch (error) {
-    console.error('Create task error:', error);
+    console.error('💥 Create task error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -203,59 +285,74 @@ const updateTask = async (req, res) => {
   try {
     const { projectId, taskId } = req.params;
     const userId = req.user.id;
-    const updates = req.body;
+    const updateData = req.body;
 
-    // Get the task first
-    const { data: task, error: taskError } = await supabase
-      .from('project_tasks')
-      .select('*')
-      .eq('id', taskId)
-      .eq('project_id', projectId)
-      .single();
+    console.log('🔄 Updating task:', taskId, 'in project:', projectId, 'by user:', userId);
 
-    if (taskError || !task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
-    }
-
-    // Check permissions
+    // Verify user has access to the project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('owner_id')
       .eq('id', projectId)
       .single();
 
-    const { data: projectMember, error: memberError } = await supabase
-      .from('project_members')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('user_id', userId)
-      .single();
-
-    const isOwner = project?.owner_id === userId;
-    const isCreator = task.created_by === userId;
-    const isAssigned = task.assigned_to === userId;
-    const isMember = projectMember !== null;
-
-    if (!isOwner && !isCreator && !isAssigned && !isMember) {
-      return res.status(403).json({
+    if (projectError) {
+      return res.status(404).json({
         success: false,
-        message: 'Access denied. You can only update tasks you created, are assigned to, or if you are the project owner.'
+        message: 'Project not found'
       });
     }
 
-    // Validate assigned user is a project member (if being assigned)
-    if (updates.assigned_to) {
+    const isOwner = project.owner_id === userId;
+    let isMember = false;
+
+    if (!isOwner) {
+      const { data: projectMember, error: memberError } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+
+      if (!memberError && projectMember) {
+        isMember = true;
+      }
+    }
+
+    if (!isOwner && !isMember) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You must be a project member to update tasks.'
+      });
+    }
+
+    // Verify task exists and belongs to the project
+    const { data: existingTask, error: taskError } = await supabase
+      .from('project_tasks')
+      .select('*')
+      .eq('id', taskId)
+      .eq('project_id', projectId)
+      .single();
+
+    if (taskError || !existingTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
+
+    // Validate assigned user is a project member (if updating assignment)
+    if (updateData.assigned_to) {
       const { data: assignedMember, error: assignedError } = await supabase
         .from('project_members')
         .select('*')
         .eq('project_id', projectId)
-        .eq('user_id', updates.assigned_to)
+        .eq('user_id', updateData.assigned_to)
+        .eq('status', 'active')
         .single();
 
-      const isAssignedOwner = project?.owner_id === updates.assigned_to;
+      const isAssignedOwner = project.owner_id === updateData.assigned_to;
       
       if (assignedError && !isAssignedOwner) {
         return res.status(400).json({
@@ -266,49 +363,50 @@ const updateTask = async (req, res) => {
     }
 
     // Prepare update data
-    const allowedUpdates = [
+    const allowedFields = [
       'title', 'description', 'task_type', 'priority', 'status', 
       'assigned_to', 'estimated_hours', 'actual_hours', 'due_date'
     ];
     
-    const updateData = {};
-    allowedUpdates.forEach(field => {
-      if (updates.hasOwnProperty(field)) {
-        if (field === 'estimated_hours' || field === 'actual_hours') {
-          updateData[field] = updates[field] ? parseInt(updates[field]) : null;
-        } else if (field === 'title' && updates[field]) {
-          updateData[field] = updates[field].trim();
-        } else if (field === 'description') {
-          updateData[field] = updates[field]?.trim() || null;
+    const filteredUpdateData = {};
+    Object.keys(updateData).forEach(key => {
+      if (allowedFields.includes(key) && updateData[key] !== undefined) {
+        if (key === 'estimated_hours' || key === 'actual_hours') {
+          filteredUpdateData[key] = updateData[key] ? parseInt(updateData[key]) : null;
+        } else if (key === 'title' || key === 'description') {
+          filteredUpdateData[key] = updateData[key]?.trim() || null;
         } else {
-          updateData[field] = updates[field];
+          filteredUpdateData[key] = updateData[key];
         }
       }
     });
 
-    // Add completion timestamp if status changed to completed
-    if (updateData.status === 'completed' && task.status !== 'completed') {
-      updateData.completed_at = new Date().toISOString();
-    } else if (updateData.status !== 'completed' && task.status === 'completed') {
-      updateData.completed_at = null;
+    // Add completed_at timestamp if status is being changed to completed
+    if (updateData.status === 'completed' && existingTask.status !== 'completed') {
+      filteredUpdateData.completed_at = new Date().toISOString();
+    } else if (updateData.status !== 'completed' && existingTask.status === 'completed') {
+      filteredUpdateData.completed_at = null;
     }
 
-    updateData.updated_at = new Date().toISOString();
+    // Add updated_at timestamp
+    filteredUpdateData.updated_at = new Date().toISOString();
+
+    console.log('💾 Updating task with data:', filteredUpdateData);
 
     // Update the task
-    const { data: updatedTask, error: updateError } = await supabase
+    const { data: task, error: updateError } = await supabase
       .from('project_tasks')
-      .update(updateData)
+      .update(filteredUpdateData)
       .eq('id', taskId)
       .select(`
         *,
-        assigned_user:assigned_to(id, first_name, last_name, email),
-        creator:created_by(id, first_name, last_name, email)
+        assigned_user:assigned_to(id, full_name, username, email),
+        creator:created_by(id, full_name, username, email)
       `)
       .single();
 
     if (updateError) {
-      console.error('Error updating task:', updateError);
+      console.error('❌ Error updating task:', updateError);
       return res.status(500).json({
         success: false,
         message: 'Failed to update task',
@@ -316,14 +414,16 @@ const updateTask = async (req, res) => {
       });
     }
 
+    console.log('✅ Task updated successfully:', task.id);
+
     res.json({
       success: true,
-      message: 'Task updated successfully',
-      data: { task: updatedTask }
+      data: { task },
+      message: 'Task updated successfully'
     });
 
   } catch (error) {
-    console.error('Update task error:', error);
+    console.error('💥 Update task error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -338,54 +438,60 @@ const deleteTask = async (req, res) => {
     const { projectId, taskId } = req.params;
     const userId = req.user.id;
 
-    // Get the task first
-    const { data: task, error: taskError } = await supabase
-      .from('project_tasks')
-      .select('*')
-      .eq('id', taskId)
-      .eq('project_id', projectId)
-      .single();
+    console.log('🗑️ Deleting task:', taskId, 'from project:', projectId);
 
-    if (taskError || !task) {
-      return res.status(404).json({
-        success: false,
-        message: 'Task not found'
-      });
-    }
-
-    // Check permissions (only owner or creator can delete)
+    // Verify user has access to the project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('owner_id')
       .eq('id', projectId)
       .single();
 
-    const isOwner = project?.owner_id === userId;
-    const isCreator = task.created_by === userId;
-
-    if (!isOwner && !isCreator) {
-      return res.status(403).json({
+    if (projectError) {
+      return res.status(404).json({
         success: false,
-        message: 'Access denied. Only the project owner or task creator can delete tasks.'
+        message: 'Project not found'
       });
     }
 
-    // Delete task dependencies first
-    await supabase
-      .from('task_dependencies')
-      .delete()
-      .eq('task_id', taskId);
+    const isOwner = project.owner_id === userId;
+    let isMember = false;
 
-    await supabase
-      .from('task_dependencies')
-      .delete()
-      .eq('depends_on_task_id', taskId);
+    if (!isOwner) {
+      const { data: projectMember, error: memberError } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
 
-    // Delete task submissions
-    await supabase
-      .from('task_submissions')
-      .delete()
-      .eq('task_id', taskId);
+      if (!memberError && projectMember) {
+        isMember = true;
+      }
+    }
+
+    if (!isOwner && !isMember) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You must be a project member to delete tasks.'
+      });
+    }
+
+    // Verify task exists and belongs to the project
+    const { data: existingTask, error: taskError } = await supabase
+      .from('project_tasks')
+      .select('*')
+      .eq('id', taskId)
+      .eq('project_id', projectId)
+      .single();
+
+    if (taskError || !existingTask) {
+      return res.status(404).json({
+        success: false,
+        message: 'Task not found'
+      });
+    }
 
     // Delete the task
     const { error: deleteError } = await supabase
@@ -394,7 +500,7 @@ const deleteTask = async (req, res) => {
       .eq('id', taskId);
 
     if (deleteError) {
-      console.error('Error deleting task:', deleteError);
+      console.error('❌ Error deleting task:', deleteError);
       return res.status(500).json({
         success: false,
         message: 'Failed to delete task',
@@ -402,13 +508,15 @@ const deleteTask = async (req, res) => {
       });
     }
 
+    console.log('✅ Task deleted successfully:', taskId);
+
     res.json({
       success: true,
       message: 'Task deleted successfully'
     });
 
   } catch (error) {
-    console.error('Delete task error:', error);
+    console.error('💥 Delete task error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -423,21 +531,40 @@ const getTask = async (req, res) => {
     const { projectId, taskId } = req.params;
     const userId = req.user.id;
 
-    // Verify user has access to the project
-    const { data: projectMember, error: memberError } = await supabase
-      .from('project_members')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('user_id', userId)
-      .single();
+    console.log('📋 Getting task:', taskId, 'from project:', projectId);
 
+    // Verify user has access to the project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('owner_id')
       .eq('id', projectId)
       .single();
 
-    if (projectError || (!projectMember && project?.owner_id !== userId)) {
+    if (projectError) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    const isOwner = project.owner_id === userId;
+    let isMember = false;
+
+    if (!isOwner) {
+      const { data: projectMember, error: memberError } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+
+      if (!memberError && projectMember) {
+        isMember = true;
+      }
+    }
+
+    if (!isOwner && !isMember) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. You must be a project member to view tasks.'
@@ -449,16 +576,8 @@ const getTask = async (req, res) => {
       .from('project_tasks')
       .select(`
         *,
-        assigned_user:assigned_to(id, first_name, last_name, email),
-        creator:created_by(id, first_name, last_name, email),
-        dependencies:task_dependencies!task_dependencies_task_id_fkey(
-          depends_on_task_id,
-          dependency:depends_on_task_id(id, title, status)
-        ),
-        dependents:task_dependencies!task_dependencies_depends_on_task_id_fkey(
-          task_id,
-          dependent:task_id(id, title, status)
-        )
+        assigned_user:assigned_to(id, full_name, username, email),
+        creator:created_by(id, full_name, username, email)
       `)
       .eq('id', taskId)
       .eq('project_id', projectId)
@@ -471,13 +590,15 @@ const getTask = async (req, res) => {
       });
     }
 
+    console.log('✅ Task found:', task.title);
+
     res.json({
       success: true,
       data: { task }
     });
 
   } catch (error) {
-    console.error('Get task error:', error);
+    console.error('💥 Get task error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -492,21 +613,40 @@ const getTaskStats = async (req, res) => {
     const { projectId } = req.params;
     const userId = req.user.id;
 
-    // Verify user has access to the project
-    const { data: projectMember, error: memberError } = await supabase
-      .from('project_members')
-      .select('*')
-      .eq('project_id', projectId)
-      .eq('user_id', userId)
-      .single();
+    console.log('📊 Getting task stats for project:', projectId);
 
+    // Verify user has access to the project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('owner_id')
       .eq('id', projectId)
       .single();
 
-    if (projectError || (!projectMember && project?.owner_id !== userId)) {
+    if (projectError) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    const isOwner = project.owner_id === userId;
+    let isMember = false;
+
+    if (!isOwner) {
+      const { data: projectMember, error: memberError } = await supabase
+        .from('project_members')
+        .select('*')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+
+      if (!memberError && projectMember) {
+        isMember = true;
+      }
+    }
+
+    if (!isOwner && !isMember) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. You must be a project member to view task statistics.'
@@ -551,13 +691,15 @@ const getTaskStats = async (req, res) => {
       }
     };
 
+    console.log('📊 Task stats calculated:', stats);
+
     res.json({
       success: true,
       data: { stats }
     });
 
   } catch (error) {
-    console.error('Get task stats error:', error);
+    console.error('💥 Get task stats error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
