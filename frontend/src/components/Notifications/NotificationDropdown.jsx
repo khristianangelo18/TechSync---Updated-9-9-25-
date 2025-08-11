@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNotifications } from '../../contexts/NotificationContext';
 import NotificationItem from './NotificationItem';
 import LoadingSpinner from '../UI/LoadingSpinner';
@@ -16,24 +16,26 @@ const NotificationDropdown = ({ onClose }) => {
     } = useNotifications();
     const [localError, setLocalError] = useState(null);
 
-    useEffect(() => {
-        loadNotifications();
-    }, []);
-
-    const loadNotifications = async () => {
+    // Use useCallback to fix dependency warning
+    const loadNotifications = useCallback(async () => {
         try {
             setLocalError(null);
-            clearError();
+            if (clearError) clearError();
             await fetchNotifications({ limit: 20 });
         } catch (error) {
             setLocalError('Failed to load notifications');
         }
-    };
+    }, [fetchNotifications, clearError]);
+
+    // Now loadNotifications is stable and can be used in useEffect
+    useEffect(() => {
+        loadNotifications();
+    }, [loadNotifications]);
 
     const handleMarkAllRead = async () => {
         try {
             setLocalError(null);
-            clearError();
+            if (clearError) clearError();
             await markAllAsRead();
         } catch (error) {
             setLocalError('Failed to mark notifications as read');

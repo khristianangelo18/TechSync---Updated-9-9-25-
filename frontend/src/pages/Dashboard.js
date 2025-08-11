@@ -1,9 +1,12 @@
+// frontend/src/pages/Dashboard.js - UPDATED WITH REAL NOTIFICATIONS
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useNotifications } from '../contexts/NotificationContext'; // ADD THIS
 import CreateProject from './CreateProject';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
 import { projectService } from '../services/projectService';
+import NotificationDropdown from '../components/Notifications/NotificationDropdown'; // ADD THIS
 import NotificationDebug from '../components/Debug/NotificationDebug';
 
 function Dashboard() {
@@ -13,6 +16,13 @@ function Dashboard() {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [recommendedProjects, setRecommendedProjects] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+
+  // Real notifications from context
+  const { 
+    unreadCount, 
+    notifications, 
+    fetchNotifications 
+  } = useNotifications();
 
   // New state for project statistics
   const [projectStats, setProjectStats] = useState({
@@ -83,8 +93,26 @@ function Dashboard() {
     setShowCreateProject(false);
   };
 
-  const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
+  // UPDATED: Enhanced notification click handler with console logging
+  const handleNotificationClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('🔔 Dashboard: Notification bell clicked!');
+    console.log('🔔 Dashboard: Current showNotifications:', showNotifications);
+    console.log('🔔 Dashboard: Unread count:', unreadCount);
+    console.log('🔔 Dashboard: Notifications length:', notifications.length);
+    
+    const newState = !showNotifications;
+    setShowNotifications(newState);
+    
+    console.log('🔔 Dashboard: Setting showNotifications to:', newState);
+    
+    // Fetch notifications when opening dropdown if empty
+    if (newState && notifications.length === 0) {
+      console.log('🔔 Dashboard: Fetching notifications...');
+      fetchNotifications();
+    }
   };
 
   const handleProjectClick = async (project) => {
@@ -122,10 +150,14 @@ function Dashboard() {
     }
   };
 
-  // Close notifications when clicking outside
+  // UPDATED: Enhanced click outside handler
   React.useEffect(() => {
-    const handleClickOutside = () => {
-      setShowNotifications(false);
+    const handleClickOutside = (event) => {
+      // Only close if clicking outside the notification area
+      if (showNotifications && !event.target.closest('.notification-dropdown')) {
+        console.log('🔔 Dashboard: Clicking outside, closing notifications');
+        setShowNotifications(false);
+      }
     };
 
     if (showNotifications) {
@@ -486,15 +518,6 @@ function Dashboard() {
     }
   };
 
-  // Mock notifications data
-  const notifications = [
-    { id: 1, message: 'New project invitation received', time: '2 hours ago', unread: true },
-    { id: 2, message: 'Friend request from John Doe', time: '1 day ago', unread: true },
-    { id: 3, message: 'Your project "Web App" was approved', time: '2 days ago', unread: false }
-  ];
-
-  const unreadCount = notifications.filter(n => n.unread).length;
-
   // Helper function to get difficulty badge style
   const getDifficultyStyle = (difficulty) => {
     const baseStyle = styles.difficultyBadge;
@@ -524,44 +547,34 @@ function Dashboard() {
           
           <div style={{ position: 'relative' }}>
             <button 
-              style={styles.iconButton} 
+              style={{
+                ...styles.iconButton,
+                color: unreadCount > 0 ? '#3498db' : '#6c757d' // Change color when has notifications
+              }} 
               onClick={handleNotificationClick}
             >
               🔔
               {unreadCount > 0 && (
                 <span style={styles.notificationBadge}>
-                  {unreadCount}
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </button>
             
+            {/* UPDATED: Use real NotificationDropdown component */}
             {showNotifications && (
-              <div style={styles.notificationDropdown} onClick={(e) => e.stopPropagation()}>
-                <div style={styles.notificationHeader}>
-                  Notifications
-                </div>
-                {notifications.length > 0 ? (
-                  notifications.map(notification => (
-                    <div 
-                      key={notification.id} 
-                      style={{
-                        ...styles.notificationItem,
-                        backgroundColor: notification.unread ? '#f8f9fa' : 'white'
-                      }}
-                    >
-                      <div style={{ fontWeight: notification.unread ? 'bold' : 'normal' }}>
-                        {notification.message}
-                      </div>
-                      <div style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px' }}>
-                        {notification.time}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={styles.notificationEmpty}>
-                    No notifications yet
-                  </div>
-                )}
+              <div 
+                className="notification-dropdown"
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '5px',
+                  zIndex: 1000
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <NotificationDropdown onClose={() => setShowNotifications(false)} />
               </div>
             )}
           </div>
@@ -791,9 +804,10 @@ function Dashboard() {
           </button>
         </div>
       </div>
+      
+      <NotificationDebug />
     </div>
   );
 }
-<NotificationDebug />
 
 export default Dashboard;

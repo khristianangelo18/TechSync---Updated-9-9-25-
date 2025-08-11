@@ -1,4 +1,4 @@
-// frontend/src/App.js - FIXED VERSION
+// frontend/src/App.js - FIXED WITH NOTIFICATIONPROVIDER
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -113,17 +113,10 @@ function App() {
                   } 
                 />
 
-                <Route 
-                  path="/project/:projectId/tasks" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <ProjectTasks />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
+                {/* Project Join Route - Keep this before other project routes */}
+                <Route path="/projects/:projectId/join" element={<ProjectJoinPage />} />
 
+                {/* Task Detail Routes */}
                 <Route 
                   path="/project/:projectId/tasks/:taskId" 
                   element={
@@ -134,8 +127,8 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
-                {/* Main Application Routes with Layout */}
+                
+                {/* Main App Routes with Regular Layout */}
                 <Route 
                   path="/" 
                   element={
@@ -157,7 +150,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
                 <Route 
                   path="/friends" 
                   element={
@@ -168,7 +161,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
                 <Route 
                   path="/learns" 
                   element={
@@ -179,7 +172,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
                 <Route 
                   path="/help" 
                   element={
@@ -190,7 +183,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
                 <Route 
                   path="/profile" 
                   element={
@@ -212,7 +205,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
                 <Route 
                   path="/admin" 
                   element={
@@ -224,6 +217,18 @@ function App() {
                   } 
                 />
 
+                {/* Admin Routes */}
+                <Route 
+                  path="/admin/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <Layout>
+                        <AdminDashboard />
+                      </Layout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
                 <Route 
                   path="/admin/users" 
                   element={
@@ -235,18 +240,9 @@ function App() {
                   } 
                 />
 
+                {/* Project Workspace Routes with ProjectLayout */}
                 <Route 
-                  path="/project-join/:inviteToken" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectJoinPage />
-                    </ProtectedRoute>
-                  } 
-                />
-
-                {/* Project Routes */}
-                <Route 
-                  path="/project/:projectId" 
+                  path="/project/:projectId/dashboard" 
                   element={
                     <ProtectedRoute>
                       <ProjectLayout>
@@ -255,7 +251,18 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
+                <Route 
+                  path="/project/:projectId/tasks" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <ProjectTasks />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
                 <Route 
                   path="/project/:projectId/chats" 
                   element={
@@ -266,7 +273,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
                 <Route 
                   path="/project/:projectId/files" 
                   element={
@@ -277,7 +284,7 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
                 <Route 
                   path="/project/:projectId/members" 
                   element={
@@ -288,14 +295,31 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
+                
+                <Route 
+                  path="/project/:projectId/help" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <Help />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                              
+                {/* Redirect /project/:id to /project/:id/dashboard */}
+                <Route 
+                  path="/project/:projectId" 
+                  element={<Navigate to="dashboard" replace />} 
+                />
+                
                 {/* Catch all route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </div>
           </Router>
         </ChatProvider>
-      </NotificationProvider> {/* CLOSE THE WRAPPER */}
+      </NotificationProvider> {/* CLOSE WRAPPER */}
     </AuthProvider>
   );
 }

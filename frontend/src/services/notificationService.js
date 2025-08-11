@@ -1,3 +1,4 @@
+
 class NotificationService {
     constructor() {
         this.baseURL = '/api/notifications';
@@ -5,31 +6,49 @@ class NotificationService {
 
     async getCommentNotifications(params = {}) {
         try {
+            console.log('🔔 NotificationService: Fetching notifications with params:', params);
+            
             const queryParams = new URLSearchParams();
             
             if (params.page) queryParams.append('page', params.page);
             if (params.limit) queryParams.append('limit', params.limit);
             if (params.unread_only) queryParams.append('unread_only', params.unread_only);
 
-            const response = await fetch(`${this.baseURL}/comments?${queryParams}`, {
+            const url = `${this.baseURL}/comments?${queryParams}`;
+            console.log('🔔 NotificationService: Request URL:', url);
+
+            const token = localStorage.getItem('token');
+            console.log('🔔 NotificationService: Token exists:', !!token);
+
+            const response = await fetch(url, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
+            console.log('🔔 NotificationService: Response status:', response.status);
+            console.log('🔔 NotificationService: Response ok:', response.ok);
+
             if (!response.ok) {
-                throw new Error('Failed to fetch notifications');
+                const errorText = await response.text();
+                console.error('🔔 NotificationService: Error response:', errorText);
+                throw new Error(`Failed to fetch notifications: ${response.status} - ${errorText}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log('🔔 NotificationService: Success data:', data);
+            return data;
         } catch (error) {
-            console.error('Error fetching notifications:', error);
+            console.error('🔔 NotificationService: Error in getCommentNotifications:', error);
             throw error;
         }
     }
 
     async markNotificationsRead(notificationIds) {
         try {
+            console.log('🔔 NotificationService: Marking notifications as read:', notificationIds);
+            
             const response = await fetch(`${this.baseURL}/read`, {
                 method: 'PUT',
                 headers: {
@@ -41,60 +60,49 @@ class NotificationService {
                 })
             });
 
+            console.log('🔔 NotificationService: Mark read response status:', response.status);
+
             if (!response.ok) {
-                throw new Error('Failed to mark notifications as read');
+                const errorText = await response.text();
+                console.error('🔔 NotificationService: Mark read error:', errorText);
+                throw new Error(`Failed to mark notifications as read: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log('🔔 NotificationService: Mark read success:', data);
+            return data;
         } catch (error) {
-            console.error('Error marking notifications as read:', error);
+            console.error('🔔 NotificationService: Error in markNotificationsRead:', error);
             throw error;
         }
     }
 
     async getUnreadCount() {
         try {
+            console.log('🔔 NotificationService: Fetching unread count...');
+            
             const response = await fetch(`${this.baseURL}/unread-count`, {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch unread count');
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching unread count:', error);
-            throw error;
-        }
-    }
-
-    // NEW: Delete notification
-    async deleteNotification(notificationId) {
-        try {
-            const response = await fetch(`${this.baseURL}/${notificationId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
+            console.log('🔔 NotificationService: Unread count response status:', response.status);
 
             if (!response.ok) {
-                throw new Error('Failed to delete notification');
+                const errorText = await response.text();
+                console.error('🔔 NotificationService: Unread count error:', errorText);
+                throw new Error(`Failed to fetch unread count: ${response.status}`);
             }
 
-            return await response.json();
+            const data = await response.json();
+            console.log('🔔 NotificationService: Unread count success:', data);
+            return data;
         } catch (error) {
-            console.error('Error deleting notification:', error);
+            console.error('🔔 NotificationService: Error in getUnreadCount:', error);
             throw error;
         }
-    }
-
-    // NEW: Mark single notification as read
-    async markSingleNotificationRead(notificationId) {
-        return this.markNotificationsRead([notificationId]);
     }
 }
 
