@@ -1,4 +1,4 @@
-
+// frontend/src/services/notificationService.js
 class NotificationService {
     constructor() {
         this.baseURL = '/api/notifications';

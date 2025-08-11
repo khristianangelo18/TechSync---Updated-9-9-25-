@@ -36,26 +36,16 @@ export const NotificationProvider = ({ children }) => {
             setError(null);
         } catch (error) {
             console.error('🔔 NotificationContext: Error fetching unread count:', error);
+            
+            // Handle specific error types
+            if (error.message.includes('429') || error.message.includes('Too many requests')) {
+                console.warn('🔔 Rate limited, skipping unread count update');
+                return; // Don't set error for rate limits, just skip silently
+            }
+            
             setError('Failed to fetch unread count');
         }
     }, [user]);
-
-    // Fetch unread count on mount and periodically
-    useEffect(() => {
-        if (user) {
-            console.log('🔔 NotificationContext: User found, fetching unread count');
-            fetchUnreadCount();
-            // Refresh unread count every 30 seconds
-            const interval = setInterval(fetchUnreadCount, 30000);
-            return () => clearInterval(interval);
-        } else {
-            console.log('🔔 NotificationContext: No user, clearing state');
-            // Clear state when user logs out
-            setNotifications([]);
-            setUnreadCount(0);
-            setError(null);
-        }
-    }, [user, fetchUnreadCount]);
 
     const fetchNotifications = useCallback(async (params = {}) => {
         if (!user) {
@@ -74,7 +64,13 @@ export const NotificationProvider = ({ children }) => {
             return response;
         } catch (error) {
             console.error('🔔 NotificationContext: Error fetching notifications:', error);
-            setError('Failed to fetch notifications');
+            
+            // Handle specific error types
+            if (error.message.includes('429') || error.message.includes('Too many requests')) {
+                setError('Rate limited - please wait a moment before refreshing');
+            } else {
+                setError('Failed to fetch notifications');
+            }
             throw error;
         } finally {
             setLoading(false);
@@ -101,7 +97,12 @@ export const NotificationProvider = ({ children }) => {
             
         } catch (error) {
             console.error('🔔 NotificationContext: Error marking as read:', error);
-            setError('Failed to mark notifications as read');
+            
+            if (error.message.includes('429') || error.message.includes('Too many requests')) {
+                setError('Rate limited - please wait before trying again');
+            } else {
+                setError('Failed to mark notifications as read');
+            }
             throw error;
         }
     }, []);
@@ -126,6 +127,24 @@ export const NotificationProvider = ({ children }) => {
         console.log('🔔 NotificationContext: Clearing error');
         setError(null);
     }, []);
+
+    // Fetch unread count on mount and set up polling (less frequent)
+    useEffect(() => {
+        if (user) {
+            console.log('🔔 NotificationContext: User found, fetching unread count');
+            fetchUnreadCount();
+            
+            // Poll for unread count every 2 minutes (reduced frequency)
+            const interval = setInterval(fetchUnreadCount, 2 * 60 * 1000);
+            return () => clearInterval(interval);
+        } else {
+            console.log('🔔 NotificationContext: No user, clearing state');
+            // Clear state when user logs out
+            setNotifications([]);
+            setUnreadCount(0);
+            setError(null);
+        }
+    }, [user, fetchUnreadCount]);
 
     const value = {
         notifications,
