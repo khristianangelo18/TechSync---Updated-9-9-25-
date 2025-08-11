@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 const NotificationItem = ({ notification, onClose }) => {
     const navigate = useNavigate();
-    const { markAsRead } = useNotifications();
+    const { markAsRead, deleteNotification } = useNotifications();
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const formatTimeAgo = (dateString) => {
         const now = new Date();
@@ -69,6 +70,18 @@ const NotificationItem = ({ notification, onClose }) => {
         }
     };
 
+    const handleDelete = async (e) => {
+        e.stopPropagation(); // Prevent triggering handleClick
+        try {
+            setIsDeleting(true);
+            await deleteNotification(notification.id);
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <div 
             className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
@@ -99,6 +112,16 @@ const NotificationItem = ({ notification, onClose }) => {
             {!notification.is_read && (
                 <div className="notification-unread-dot"></div>
             )}
+
+            {/* Delete button */}
+            <button
+                className="notification-delete-btn"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                aria-label="Delete notification"
+            >
+                {isDeleting ? '...' : '×'}
+            </button>
         </div>
     );
 };

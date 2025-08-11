@@ -2,16 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNotifications } from '../../contexts/NotificationContext';
 import NotificationItem from './NotificationItem';
 import LoadingSpinner from '../UI/LoadingSpinner';
+import './Notifications.css';
 
 const NotificationDropdown = ({ onClose }) => {
     const { 
         notifications, 
         loading, 
+        error,
         fetchNotifications, 
         markAllAsRead, 
-        unreadCount 
+        unreadCount,
+        clearError
     } = useNotifications();
-    const [error, setError] = useState(null);
+    const [localError, setLocalError] = useState(null);
 
     useEffect(() => {
         loadNotifications();
@@ -19,21 +22,25 @@ const NotificationDropdown = ({ onClose }) => {
 
     const loadNotifications = async () => {
         try {
-            setError(null);
+            setLocalError(null);
+            clearError();
             await fetchNotifications({ limit: 20 });
         } catch (error) {
-            setError('Failed to load notifications');
+            setLocalError('Failed to load notifications');
         }
     };
 
     const handleMarkAllRead = async () => {
         try {
-            setError(null);
+            setLocalError(null);
+            clearError();
             await markAllAsRead();
         } catch (error) {
-            setError('Failed to mark notifications as read');
+            setLocalError('Failed to mark notifications as read');
         }
     };
+
+    const displayError = localError || error;
 
     return (
         <div className="notification-dropdown">
@@ -67,9 +74,9 @@ const NotificationDropdown = ({ onClose }) => {
                         <LoadingSpinner size="small" />
                         <span>Loading notifications...</span>
                     </div>
-                ) : error ? (
+                ) : displayError ? (
                     <div className="notification-error">
-                        <p>{error}</p>
+                        <p>{displayError}</p>
                         <button onClick={loadNotifications}>Try again</button>
                     </div>
                 ) : notifications.length === 0 ? (

@@ -70,6 +70,32 @@ class NotificationService {
             throw error;
         }
     }
+
+    // NEW: Delete notification
+    async deleteNotification(notificationId) {
+        try {
+            const response = await fetch(`${this.baseURL}/${notificationId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete notification');
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            throw error;
+        }
+    }
+
+    // NEW: Mark single notification as read
+    async markSingleNotificationRead(notificationId) {
+        return this.markNotificationsRead([notificationId]);
+    }
 }
 
 export const notificationService = new NotificationService();

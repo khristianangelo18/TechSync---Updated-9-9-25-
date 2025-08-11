@@ -245,6 +245,66 @@
     background: #f8f9fa;
 }
 
+.notification-delete-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    background: rgba(220, 53, 69, 0.1);
+    border: none;
+    border-radius: 50%;
+    color: #dc3545;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+}
+
+.notification-item:hover .notification-delete-btn {
+    opacity: 1;
+}
+
+.notification-delete-btn:hover {
+    background: rgba(220, 53, 69, 0.2);
+    transform: scale(1.1);
+}
+
+.notification-delete-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.notification-error {
+    text-align: center;
+    padding: 40px 20px;
+    color: #e74c3c;
+}
+
+.notification-error p {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+}
+
+.notification-error button {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.notification-error button:hover {
+    background: #c82333;
+}
+
+
 .view-all-btn {
     width: 100%;
     background: none;

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import CreateProject from './CreateProject';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
 import { projectService } from '../services/projectService';
+import NotificationDebug from '../components/Debug/NotificationDebug';
 
 function Dashboard() {
   const { user } = useAuth();
@@ -793,5 +794,6 @@ function Dashboard() {
     </div>
   );
 }
+<NotificationDebug />
 
 export default Dashboard;

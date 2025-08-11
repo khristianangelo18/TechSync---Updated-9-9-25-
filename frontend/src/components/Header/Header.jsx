@@ -1,4 +1,3 @@
-// frontend/src/components/Header/Header.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,10 +14,15 @@ const Header = ({ title, actions = [] }) => {
   const notificationRef = useRef(null);
   const userMenuRef = useRef(null);
 
+  // Debug logs
+  console.log('Header render - unreadCount:', unreadCount);
+  console.log('Header render - showNotifications:', showNotifications);
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        console.log('Clicking outside notification area');
         setShowNotifications(false);
       }
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -30,9 +34,18 @@ const Header = ({ title, actions = [] }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
+  const handleNotificationClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Notification bell clicked!');
+    console.log('Current showNotifications:', showNotifications);
+    
+    const newState = !showNotifications;
+    setShowNotifications(newState);
     setShowUserMenu(false); // Close user menu if open
+    
+    console.log('Setting showNotifications to:', newState);
   };
 
   const handleUserMenuClick = () => {
@@ -81,6 +94,7 @@ const Header = ({ title, actions = [] }) => {
               className={`notification-bell ${unreadCount > 0 ? 'has-notifications' : ''}`}
               onClick={handleNotificationClick}
               aria-label="Notifications"
+              type="button"
             >
               🔔
               {unreadCount > 0 && (
@@ -91,7 +105,9 @@ const Header = ({ title, actions = [] }) => {
             </button>
 
             {showNotifications && (
-              <NotificationDropdown onClose={() => setShowNotifications(false)} />
+              <div className="notification-dropdown-wrapper">
+                <NotificationDropdown onClose={() => setShowNotifications(false)} />
+              </div>
             )}
           </div>
 
