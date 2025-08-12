@@ -133,22 +133,34 @@ function Dashboard() {
   };
 
   const handleJoinProject = async (project, event) => {
-    event.stopPropagation(); // Prevent triggering the card click
+  event.stopPropagation(); // Prevent triggering the card click
 
+  try {
+    console.log('🚀 Navigating to project challenge:', project);
+    
+    // Update recommendation feedback for analytics
     try {
-      // Update recommendation feedback
       await SkillMatchingAPI.updateRecommendationFeedback(
         project.recommendationId, 
         'applied'
       );
-      
-      // Navigate to challenge page or join flow
-      navigate(`/projects/${project.projectId}/join`);
-    } catch (error) {
-      console.error('Error updating recommendation feedback:', error);
-      navigate(`/projects/${project.projectId}/join`);
+      console.log('✅ Updated recommendation feedback');
+    } catch (feedbackError) {
+      console.warn('⚠️ Failed to update recommendation feedback:', feedbackError);
+      // Continue with navigation even if feedback fails
     }
-  };
+    
+    // Navigate directly to the challenge/join page
+    // This will show the coding challenge interface
+    console.log('🎯 Navigating to:', `/projects/${project.projectId}/join`);
+    navigate(`/projects/${project.projectId}/join`);
+    
+  } catch (error) {
+    console.error('❌ Error in join project handler:', error);
+    // Still try to navigate even if there's an error
+    navigate(`/projects/${project.projectId}/join`);
+  }
+};
 
   // UPDATED: Enhanced click outside handler
   React.useEffect(() => {

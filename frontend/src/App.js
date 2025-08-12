@@ -1,4 +1,4 @@
-// frontend/src/App.js - COMPLETE VERSION WITH GITHUB OAUTH INTEGRATION
+// frontend/src/App.js - COMPLETE FIXED VERSION WITH PROJECT JOIN ROUTES
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -16,7 +16,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ManageUsers from './pages/ManageUsers';
 import ProjectJoinPage from './pages/ProjectJoinPage';
 import TaskDetail from './pages/project/TaskDetail';
-import GitHubOAuthCallback from './components/GitHubOAuthCallback'; // ADD THIS IMPORT
+import GitHubOAuthCallback from './components/GitHubOAuthCallback';
 
 // Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
@@ -116,6 +116,7 @@ function App() {
                   } 
                 />
 
+                {/* Project Join Routes - FIXED: Added missing routes */}
                 <Route 
                   path="/join/:inviteCode" 
                   element={
@@ -126,6 +127,25 @@ function App() {
                 />
 
                 <Route 
+                  path="/projects/:projectId/join" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectJoinPage />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/projects/:projectId/challenge" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectJoinPage />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Task Detail Route */}
+                <Route 
                   path="/task/:taskId" 
                   element={
                     <ProtectedRoute>
@@ -134,7 +154,7 @@ function App() {
                   } 
                 />
 
-                {/* GitHub OAuth Callback Route - ADD THIS */}
+                {/* GitHub OAuth Callback Route */}
                 <Route 
                   path="/auth/github/callback" 
                   element={

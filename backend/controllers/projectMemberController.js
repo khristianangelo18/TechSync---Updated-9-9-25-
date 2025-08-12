@@ -1,16 +1,5 @@
-// backend/controllers/projectMemberController.js
-const { createClient } = require('@supabase/supabase-js');
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+// backend/controllers/projectMemberController.js - COMPLETE VERSION
+const supabase = require('../config/supabase');
 
 // Get all members of a project
 const getProjectMembers = async (req, res) => {
@@ -18,12 +7,12 @@ const getProjectMembers = async (req, res) => {
     const { projectId } = req.params;
     const userId = req.user.id;
 
-    console.log('🔍 Getting members for project:', projectId, 'by user:', userId);
+    console.log('🔍 Getting project members for:', projectId, 'requested by:', userId);
 
-    // Verify user has access to the project
+    // Verify project exists
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('id, title, owner_id')
+      .select('id, title, owner_id, created_at')
       .eq('id', projectId)
       .single();
 
@@ -34,21 +23,20 @@ const getProjectMembers = async (req, res) => {
       });
     }
 
+    // Check if user has access to this project
     const isOwner = project.owner_id === userId;
     let isMember = false;
 
     if (!isOwner) {
-      const { data: memberCheck, error: memberError } = await supabase
+      const { data: membership } = await supabase
         .from('project_members')
-        .select('id')
+        .select('role')
         .eq('project_id', projectId)
         .eq('user_id', userId)
-        .eq('status', 'active')
+        .neq('status', 'removed')
         .single();
 
-      if (!memberError && memberCheck) {
-        isMember = true;
-      }
+      isMember = !!membership;
     }
 
     if (!isOwner && !isMember) {
@@ -58,7 +46,7 @@ const getProjectMembers = async (req, res) => {
       });
     }
 
-    // Get project members
+    // Get project members - FIXED: Exclude owner from members list
     const { data: members, error: membersError } = await supabase
       .from('project_members')
       .select(`
@@ -74,6 +62,7 @@ const getProjectMembers = async (req, res) => {
         )
       `)
       .eq('project_id', projectId)
+      .neq('user_id', project.owner_id) // ✅ FIXED: Exclude owner from members
       .neq('status', 'removed')
       .order('joined_at', { ascending: true });
 
@@ -86,20 +75,41 @@ const getProjectMembers = async (req, res) => {
       });
     }
 
-    // Also include the project owner
+    // Get the project owner
     const { data: owner, error: ownerError } = await supabase
       .from('users')
       .select('id, username, full_name, email, avatar_url, years_experience, github_username')
       .eq('id', project.owner_id)
       .single();
 
-    const result = {
-      owner: owner,
-      members: members || [],
-      total_members: (members?.length || 0) + 1 // +1 for owner
+    if (ownerError) {
+      console.error('Error fetching owner:', ownerError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch project owner'
+      });
+    }
+
+    // ✅ FIXED: Correct counting - owner + members (owner is not in members array)
+    const actualMembers = members || [];
+    const totalMembers = actualMembers.length + 1; // +1 for owner
+
+    // Count by roles (excluding owner from role counts)
+    const roleStats = {
+      lead: actualMembers.filter(m => m.role === 'lead').length,
+      moderator: actualMembers.filter(m => m.role === 'moderator').length, 
+      member: actualMembers.filter(m => m.role === 'member').length
     };
 
-    console.log(`✅ Found ${result.members.length} members + 1 owner for project`);
+    const result = {
+      owner: owner,
+      members: actualMembers,
+      total_members: totalMembers,
+      role_stats: roleStats
+    };
+
+    console.log(`✅ Found ${actualMembers.length} members + 1 owner = ${totalMembers} total`);
+    console.log(`   Role breakdown: ${roleStats.lead} leads, ${roleStats.moderator} moderators, ${roleStats.member} members`);
 
     res.json({
       success: true,
@@ -139,29 +149,60 @@ const addProjectMember = async (req, res) => {
       });
     }
 
-    if (project.owner_id !== userId) {
+    // Check permissions - only owner or admin can add members
+    const isOwner = project.owner_id === userId;
+    let canAddMembers = isOwner;
+
+    if (!isOwner) {
+      const { data: userMembership } = await supabase
+        .from('project_members')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .neq('status', 'removed')
+        .single();
+
+      canAddMembers = userMembership?.role === 'lead' || userMembership?.role === 'moderator';
+    }
+
+    if (!canAddMembers) {
       return res.status(403).json({
         success: false,
-        message: 'Only project owners can add members'
+        message: 'Access denied. Only project owners, leads, or moderators can add members.'
       });
     }
 
-    // Check if user exists
-    const { data: userExists, error: userError } = await supabase
+    // Check if project has reached maximum members
+    if (project.maximum_members && project.current_members >= project.maximum_members) {
+      return res.status(400).json({
+        success: false,
+        message: 'Project has reached maximum member limit'
+      });
+    }
+
+    // Verify the user to be added exists
+    const { data: userToAdd, error: userError } = await supabase
       .from('users')
       .select('id, username, full_name, email')
       .eq('id', user_id)
       .single();
 
-    if (userError || !userExists) {
+    if (userError || !userToAdd) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
 
-    // Check if user is already a member
-    const { data: existingMember, error: existingError } = await supabase
+    // Check if user is already a member or is the owner
+    if (user_id === project.owner_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'User is already the project owner'
+      });
+    }
+
+    const { data: existingMember } = await supabase
       .from('project_members')
       .select('id, status')
       .eq('project_id', projectId)
@@ -174,30 +215,61 @@ const addProjectMember = async (req, res) => {
           success: false,
           message: 'User is already a member of this project'
         });
-      } else if (existingMember.status === 'pending') {
-        return res.status(400).json({
+      }
+      
+      // Reactivate if they were previously removed
+      const { data: updatedMember, error: updateError } = await supabase
+        .from('project_members')
+        .update({
+          role: role,
+          status: 'active',
+          joined_at: new Date().toISOString()
+        })
+        .eq('id', existingMember.id)
+        .select(`
+          *,
+          users:user_id (
+            id,
+            username,
+            full_name,
+            email,
+            avatar_url,
+            years_experience,
+            github_username
+          )
+        `)
+        .single();
+
+      if (updateError) {
+        console.error('Error reactivating member:', updateError);
+        return res.status(500).json({
           success: false,
-          message: 'User already has a pending invitation to this project'
+          message: 'Failed to reactivate member'
         });
       }
-    }
 
-    // Check maximum members limit
-    if (project.maximum_members && project.current_members >= project.maximum_members) {
-      return res.status(400).json({
-        success: false,
-        message: 'Project has reached maximum member limit'
+      // Update project member count
+      await supabase
+        .from('projects')
+        .update({ current_members: project.current_members + 1 })
+        .eq('id', projectId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Member reactivated successfully',
+        data: { member: updatedMember }
       });
     }
 
-    // Add the member
-    const { data: newMember, error: addError } = await supabase
+    // Add new member
+    const { data: newMember, error: insertError } = await supabase
       .from('project_members')
       .insert({
         project_id: projectId,
         user_id: user_id,
         role: role,
-        status: 'active'
+        status: 'active',
+        joined_at: new Date().toISOString()
       })
       .select(`
         *,
@@ -207,36 +279,37 @@ const addProjectMember = async (req, res) => {
           full_name,
           email,
           avatar_url,
-          years_experience
+          years_experience,
+          github_username
         )
       `)
       .single();
 
-    if (addError) {
-      console.error('Error adding member:', addError);
+    if (insertError) {
+      console.error('Error adding member:', insertError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to add member',
-        error: addError.message
+        message: 'Failed to add member to project',
+        error: insertError.message
       });
     }
 
-    // Update project current_members count
+    // Update project member count
     await supabase
       .from('projects')
-      .update({ current_members: project.current_members + 1 })
+      .update({ current_members: (project.current_members || 1) + 1 })
       .eq('id', projectId);
 
-    console.log(`✅ Successfully added ${userExists.username} to project ${project.title}`);
+    console.log('✅ Member added successfully');
 
     res.status(201).json({
       success: true,
-      data: { member: newMember },
-      message: `${userExists.username} has been added to the project`
+      message: 'Member added to project successfully',
+      data: { member: newMember }
     });
 
   } catch (error) {
-    console.error('💥 Add project member error:', error);
+    console.error('💥 Add member error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
@@ -254,10 +327,10 @@ const updateMemberRole = async (req, res) => {
 
     console.log('🔄 Updating member role:', memberId, 'to:', role);
 
-    // Verify user is the project owner
+    // Verify project exists and get owner
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('owner_id, title')
+      .select('owner_id')
       .eq('id', projectId)
       .single();
 
@@ -268,26 +341,33 @@ const updateMemberRole = async (req, res) => {
       });
     }
 
-    if (project.owner_id !== userId) {
+    // Check permissions - only owner or leads can update roles
+    const isOwner = project.owner_id === userId;
+    let canUpdateRoles = isOwner;
+
+    if (!isOwner) {
+      const { data: userMembership } = await supabase
+        .from('project_members')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .neq('status', 'removed')
+        .single();
+
+      canUpdateRoles = userMembership?.role === 'lead';
+    }
+
+    if (!canUpdateRoles) {
       return res.status(403).json({
         success: false,
-        message: 'Only project owners can update member roles'
+        message: 'Access denied. Only project owners or leads can update member roles.'
       });
     }
 
-    // Validate role
-    const validRoles = ['member', 'moderator', 'lead'];
-    if (!validRoles.includes(role)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid role. Must be one of: member, moderator, lead'
-      });
-    }
-
-    // Update the member
+    // Update the member's role
     const { data: updatedMember, error: updateError } = await supabase
       .from('project_members')
-      .update({ role })
+      .update({ role: role })
       .eq('id', memberId)
       .eq('project_id', projectId)
       .select(`
@@ -297,7 +377,9 @@ const updateMemberRole = async (req, res) => {
           username,
           full_name,
           email,
-          avatar_url
+          avatar_url,
+          years_experience,
+          github_username
         )
       `)
       .single();
@@ -305,16 +387,16 @@ const updateMemberRole = async (req, res) => {
     if (updateError || !updatedMember) {
       return res.status(404).json({
         success: false,
-        message: 'Member not found'
+        message: 'Member not found or update failed'
       });
     }
 
-    console.log(`✅ Updated ${updatedMember.users.username} role to ${role}`);
+    console.log('✅ Member role updated successfully');
 
     res.json({
       success: true,
-      data: { member: updatedMember },
-      message: `Member role updated to ${role}`
+      message: 'Member role updated successfully',
+      data: { member: updatedMember }
     });
 
   } catch (error) {
@@ -335,10 +417,10 @@ const removeMember = async (req, res) => {
 
     console.log('🗑️ Removing member:', memberId, 'from project:', projectId);
 
-    // Verify user is the project owner
+    // Verify project exists and get details
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select('owner_id, title, current_members')
+      .select('owner_id, current_members')
       .eq('id', projectId)
       .single();
 
@@ -349,64 +431,74 @@ const removeMember = async (req, res) => {
       });
     }
 
-    if (project.owner_id !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only project owners can remove members'
-      });
-    }
-
-    // Get member details before removing
-    const { data: member, error: memberError } = await supabase
+    // Get member details before removal
+    const { data: memberToRemove, error: memberError } = await supabase
       .from('project_members')
-      .select(`
-        *,
-        users:user_id (username)
-      `)
+      .select('user_id, role')
       .eq('id', memberId)
       .eq('project_id', projectId)
       .single();
 
-    if (memberError || !member) {
+    if (memberError || !memberToRemove) {
       return res.status(404).json({
         success: false,
         message: 'Member not found'
       });
     }
 
-    // Update member status to 'removed'
+    // Check permissions
+    const isOwner = project.owner_id === userId;
+    const isRemovingSelf = memberToRemove.user_id === userId;
+    let canRemove = isOwner || isRemovingSelf;
+
+    if (!canRemove && !isOwner) {
+      const { data: userMembership } = await supabase
+        .from('project_members')
+        .select('role')
+        .eq('project_id', projectId)
+        .eq('user_id', userId)
+        .single();
+
+      // Leads can remove members (but not other leads unless they're owner)
+      canRemove = userMembership?.role === 'lead' && memberToRemove.role === 'member';
+    }
+
+    if (!canRemove) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Insufficient permissions to remove this member.'
+      });
+    }
+
+    // Remove member (soft delete by setting status to removed)
     const { error: removeError } = await supabase
       .from('project_members')
-      .update({ status: 'removed' })
+      .update({ 
+        status: 'removed',
+        removed_at: new Date().toISOString()
+      })
       .eq('id', memberId);
 
     if (removeError) {
       console.error('Error removing member:', removeError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to remove member',
-        error: removeError.message
+        message: 'Failed to remove member from project'
       });
     }
 
-    // Update project current_members count
+    // Update project member count
+    const newMemberCount = Math.max(1, (project.current_members || 1) - 1);
     await supabase
       .from('projects')
-      .update({ current_members: Math.max(1, project.current_members - 1) })
+      .update({ current_members: newMemberCount })
       .eq('id', projectId);
 
-    // Unassign member from all tasks in this project
-    await supabase
-      .from('project_tasks')
-      .update({ assigned_to: null })
-      .eq('project_id', projectId)
-      .eq('assigned_to', member.user_id);
-
-    console.log(`✅ Removed ${member.users.username} from project ${project.title}`);
+    console.log('✅ Member removed successfully');
 
     res.json({
       success: true,
-      message: `${member.users.username} has been removed from the project`
+      message: 'Member removed from project successfully'
     });
 
   } catch (error) {
@@ -419,7 +511,7 @@ const removeMember = async (req, res) => {
   }
 };
 
-// Leave a project (for members to leave themselves)
+// Leave a project (for members)
 const leaveProject = async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -427,63 +519,73 @@ const leaveProject = async (req, res) => {
 
     console.log('🚪 User leaving project:', projectId, 'user:', userId);
 
-    // Check if user is a member
-    const { data: member, error: memberError } = await supabase
-      .from('project_members')
-      .select('id, role')
-      .eq('project_id', projectId)
-      .eq('user_id', userId)
-      .eq('status', 'active')
+    // Verify project exists
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('owner_id, current_members')
+      .eq('id', projectId)
       .single();
 
-    if (memberError || !member) {
+    if (projectError || !project) {
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
+      });
+    }
+
+    // Owner cannot leave their own project
+    if (project.owner_id === userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Project owners cannot leave their own project. Transfer ownership or delete the project instead.'
+      });
+    }
+
+    // Find user's membership
+    const { data: membership, error: memberError } = await supabase
+      .from('project_members')
+      .select('id')
+      .eq('project_id', projectId)
+      .eq('user_id', userId)
+      .neq('status', 'removed')
+      .single();
+
+    if (memberError || !membership) {
       return res.status(404).json({
         success: false,
         message: 'You are not a member of this project'
       });
     }
 
-    // Update member status to 'removed'
+    // Remove user from project
     const { error: leaveError } = await supabase
       .from('project_members')
-      .update({ status: 'removed' })
-      .eq('id', member.id);
+      .update({ 
+        status: 'removed',
+        removed_at: new Date().toISOString()
+      })
+      .eq('id', membership.id);
 
     if (leaveError) {
       console.error('Error leaving project:', leaveError);
       return res.status(500).json({
         success: false,
-        message: 'Failed to leave project',
-        error: leaveError.message
+        message: 'Failed to leave project'
       });
     }
 
-    // Update project current_members count
-    const { data: project } = await supabase
-      .from('projects')
-      .select('current_members')
-      .eq('id', projectId)
-      .single();
-
-    if (project) {
-      await supabase
-        .from('projects')
-        .update({ current_members: Math.max(1, project.current_members - 1) })
-        .eq('id', projectId);
-    }
-
-    // Unassign user from all tasks in this project
+    // Update project member count
+    const newMemberCount = Math.max(1, (project.current_members || 1) - 1);
     await supabase
-      .from('project_tasks')
-      .update({ assigned_to: null })
-      .eq('project_id', projectId)
-      .eq('assigned_to', userId);
+      .from('projects')
+      .update({ current_members: newMemberCount })
+      .eq('id', projectId);
 
-    console.log(`✅ User ${userId} left project ${projectId}`);
+    console.log('✅ User left project successfully');
 
     res.json({
       success: true,
-      message: 'You have left the project'
+      message: 'You have successfully left the project'
     });
 
   } catch (error) {

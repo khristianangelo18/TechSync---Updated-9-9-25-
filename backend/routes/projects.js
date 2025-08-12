@@ -1,50 +1,36 @@
-// backend/routes/projects.js
+// backend/routes/projects.js - SIMPLIFIED VERSION (NO DIRECT JOIN ENDPOINT)
 const express = require('express');
-const router = express.Router();
-const { body, query, param, validationResult } = require('express-validator');
-
-// Import controllers
+const { body, query, param } = require('express-validator');
 const {
   createProject,
   getProjects,
   getProjectById,
   getUserProjects,
-  deleteProject
+  deleteProject,
+  updateProject
 } = require('../controllers/projectController');
-
-// Import middleware - Fixed path
 const authMiddleware = require('../middleware/auth');
+const { handleValidationErrors } = require('../middleware/validation');
 
-// Validation middleware
-const handleValidationErrors = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      errors: errors.array()
-    });
-  }
-  next();
-};
+const router = express.Router();
 
 // Validation rules for creating projects
 const createProjectValidation = [
   body('title')
     .trim()
-    .isLength({ min: 1, max: 100 })
-    .withMessage('Title must be between 1 and 100 characters'),
+    .isLength({ min: 3, max: 200 })
+    .withMessage('Title must be between 3 and 200 characters'),
   
   body('description')
     .trim()
-    .isLength({ min: 1, max: 500 })
-    .withMessage('Description must be between 1 and 500 characters'),
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Description must be between 10 and 1000 characters'),
   
   body('detailed_description')
     .optional()
     .trim()
-    .isLength({ max: 2000 })
-    .withMessage('Detailed description must not exceed 2000 characters'),
+    .isLength({ max: 5000 })
+    .withMessage('Detailed description must not exceed 5000 characters'),
   
   body('required_experience_level')
     .optional()
@@ -53,8 +39,8 @@ const createProjectValidation = [
   
   body('maximum_members')
     .optional()
-    .isInt({ min: 1, max: 50 })
-    .withMessage('Maximum members must be between 1 and 50'),
+    .isInt({ min: 2, max: 50 })
+    .withMessage('Maximum members must be between 2 and 50'),
   
   body('estimated_duration_weeks')
     .optional()
@@ -69,12 +55,12 @@ const createProjectValidation = [
   body('github_repo_url')
     .optional()
     .isURL()
-    .withMessage('Invalid GitHub repository URL'),
+    .withMessage('GitHub repository URL must be valid'),
   
   body('deadline')
     .optional()
     .isISO8601()
-    .withMessage('Invalid deadline date format'),
+    .withMessage('Deadline must be a valid date'),
   
   body('programming_languages')
     .optional()
@@ -137,6 +123,31 @@ const projectIdValidation = [
     .withMessage('Invalid project ID format')
 ];
 
+// Update project validation
+const updateProjectValidation = [
+  body('title')
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 200 })
+    .withMessage('Title must be between 3 and 200 characters'),
+  
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ min: 10, max: 1000 })
+    .withMessage('Description must be between 10 and 1000 characters'),
+  
+  body('status')
+    .optional()
+    .isIn(['recruiting', 'active', 'completed', 'paused', 'cancelled'])
+    .withMessage('Invalid project status'),
+  
+  body('maximum_members')
+    .optional()
+    .isInt({ min: 2, max: 50 })
+    .withMessage('Maximum members must be between 2 and 50')
+];
+
 // Routes
 
 // GET /api/projects - Get all projects (public, with filters)
@@ -154,7 +165,29 @@ router.post('/', createProjectValidation, handleValidationErrors, createProject)
 // GET /api/projects/user/my - Get current user's projects
 router.get('/user/my', getUserProjects);
 
+// PUT /api/projects/:id - Update project (only by owner)
+router.put('/:id', 
+  projectIdValidation,
+  updateProjectValidation,
+  handleValidationErrors,
+  updateProject
+);
+
 // DELETE /api/projects/:id - Delete project (only by owner)
 router.delete('/:id', projectIdValidation, handleValidationErrors, deleteProject);
+
+// NOTE: Project joining is handled through the challenge system
+// Users must complete a coding challenge to join projects
+// See /api/challenges/project/:projectId/attempt endpoint
+
+// Error handling middleware for this router
+router.use((error, req, res, next) => {
+  console.error('Projects router error:', error);
+  res.status(500).json({
+    success: false,
+    message: 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+  });
+});
 
 module.exports = router;

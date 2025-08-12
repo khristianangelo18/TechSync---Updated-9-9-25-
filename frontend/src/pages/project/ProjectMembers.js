@@ -1,4 +1,4 @@
-// frontend/src/pages/project/ProjectMembers.js
+// frontend/src/pages/project/ProjectMembers.js - COMPLETE FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +16,9 @@ function ProjectMembers() {
     email: '',
     role: 'member'
   });
+
+  // Check if current user is the project owner
+  const isOwner = project?.owner_id === user?.id;
 
   // Fetch project and member data
   useEffect(() => {
@@ -115,15 +118,13 @@ function ProjectMembers() {
 
     try {
       await projectService.leaveProject(projectId);
-      window.location.href = '/projects'; // Redirect to projects page
+      // Redirect to projects page after leaving
+      window.location.href = '/projects';
     } catch (error) {
       console.error('Error leaving project:', error);
       setError(error.response?.data?.message || 'Failed to leave project');
     }
   };
-
-  const isOwner = project && user && project.owner_id === user.id;
-  // const isAdmin = memberData?.members?.find(m => m.user_id === user.id && m.role === 'lead'); // TODO: Use when implementing admin-specific features
 
   const styles = {
     container: {
@@ -134,7 +135,7 @@ function ProjectMembers() {
     header: {
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       marginBottom: '30px',
       paddingBottom: '20px',
       borderBottom: '2px solid #e9ecef'
@@ -160,7 +161,7 @@ function ProjectMembers() {
       backgroundColor: '#28a745',
       color: 'white',
       border: 'none',
-      padding: '12px 24px',
+      padding: '10px 20px',
       borderRadius: '6px',
       cursor: 'pointer',
       fontSize: '14px',
@@ -170,7 +171,7 @@ function ProjectMembers() {
       backgroundColor: '#dc3545',
       color: 'white',
       border: 'none',
-      padding: '12px 24px',
+      padding: '10px 20px',
       borderRadius: '6px',
       cursor: 'pointer',
       fontSize: '14px',
@@ -179,29 +180,21 @@ function ProjectMembers() {
     errorMessage: {
       backgroundColor: '#f8d7da',
       color: '#721c24',
-      padding: '12px',
-      borderRadius: '4px',
+      padding: '15px',
+      borderRadius: '6px',
       marginBottom: '20px',
-      border: '1px solid #f5c6cb'
-    },
-    successMessage: {
-      backgroundColor: '#d4edda',
-      color: '#155724',
-      padding: '12px',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      border: '1px solid #c3e6cb'
+      border: '1px solid #f5c6cb',
+      position: 'relative'
     },
     loadingState: {
       textAlign: 'center',
-      padding: '40px',
+      padding: '60px 20px',
       color: '#6c757d'
     },
     membersGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-      gap: '20px',
-      marginBottom: '30px'
+      gap: '20px'
     },
     memberCard: {
       backgroundColor: 'white',
@@ -211,8 +204,8 @@ function ProjectMembers() {
       boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
     },
     ownerCard: {
-      backgroundColor: '#f8f9fa',
       border: '2px solid #007bff',
+      backgroundColor: '#f8f9ff'
     },
     memberHeader: {
       display: 'flex',
@@ -224,11 +217,11 @@ function ProjectMembers() {
       height: '50px',
       borderRadius: '50%',
       backgroundColor: '#007bff',
+      color: 'white',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: 'white',
-      fontSize: '18px',
+      fontSize: '20px',
       fontWeight: 'bold',
       marginRight: '15px'
     },
@@ -236,68 +229,42 @@ function ProjectMembers() {
       flex: 1
     },
     memberName: {
-      fontSize: '18px',
-      fontWeight: '600',
       margin: '0 0 5px 0',
+      fontSize: '18px',
       color: '#333'
     },
     memberRole: {
-      fontSize: '14px',
-      color: '#6c757d',
       marginBottom: '5px'
-    },
-    memberEmail: {
-      fontSize: '12px',
-      color: '#666'
     },
     ownerBadge: {
       backgroundColor: '#007bff',
       color: 'white',
-      padding: '2px 8px',
+      padding: '3px 8px',
       borderRadius: '12px',
       fontSize: '12px',
       fontWeight: '500'
     },
     roleBadge: {
-      padding: '2px 8px',
+      backgroundColor: '#6c757d',
+      color: 'white',
+      padding: '3px 8px',
       borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      backgroundColor: '#e9ecef',
-      color: '#495057'
-    },
-    memberMeta: {
-      fontSize: '12px',
-      color: '#666',
-      marginBottom: '15px'
-    },
-    memberActions: {
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap'
-    },
-    actionButton: {
-      padding: '6px 12px',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
       fontSize: '12px',
       fontWeight: '500'
     },
-    updateButton: {
-      backgroundColor: '#007bff',
-      color: 'white'
+    memberEmail: {
+      color: '#6c757d',
+      fontSize: '14px'
     },
-    removeButton: {
-      backgroundColor: '#dc3545',
-      color: 'white'
+    memberMeta: {
+      color: '#6c757d',
+      fontSize: '14px',
+      lineHeight: '1.4'
     },
-    roleSelect: {
-      padding: '4px 8px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      fontSize: '12px',
-      marginRight: '8px'
+    memberActions: {
+      display: 'flex',
+      gap: '10px',
+      marginTop: '15px'
     },
     modal: {
       position: 'fixed',
@@ -307,8 +274,8 @@ function ProjectMembers() {
       bottom: 0,
       backgroundColor: 'rgba(0,0,0,0.5)',
       display: 'flex',
-      justifyContent: 'center',
       alignItems: 'center',
+      justifyContent: 'center',
       zIndex: 1000
     },
     modalContent: {
@@ -316,19 +283,14 @@ function ProjectMembers() {
       padding: '30px',
       borderRadius: '8px',
       width: '90%',
-      maxWidth: '500px',
-      maxHeight: '90vh',
-      overflow: 'auto'
-    },
-    modalHeader: {
-      marginBottom: '20px'
+      maxWidth: '500px'
     },
     modalTitle: {
+      margin: '0 0 20px 0',
       fontSize: '24px',
-      fontWeight: '600',
-      margin: '0 0 10px 0'
+      color: '#333'
     },
-    formGroup: {
+    inputGroup: {
       marginBottom: '20px'
     },
     label: {
@@ -429,7 +391,13 @@ function ProjectMembers() {
     );
   }
 
-  const { owner, members, total_members } = memberData;
+  // ✅ FIXED: Extract data with proper destructuring
+  const { owner, members, total_members, role_stats } = memberData;
+
+  // ✅ FIXED: Calculate role counts correctly (excluding owner)
+  const leadCount = role_stats?.lead || members.filter(m => m.role === 'lead').length;
+  const moderatorCount = role_stats?.moderator || members.filter(m => m.role === 'moderator').length; 
+  const memberCount = role_stats?.member || members.filter(m => m.role === 'member').length;
 
   return (
     <div style={styles.container}>
@@ -438,7 +406,7 @@ function ProjectMembers() {
         <div style={styles.headerLeft}>
           <h1 style={styles.title}>Members</h1>
           <p style={styles.subtitle}>
-            Project team management • {total_members} member{total_members !== 1 ? 's' : ''}
+            Project team management • {total_members} member{total_members !== 1 ? 's' : ''} total
           </p>
         </div>
         <div style={styles.headerRight}>
@@ -474,29 +442,29 @@ function ProjectMembers() {
         </div>
       )}
 
-      {/* Stats */}
+      {/* Stats - FIXED COUNTING */}
       <div style={styles.stats}>
         <div style={styles.statCard}>
           <div style={styles.statNumber}>{total_members}</div>
           <div style={styles.statLabel}>Total Members</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statNumber}>{members.filter(m => m.role === 'lead').length}</div>
+          <div style={styles.statNumber}>{leadCount}</div>
           <div style={styles.statLabel}>Team Leads</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statNumber}>{members.filter(m => m.role === 'moderator').length}</div>
+          <div style={styles.statNumber}>{moderatorCount}</div>
           <div style={styles.statLabel}>Moderators</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statNumber}>{members.filter(m => m.role === 'member').length}</div>
+          <div style={styles.statNumber}>{memberCount}</div>
           <div style={styles.statLabel}>Members</div>
         </div>
       </div>
 
       {/* Members Grid */}
       <div style={styles.membersGrid}>
-        {/* Project Owner */}
+        {/* Project Owner - Always shown first */}
         {owner && (
           <div style={{...styles.memberCard, ...styles.ownerCard}}>
             <div style={styles.memberHeader}>
@@ -526,7 +494,7 @@ function ProjectMembers() {
           </div>
         )}
 
-        {/* Project Members */}
+        {/* Project Members - Excluding owner */}
         {members.map((member) => (
           <div key={member.id} style={styles.memberCard}>
             <div style={styles.memberHeader}>
@@ -548,32 +516,28 @@ function ProjectMembers() {
               {member.users?.years_experience && (
                 <div>Experience: {member.users.years_experience} years</div>
               )}
-              {member.joined_at && (
-                <div>Joined: {new Date(member.joined_at).toLocaleDateString()}</div>
-              )}
-              {member.contribution_score && (
-                <div>Contribution Score: {member.contribution_score}</div>
-              )}
+              <div>Joined: {new Date(member.joined_at).toLocaleDateString()}</div>
               {member.users?.github_username && (
                 <div>GitHub: @{member.users.github_username}</div>
               )}
             </div>
-
-            {/* Member Actions (only for owner) */}
             {isOwner && (
               <div style={styles.memberActions}>
                 <select
-                  style={styles.roleSelect}
                   value={member.role}
                   onChange={(e) => handleUpdateRole(member.id, e.target.value)}
+                  style={styles.select}
                 >
                   <option value="member">Member</option>
                   <option value="moderator">Moderator</option>
-                  <option value="lead">Team Lead</option>
+                  <option value="lead">Lead</option>
                 </select>
                 <button
-                  style={{...styles.actionButton, ...styles.removeButton}}
-                  onClick={() => handleRemoveMember(member.id, member.users?.full_name || member.users?.username)}
+                  style={styles.leaveButton}
+                  onClick={() => handleRemoveMember(
+                    member.id, 
+                    member.users?.full_name || member.users?.username || 'Team Member'
+                  )}
                 >
                   Remove
                 </button>
@@ -581,53 +545,51 @@ function ProjectMembers() {
             )}
           </div>
         ))}
-      </div>
 
-      {/* Empty state if no additional members */}
-      {members.length === 0 && (
-        <div style={styles.emptyState}>
-          <h2>Looking for Team Members</h2>
-          <p>This project is currently looking for collaborators.</p>
-          {isOwner && (
-            <button
-              style={styles.button}
-              onClick={() => setShowAddModal(true)}
-            >
-              Add Your First Member
-            </button>
-          )}
-        </div>
-      )}
+        {/* Empty state if no members */}
+        {(!members || members.length === 0) && (
+          <div style={styles.emptyState}>
+            <p>No additional members in this project yet.</p>
+            {isOwner && (
+              <p>Click "Add Member" to invite people to your project.</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Add Member Modal */}
       {showAddModal && (
-        <div style={styles.modal} onClick={() => setShowAddModal(false)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <h2 style={styles.modalTitle}>Add Team Member</h2>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Email Address *</label>
+        <div style={styles.modal}>
+          <div style={styles.modalContent}>
+            <h2 style={styles.modalTitle}>Add New Member</h2>
+            
+            <div style={styles.inputGroup}>
+              <label style={styles.label}>Email Address</label>
               <input
                 type="email"
                 style={styles.input}
                 value={newMemberForm.email}
-                onChange={(e) => setNewMemberForm({ ...newMemberForm, email: e.target.value })}
-                placeholder="Enter member's email address"
+                onChange={(e) => setNewMemberForm({
+                  ...newMemberForm,
+                  email: e.target.value
+                })}
+                placeholder="Enter member's email"
               />
             </div>
 
-            <div style={styles.formGroup}>
+            <div style={styles.inputGroup}>
               <label style={styles.label}>Role</label>
               <select
                 style={styles.select}
                 value={newMemberForm.role}
-                onChange={(e) => setNewMemberForm({ ...newMemberForm, role: e.target.value })}
+                onChange={(e) => setNewMemberForm({
+                  ...newMemberForm,
+                  role: e.target.value
+                })}
               >
                 <option value="member">Member</option>
                 <option value="moderator">Moderator</option>
-                <option value="lead">Team Lead</option>
+                <option value="lead">Lead</option>
               </select>
             </div>
 
@@ -641,7 +603,6 @@ function ProjectMembers() {
               <button
                 style={styles.primaryButton}
                 onClick={handleAddMember}
-                disabled={!newMemberForm.email.trim()}
               >
                 Add Member
               </button>
