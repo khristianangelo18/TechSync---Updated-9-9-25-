@@ -1,4 +1,4 @@
-// backend/app.js
+// backend/app.js - FINAL FIXED VERSION
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -126,20 +126,27 @@ if (process.env.NODE_ENV === 'development') {
 // Test database connection on startup
 const supabase = require('./config/supabase');
 
-// API Routes
+// API Routes - FIXED: Correct mounting order and paths
+
+// 1. Independent routes first
 app.use('/api/auth', authRoutes);
 app.use('/api/onboarding', onboardingRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/tasks', taskRoutes);
 app.use('/api/suggestions', suggestionsRoutes);
 app.use('/api/skill-matching', skillMatchingRoutes);
 app.use('/api/challenges', challengeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
-app.use('/api/project-members', projectMemberRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/github', githubRoutes);
+
+// 2. Project-nested routes - FIXED: Mount under /api/projects
+// These routes handle: /api/projects/:projectId/tasks/* and /api/projects/:projectId/members/*
+app.use('/api/projects', taskRoutes);         // ✅ Now handles /api/projects/:projectId/tasks
+app.use('/api/projects', projectMemberRoutes); // ✅ Now handles /api/projects/:projectId/members
+
+// 3. General project routes last - handles remaining /api/projects/*
+app.use('/api/projects', projectRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -151,7 +158,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Root endpoint
+// Root endpoint with correct documentation
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -161,7 +168,8 @@ app.get('/', (req, res) => {
       health: '/health',
       auth: '/api/auth',
       projects: '/api/projects',
-      tasks: '/api/tasks',
+      tasks: '/api/projects/:projectId/tasks',     // ✅ Correct path
+      members: '/api/projects/:projectId/members', // ✅ Correct path
       challenges: '/api/challenges',
       github: '/api/github'
     }
@@ -235,26 +243,6 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
-
-const PORT = process.env.PORT || 5000;
-
-// Start server - ONLY if this file is run directly
-if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log('🚀 =================================');
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🚀 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log('🚀 =================================');
-    console.log('📋 Available endpoints:');
-    console.log(`   🔗 Health: http://localhost:${PORT}/health`);
-    console.log(`   🔗 API: http://localhost:${PORT}/api`);
-    console.log(`   🔗 Auth: http://localhost:${PORT}/api/auth`);
-    console.log(`   🔗 Projects: http://localhost:${PORT}/api/projects`);
-    console.log(`   🔗 Tasks: http://localhost:${PORT}/api/tasks`);
-    console.log(`   🔗 GitHub: http://localhost:${PORT}/api/github`);
-    console.log('🚀 =================================');
-  });
-}
 
 // Export both app and server for use in server.js or testing
 module.exports = { app, server };
