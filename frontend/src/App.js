@@ -1,9 +1,9 @@
-// frontend/src/App.js - FIXED WITH NOTIFICATIONPROVIDER
+// frontend/src/App.js - COMPLETE VERSION WITH GITHUB OAUTH INTEGRATION
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
-import { NotificationProvider } from './contexts/NotificationContext'; // ADD THIS LINE
+import { NotificationProvider } from './contexts/NotificationContext';
 import Layout from './pages/Layout';
 import ProjectLayout from './pages/ProjectLayout';
 import Login from './pages/Login';
@@ -16,6 +16,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ManageUsers from './pages/ManageUsers';
 import ProjectJoinPage from './pages/ProjectJoinPage';
 import TaskDetail from './pages/project/TaskDetail';
+import GitHubOAuthCallback from './components/GitHubOAuthCallback'; // ADD THIS IMPORT
 
 // Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
@@ -23,6 +24,11 @@ import ProjectTasks from './pages/project/ProjectTasks';
 import ProjectChats from './pages/project/ProjectChats';
 import ProjectFiles from './pages/project/ProjectFiles';
 import ProjectMembers from './pages/project/ProjectMembers';
+
+// Placeholder components for missing pages
+const Friends = () => <div style={{ padding: '30px' }}>Friends feature coming soon...</div>;
+const Learns = () => <div style={{ padding: '30px' }}>Learning resources coming soon...</div>;
+const Help = () => <div style={{ padding: '30px' }}>Help center coming soon...</div>;
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -65,30 +71,28 @@ const PublicRoute = ({ children }) => {
         alignItems: 'center', 
         height: '100vh' 
       }}>
-        <h2>Syncing...</h2>
+        <h2>Loading...</h2>
       </div>
     );
   }
   
-  if (isAuthenticated) {
-    if (user?.needsOnboarding) {
-      return <Navigate to="/onboarding" replace />;
-    }
+  // If authenticated and doesn't need onboarding, redirect to dashboard
+  if (isAuthenticated && !user?.needsOnboarding) {
     return <Navigate to="/" replace />;
+  }
+
+  // If authenticated but needs onboarding, allow access to onboarding
+  if (isAuthenticated && user?.needsOnboarding && window.location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return children;
 };
 
-// Placeholder components for main app routes
-const Friends = () => <div style={{ padding: '30px' }}><h2>Friends</h2><p>Your friends and connections will appear here.</p></div>;
-const Learns = () => <div style={{ padding: '30px' }}><h2>Learns</h2><p>Your learning modules and progress will appear here.</p></div>;
-const Help = () => <div style={{ padding: '30px' }}><h2>Help Center</h2><p>Frequently asked questions and support resources.</p></div>;
-
 function App() {
   return (
     <AuthProvider>
-      <NotificationProvider> {/* ADD THIS WRAPPER */}
+      <NotificationProvider>
         <ChatProvider>
           <Router>
             <div className="App">
@@ -102,8 +106,7 @@ function App() {
                     </PublicRoute>
                   } 
                 />
-                
-                {/* Onboarding Route */}
+
                 <Route 
                   path="/onboarding" 
                   element={
@@ -113,19 +116,105 @@ function App() {
                   } 
                 />
 
-                {/* Project Join Route - Keep this before other project routes */}
-                <Route path="/projects/:projectId/join" element={<ProjectJoinPage />} />
-
-                {/* Task Detail Routes */}
                 <Route 
-                  path="/project/:projectId/tasks/:taskId" 
+                  path="/join/:inviteCode" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectJoinPage />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/task/:taskId" 
+                  element={
+                    <ProtectedRoute>
+                      <TaskDetail />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* GitHub OAuth Callback Route - ADD THIS */}
+                <Route 
+                  path="/auth/github/callback" 
+                  element={
+                    <ProtectedRoute>
+                      <GitHubOAuthCallback />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Project Workspace Routes with ProjectLayout */}
+                <Route 
+                  path="/project/:projectId/dashboard" 
                   element={
                     <ProtectedRoute>
                       <ProjectLayout>
-                        <TaskDetail />
+                        <ProjectDashboard />
                       </ProjectLayout>
                     </ProtectedRoute>
                   } 
+                />
+                
+                <Route 
+                  path="/project/:projectId/tasks" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <ProjectTasks />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/project/:projectId/chats" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <ProjectChats />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/project/:projectId/files" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <ProjectFiles />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/project/:projectId/members" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <ProjectMembers />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                <Route 
+                  path="/project/:projectId/help" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <Help />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                              
+                {/* Redirect /project/:id to /project/:id/dashboard */}
+                <Route 
+                  path="/project/:projectId" 
+                  element={<Navigate to="dashboard" replace />} 
                 />
                 
                 {/* Main App Routes with Regular Layout */}
@@ -239,79 +328,6 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-
-                {/* Project Workspace Routes with ProjectLayout */}
-                <Route 
-                  path="/project/:projectId/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <ProjectDashboard />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/project/:projectId/tasks" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <ProjectTasks />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/project/:projectId/chats" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <ProjectChats />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/project/:projectId/files" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <ProjectFiles />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/project/:projectId/members" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <ProjectMembers />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                
-                <Route 
-                  path="/project/:projectId/help" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <Help />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                              
-                {/* Redirect /project/:id to /project/:id/dashboard */}
-                <Route 
-                  path="/project/:projectId" 
-                  element={<Navigate to="dashboard" replace />} 
-                />
                 
                 {/* Catch all route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -319,7 +335,7 @@ function App() {
             </div>
           </Router>
         </ChatProvider>
-      </NotificationProvider> {/* CLOSE WRAPPER */}
+      </NotificationProvider>
     </AuthProvider>
   );
 }
