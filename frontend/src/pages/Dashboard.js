@@ -606,7 +606,7 @@ function Dashboard() {
         <h2>🎉 Dashboard Overview</h2>
         <p>
           Great to see you back! Here's your personalized dashboard where you can track your projects,
-          connect with fellow developers, and continue learning.
+          connect with fellow developers, and continue learning. FIX TASK VIEW
         </p>
 
         {/* User Profile Information */}
