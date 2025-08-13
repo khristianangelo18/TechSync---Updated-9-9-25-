@@ -186,6 +186,18 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
+
+                {/* ✅ FIXED: Added the missing Task Detail Route */}
+                <Route 
+                  path="/project/:projectId/tasks/:taskId" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectLayout>
+                        <TaskDetail />
+                      </ProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
                 
                 <Route 
                   path="/project/:projectId/chats" 

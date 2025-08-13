@@ -5,6 +5,7 @@ const CommentForm = ({
     taskId, 
     parentCommentId = null,
     projectMembers = [],
+    projectOwner = null, // ✅ NEW: Add project owner prop
     onCommentCreated,
     onCancel,
     initialContent = '',
@@ -90,13 +91,19 @@ const CommentForm = ({
                 onChange={setContent}
                 onMentionsChange={setMentions}
                 projectMembers={projectMembers}
+                projectOwner={projectOwner} /* ✅ NEW: Pass project owner */
                 placeholder={placeholder}
                 disabled={isSubmitting}
             />
             
             <div className="comment-form-actions">
                 <div className="character-count">
-                    {content.length}/2000
+                    <span className={
+                        content.length > 1800 ? 'error' : 
+                        content.length > 1500 ? 'warning' : ''
+                    }>
+                        {content.length}/2000
+                    </span>
                 </div>
                 <div className="button-group">
                     {onCancel && (

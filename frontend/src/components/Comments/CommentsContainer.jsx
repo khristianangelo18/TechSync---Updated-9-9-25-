@@ -5,7 +5,7 @@ import CommentForm from './CommentForm';
 import LoadingSpinner from '../UI/LoadingSpinner';
 import './Comments.css';
 
-const CommentsContainer = ({ taskId, projectMembers }) => {
+const CommentsContainer = ({ taskId, projectMembers = [], projectOwner = null }) => {
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState({
@@ -125,6 +125,7 @@ const CommentsContainer = ({ taskId, projectMembers }) => {
             <CommentForm
                 taskId={taskId}
                 projectMembers={projectMembers}
+                projectOwner={projectOwner} /* ✅ NEW: Pass project owner */
                 onCommentCreated={handleCommentCreated}
                 placeholder="Add a comment..."
             />
@@ -134,6 +135,7 @@ const CommentsContainer = ({ taskId, projectMembers }) => {
             <CommentsList
                 comments={comments}
                 projectMembers={projectMembers}
+                projectOwner={projectOwner} /* ✅ NEW: Pass project owner to replies */
                 currentUser={user}
                 onCommentUpdated={handleCommentUpdated}
                 onCommentDeleted={handleCommentDeleted}

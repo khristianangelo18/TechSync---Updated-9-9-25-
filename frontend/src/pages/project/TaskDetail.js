@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { taskService } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
 import CommentsContainer from '../../components/Comments/CommentsContainer';
@@ -8,7 +7,6 @@ import CommentsContainer from '../../components/Comments/CommentsContainer';
 const TaskDetail = () => {
     const { projectId, taskId } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
     
     const [task, setTask] = useState(null);
     const [project, setProject] = useState(null);
@@ -71,25 +69,24 @@ const TaskDetail = () => {
         }
     };
 
-  const handleStatusChange = async (newStatus) => {
-    try {
-        console.log('🔄 Updating task status to:', newStatus);
-        
-        const response = await taskService.updateTask(projectId, taskId, {
-            status: newStatus
-        });
+    const handleStatusChange = async (newStatus) => {
+        try {
+            console.log('🔄 Updating task status to:', newStatus);
+            
+            const response = await taskService.updateTask(projectId, taskId, {
+                status: newStatus
+            });
 
-        if (response && response.data && response.data.task) {
-            setTask(response.data.task);
-            console.log('✅ Task status updated successfully');
+            if (response && response.data && response.data.task) {
+                setTask(response.data.task);
+                console.log('✅ Task status updated successfully');
+            }
+
+        } catch (error) {
+            console.error('💥 Error updating status:', error);
+            alert(`Failed to update status: ${error.response?.data?.message || error.message}`);
         }
-
-    } catch (error) {
-        console.error('💥 Error updating status:', error);
-        alert(`Failed to update status: ${error.response?.data?.message || error.message}`);
-    }
-};
-
+    };
 
     const formatDate = (dateString) => {
         if (!dateString) return 'Not set';
@@ -117,12 +114,13 @@ const TaskDetail = () => {
         return colors[priority] || '#6c757d';
     };
 
-    const canEdit = project && (
-        project.owner_id === user.id || 
-        projectMembers.some(member => 
-            member.user_id === user.id && ['lead', 'moderator'].includes(member.role)
-        )
-    );
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setEditForm(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
 
     if (loading) {
         return (
@@ -135,8 +133,7 @@ const TaskDetail = () => {
     if (error) {
         return (
             <div style={styles.errorContainer}>
-                <h2>Error</h2>
-                <p>{error}</p>
+                <h2>Error: {error}</h2>
                 <button onClick={() => navigate(`/project/${projectId}/tasks`)}>
                     Back to Tasks
                 </button>
@@ -155,58 +152,58 @@ const TaskDetail = () => {
         );
     }
 
+    // Get project owner from project data for mentions
+    const projectOwner = project ? {
+        id: project.owner_id,
+        full_name: project.users?.full_name,
+        username: project.users?.username,
+        email: project.users?.email,
+        avatar_url: project.users?.avatar_url
+    } : null;
+
     return (
         <div style={styles.container}>
-            {/* Header */}
             <div style={styles.header}>
                 <button 
-                    onClick={() => navigate(`/project/${projectId}/tasks`)}
                     style={styles.backButton}
+                    onClick={() => navigate(`/project/${projectId}/tasks`)}
                 >
                     ← Back to Tasks
                 </button>
-                {canEdit && (
-                    <button 
-                        onClick={() => setIsEditing(!isEditing)}
+                
+                {!isEditing && (
+                    <button
                         style={styles.editButton}
+                        onClick={() => setIsEditing(true)}
                     >
-                        {isEditing ? 'Cancel' : 'Edit Task'}
+                        Edit Task
                     </button>
                 )}
             </div>
 
             <div style={styles.content}>
-                {/* Task Details Section */}
                 <div style={styles.taskSection}>
                     {isEditing ? (
                         <form onSubmit={handleEditSubmit} style={styles.editForm}>
                             <div style={styles.formGroup}>
-                                <label style={styles.label}>Title:</label>
+                                <label style={styles.label}>Title *</label>
                                 <input
                                     type="text"
+                                    name="title"
                                     value={editForm.title || ''}
-                                    onChange={(e) => setEditForm({...editForm, title: e.target.value})}
+                                    onChange={handleInputChange}
                                     style={styles.input}
                                     required
-                                />
-                            </div>
-                            
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Description:</label>
-                                <textarea
-                                    value={editForm.description || ''}
-                                    onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                                    style={styles.textarea}
-                                    rows="4"
                                 />
                             </div>
 
                             <div style={styles.formRow}>
                                 <div style={styles.formGroup}>
-                                    <label style={styles.label}>Status:</label>
+                                    <label style={styles.label}>Status</label>
                                     <select
-                                        value={editForm.status || ''}
-                                        onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                                        name="status"
+                                        value={editForm.status || 'todo'}
+                                        onChange={handleInputChange}
                                         style={styles.select}
                                     >
                                         <option value="todo">To Do</option>
@@ -218,10 +215,11 @@ const TaskDetail = () => {
                                 </div>
 
                                 <div style={styles.formGroup}>
-                                    <label style={styles.label}>Priority:</label>
+                                    <label style={styles.label}>Priority</label>
                                     <select
-                                        value={editForm.priority || ''}
-                                        onChange={(e) => setEditForm({...editForm, priority: e.target.value})}
+                                        name="priority"
+                                        value={editForm.priority || 'medium'}
+                                        onChange={handleInputChange}
                                         style={styles.select}
                                     >
                                         <option value="low">Low</option>
@@ -229,6 +227,43 @@ const TaskDetail = () => {
                                         <option value="high">High</option>
                                         <option value="urgent">Urgent</option>
                                     </select>
+                                </div>
+                            </div>
+
+                            <div style={styles.formGroup}>
+                                <label style={styles.label}>Description</label>
+                                <textarea
+                                    name="description"
+                                    value={editForm.description || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="Describe the task..."
+                                    style={styles.textarea}
+                                />
+                            </div>
+
+                            <div style={styles.formRow}>
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Estimated Hours</label>
+                                    <input
+                                        type="number"
+                                        name="estimated_hours"
+                                        value={editForm.estimated_hours || ''}
+                                        onChange={handleInputChange}
+                                        style={styles.input}
+                                        min="0"
+                                    />
+                                </div>
+
+                                <div style={styles.formGroup}>
+                                    <label style={styles.label}>Due Date</label>
+                                    <input
+                                        type="date"
+                                        name="due_date"
+                                        value={editForm.due_date ? 
+                                            new Date(editForm.due_date).toISOString().split('T')[0] : ''}
+                                        onChange={handleInputChange}
+                                        style={styles.input}
+                                    />
                                 </div>
                             </div>
 
@@ -246,50 +281,75 @@ const TaskDetail = () => {
                             </div>
                         </form>
                     ) : (
-                        <div style={styles.taskDetails}>
+                        <div>
                             <h1 style={styles.title}>{task.title}</h1>
                             
                             <div style={styles.metaInfo}>
                                 <div style={styles.badges}>
-                                    <span 
-                                        style={{
-                                            ...styles.badge,
-                                            backgroundColor: getStatusColor(task.status),
-                                            color: 'white'
-                                        }}
-                                    >
-                                        {task.status.replace('_', ' ').toUpperCase()}
+                                    <span style={{
+                                        ...styles.badge,
+                                        backgroundColor: getStatusColor(task.status),
+                                        color: task.status === 'in_review' ? '#000' : '#fff'
+                                    }}>
+                                        {task.status?.replace('_', ' ')}
                                     </span>
-                                    <span 
-                                        style={{
-                                            ...styles.badge,
-                                            backgroundColor: getPriorityColor(task.priority),
-                                            color: 'white'
-                                        }}
-                                    >
-                                        {task.priority.toUpperCase()} PRIORITY
+                                    
+                                    <span style={{
+                                        ...styles.badge,
+                                        backgroundColor: getPriorityColor(task.priority)
+                                    }}>
+                                        {task.priority} priority
                                     </span>
                                 </div>
 
-                                {/* Quick Status Change Buttons */}
-                                {canEdit && (
-                                    <div style={styles.statusButtons}>
-                                        {['todo', 'in_progress', 'in_review', 'completed'].map(status => (
-                                            task.status !== status && (
-                                                <button
-                                                    key={status}
-                                                    onClick={() => handleStatusChange(status)}
-                                                    style={{
-                                                        ...styles.statusButton,
-                                                        backgroundColor: getStatusColor(status)
-                                                    }}
-                                                >
-                                                    Mark as {status.replace('_', ' ')}
-                                                </button>
-                                            )
-                                        ))}
-                                    </div>
-                                )}
+                                <div style={styles.statusButtons}>
+                                    <button
+                                        style={{
+                                            ...styles.statusButton,
+                                            backgroundColor: '#6c757d'
+                                        }}
+                                        onClick={() => handleStatusChange('todo')}
+                                    >
+                                        To Do
+                                    </button>
+                                    <button
+                                        style={{
+                                            ...styles.statusButton,
+                                            backgroundColor: '#007bff'
+                                        }}
+                                        onClick={() => handleStatusChange('in_progress')}
+                                    >
+                                        In Progress
+                                    </button>
+                                    <button
+                                        style={{
+                                            ...styles.statusButton,
+                                            backgroundColor: '#ffc107',
+                                            color: '#000'
+                                        }}
+                                        onClick={() => handleStatusChange('in_review')}
+                                    >
+                                        In Review
+                                    </button>
+                                    <button
+                                        style={{
+                                            ...styles.statusButton,
+                                            backgroundColor: '#28a745'
+                                        }}
+                                        onClick={() => handleStatusChange('completed')}
+                                    >
+                                        Completed
+                                    </button>
+                                    <button
+                                        style={{
+                                            ...styles.statusButton,
+                                            backgroundColor: '#dc3545'
+                                        }}
+                                        onClick={() => handleStatusChange('blocked')}
+                                    >
+                                        Blocked
+                                    </button>
+                                </div>
                             </div>
 
                             {task.description && (
@@ -336,6 +396,7 @@ const TaskDetail = () => {
                     <CommentsContainer 
                         taskId={taskId}
                         projectMembers={projectMembers}
+                        projectOwner={projectOwner}
                     />
                 </div>
             </div>
