@@ -1,4 +1,4 @@
-// frontend/src/pages/project/ProjectTasks.js
+// frontend/src/pages/project/ProjectTasks.js - FIXED MEMBER ASSIGNMENT
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,6 +12,7 @@ function ProjectTasks() {
   const [tasks, setTasks] = useState([]);
   const [project, setProject] = useState(null);
   const [projectMembers, setProjectMembers] = useState([]);
+  const [projectOwner, setProjectOwner] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -19,6 +20,7 @@ function ProjectTasks() {
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [showSuccess, setShowSuccess] = useState(null);
 
   // Form state for creating/editing tasks
   const [taskForm, setTaskForm] = useState({
@@ -32,20 +34,30 @@ function ProjectTasks() {
     due_date: ''
   });
 
-  // Fetch project details and members
+  // Fetch project details and members - FIXED
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
         const projectResponse = await projectService.getProjectById(projectId);
         setProject(projectResponse.data.project);
         
-        // Try to fetch members, but don't fail if the endpoint doesn't exist
+        // Fetch members with improved structure handling
         try {
           const membersResponse = await projectService.getProjectMembers(projectId);
-          setProjectMembers(membersResponse.data.members || []);
+          console.log('📋 Members response:', membersResponse.data);
+          
+          // Extract owner and members from the response
+          const { owner, members } = membersResponse.data;
+          
+          setProjectOwner(owner);
+          setProjectMembers(members || []);
+          
+          console.log('✅ Project owner:', owner?.full_name || owner?.username);
+          console.log('✅ Project members:', members?.length || 0);
         } catch (memberError) {
           console.log('Could not fetch project members:', memberError);
           setProjectMembers([]);
+          setProjectOwner(null);
         }
       } catch (error) {
         console.error('Error fetching project data:', error);
@@ -82,6 +94,12 @@ function ProjectTasks() {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Success message helper
+  const showSuccessMessage = (message) => {
+    setShowSuccess(message);
+    setTimeout(() => setShowSuccess(null), 3000);
+  };
+
   // Create new task
   const createTask = async () => {
     try {
@@ -116,6 +134,7 @@ function ProjectTasks() {
       setShowCreateModal(false);
       resetForm();
       setError(null);
+      showSuccessMessage('Task created successfully');
     } catch (error) {
       console.error('💥 Create task error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create task';
@@ -123,9 +142,10 @@ function ProjectTasks() {
     }
   };
 
-  // Edit existing task
+  // Edit existing task - IMPROVED VERSION
   const editTask = (task) => {
-    console.log('✏️ Editing task:', task);
+    console.log('✏️ Starting edit for task:', task);
+    
     setEditingTask(task);
     setTaskForm({
       title: task.title || '',
@@ -135,8 +155,10 @@ function ProjectTasks() {
       status: task.status || 'todo',
       assigned_to: task.assigned_to || '',
       estimated_hours: task.estimated_hours || '',
-      due_date: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : ''
+      due_date: task.due_date ? 
+        new Date(task.due_date).toISOString().split('T')[0] : ''
     });
+    setError(null); // Clear any previous errors
     setShowCreateModal(true);
   };
 
@@ -150,6 +172,7 @@ function ProjectTasks() {
       await taskService.deleteTask(projectId, taskId);
       setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
       console.log('✅ Task deleted successfully');
+      showSuccessMessage('Task deleted successfully');
     } catch (error) {
       console.error('💥 Delete task error:', error);
       setError('Failed to delete task');
@@ -184,7 +207,7 @@ function ProjectTasks() {
     }));
   };
 
-  // Handle form submission (create or update)
+  // Handle form submission (create or update) - IMPROVED ERROR HANDLING
   const handleSaveTask = async (e) => {
     e.preventDefault();
     
@@ -194,45 +217,129 @@ function ProjectTasks() {
     }
 
     try {
+      setError(null); // Clear any previous errors
+      
       if (editingTask) {
         // Update existing task
         console.log('📝 Updating task:', editingTask.id);
+        console.log('📝 Form data:', taskForm);
         
-        const taskData = {
-          title: taskForm.title.trim(),
-          description: taskForm.description.trim() || undefined,
-          task_type: taskForm.task_type || 'development',
-          priority: taskForm.priority || 'medium',
-          status: taskForm.status || 'todo',
-          assigned_to: taskForm.assigned_to && taskForm.assigned_to.trim() ? taskForm.assigned_to.trim() : undefined,
-          estimated_hours: taskForm.estimated_hours && taskForm.estimated_hours.trim() ? parseInt(taskForm.estimated_hours) : undefined,
-          due_date: taskForm.due_date && taskForm.due_date.trim() ? 
-            new Date(taskForm.due_date).toISOString() : undefined
-        };
-
+        // Prepare task data with proper validation - only send changed fields
+        const taskData = {};
+        
+        // Always include title if it's changed
+        if (taskForm.title.trim() !== editingTask.title) {
+          taskData.title = taskForm.title.trim();
+        }
+        
+        // Include description if changed (can be empty/null)
+        if (taskForm.description !== editingTask.description) {
+          taskData.description = taskForm.description.trim() || null;
+        }
+        
+        // Include task type if changed
+        if (taskForm.task_type !== editingTask.task_type) {
+          taskData.task_type = taskForm.task_type || 'development';
+        }
+        
+        // Include priority if changed
+        if (taskForm.priority !== editingTask.priority) {
+          taskData.priority = taskForm.priority || 'medium';
+        }
+        
+        // Include status if changed
+        if (taskForm.status !== editingTask.status) {
+          taskData.status = taskForm.status || 'todo';
+        }
+        
+        // Handle assignment changes
+        const currentAssignedTo = editingTask.assigned_to || '';
+        const newAssignedTo = taskForm.assigned_to?.trim() || '';
+        if (currentAssignedTo !== newAssignedTo) {
+          taskData.assigned_to = newAssignedTo || null;
+        }
+        
+        // Handle estimated hours changes
+        const currentEstimatedHours = editingTask.estimated_hours || '';
+        const newEstimatedHours = taskForm.estimated_hours?.toString().trim() || '';
+        if (currentEstimatedHours.toString() !== newEstimatedHours) {
+          taskData.estimated_hours = newEstimatedHours ? parseInt(newEstimatedHours) : null;
+        }
+        
+        // Handle due date changes
+        const currentDueDate = editingTask.due_date ? 
+          new Date(editingTask.due_date).toISOString().split('T')[0] : '';
+        const newDueDate = taskForm.due_date?.trim() || '';
+        if (currentDueDate !== newDueDate) {
+          taskData.due_date = newDueDate ? new Date(newDueDate).toISOString() : null;
+        }
+        
+        console.log('🔄 Sending update data:', taskData);
+        
+        // Only proceed if we have changes to make
+        if (Object.keys(taskData).length === 0) {
+          console.log('ℹ️ No changes detected, closing modal');
+          setShowCreateModal(false);
+          setEditingTask(null);
+          resetForm();
+          return;
+        }
+        
         const response = await taskService.updateTask(projectId, editingTask.id, taskData);
         
-        // Update the task in local state
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.id === editingTask.id ? { ...task, ...response.data.task } : task
-          )
-        );
+        if (response.success && response.data?.task) {
+          // Update the task in local state
+          setTasks(prevTasks => 
+            prevTasks.map(task => 
+              task.id === editingTask.id ? { ...task, ...response.data.task } : task
+            )
+          );
+          
+          console.log('✅ Task updated successfully');
+          showSuccessMessage('Task updated successfully');
+          
+          // Close modal and reset form
+          setShowCreateModal(false);
+          setEditingTask(null);
+          resetForm();
+        } else {
+          throw new Error(response.message || 'Update failed - no task data returned');
+        }
         
-        console.log('✅ Task updated successfully - closing modal');
-        
-        // Force close modal and reset everything
-        setShowCreateModal(false);
-        setEditingTask(null);
-        resetForm();
-        setError(null);
       } else {
         // Create new task - call the existing createTask function
         await createTask();
       }
+      
     } catch (error) {
       console.error('💥 Save task error:', error);
-      setError(error.response?.data?.message || 'Failed to save task');
+      
+      // Set user-friendly error message
+      let errorMessage = 'Failed to save task';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific error cases
+      if (error.response?.status === 400) {
+        if (error.response.data?.errors) {
+          // Validation errors
+          const validationErrors = error.response.data.errors.map(err => err.msg).join(', ');
+          errorMessage = `Validation failed: ${validationErrors}`;
+        }
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to update this task';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Task or project not found';
+      }
+      
+      setError(errorMessage);
+      
+      // Don't close modal on error so user can fix issues
+      console.log('❌ Keeping modal open due to error');
     }
   };
 
@@ -259,7 +366,7 @@ function ProjectTasks() {
   // Check if user can create tasks (project owner or member)
   const canCreateTasks = project && (project.owner_id === user.id);
 
-  // Helper functions
+  // Helper functions - FIXED member name lookup
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString();
@@ -267,8 +374,48 @@ function ProjectTasks() {
 
   const getMemberName = (userId) => {
     if (!userId) return 'Unassigned';
-    const member = projectMembers.find(m => m.user_id === userId);
-    return member ? member.full_name : 'Unknown';
+    
+    // Check if it's the project owner
+    if (projectOwner && projectOwner.id === userId) {
+      return `${projectOwner.full_name || projectOwner.username} (Owner)`;
+    }
+    
+    // Check if it's a project member
+    const member = projectMembers.find(m => m.users?.id === userId);
+    if (member && member.users) {
+      return member.users.full_name || member.users.username;
+    }
+    
+    return 'Unknown';
+  };
+
+  // Get all assignable members (owner + members) - FIXED
+  const getAllAssignableMembers = () => {
+    const assignableMembers = [];
+    
+    // Add project owner
+    if (projectOwner) {
+      assignableMembers.push({
+        id: projectOwner.id,
+        name: projectOwner.full_name || projectOwner.username,
+        role: 'Owner',
+        email: projectOwner.email
+      });
+    }
+    
+    // Add project members
+    projectMembers.forEach(member => {
+      if (member.users) {
+        assignableMembers.push({
+          id: member.users.id,
+          name: member.users.full_name || member.users.username,
+          role: member.role,
+          email: member.users.email
+        });
+      }
+    });
+    
+    return assignableMembers;
   };
 
   const getStatusColor = (status) => {
@@ -294,6 +441,52 @@ function ProjectTasks() {
       'urgent': '#dc3545'
     };
     return colors[priority] || '#6c757d';
+  };
+
+  // Success message component
+  const renderSuccessMessage = () => {
+    if (!showSuccess) return null;
+    
+    return (
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000,
+        padding: '12px 24px',
+        backgroundColor: '#d4edda',
+        color: '#155724',
+        border: '1px solid #c3e6cb',
+        borderRadius: '6px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: '#28a745', fontSize: '16px' }}>✓</span>
+          <span>{showSuccess}</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Error message component
+  const renderErrorMessage = () => {
+    if (!error) return null;
+    
+    return (
+      <div style={{
+        marginBottom: '20px',
+        padding: '12px',
+        backgroundColor: '#f8d7da',
+        color: '#721c24',
+        border: '1px solid #f5c6cb',
+        borderRadius: '4px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ color: '#dc3545', fontSize: '16px' }}>⚠</span>
+          <span>{error}</span>
+        </div>
+      </div>
+    );
   };
 
   // Component styles
@@ -460,14 +653,6 @@ function ProjectTasks() {
       padding: '60px 20px',
       color: '#6c757d'
     },
-    errorMessage: {
-      backgroundColor: '#f8d7da',
-      color: '#721c24',
-      padding: '12px',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      border: '1px solid #f5c6cb'
-    },
     loadingState: {
       textAlign: 'center',
       padding: '40px',
@@ -570,8 +755,14 @@ function ProjectTasks() {
     );
   }
 
+  // Get assignable members for the dropdown
+  const assignableMembers = getAllAssignableMembers();
+
   return (
     <div style={styles.container}>
+      {/* Success Message */}
+      {renderSuccessMessage()}
+
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
@@ -587,6 +778,7 @@ function ProjectTasks() {
               onClick={() => {
                 setEditingTask(null);
                 resetForm();
+                setError(null);
                 setShowCreateModal(true);
               }}
             >
@@ -652,11 +844,7 @@ function ProjectTasks() {
       </div>
 
       {/* Error Message */}
-      {error && (
-        <div style={styles.errorMessage}>
-          {error}
-        </div>
-      )}
+      {renderErrorMessage()}
 
       {/* Tasks Grid */}
       {filteredTasks.length === 0 ? (
@@ -674,6 +862,7 @@ function ProjectTasks() {
               onClick={() => {
                 setEditingTask(null);
                 resetForm();
+                setError(null);
                 setShowCreateModal(true);
               }}
             >
@@ -781,13 +970,21 @@ function ProjectTasks() {
 
       {/* Create/Edit Task Modal */}
       {showCreateModal && (
-        <div style={styles.modal} onClick={() => setShowCreateModal(false)}>
+        <div style={styles.modal} onClick={() => {
+          setShowCreateModal(false);
+          setEditingTask(null);
+          resetForm();
+          setError(null);
+        }}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>
                 {editingTask ? 'Edit Task' : 'Create New Task'}
               </h2>
             </div>
+
+            {/* Error Message in Modal */}
+            {renderErrorMessage()}
 
             <form onSubmit={handleSaveTask}>
               <div style={styles.formGroup}>
@@ -836,7 +1033,7 @@ function ProjectTasks() {
                   <option value="testing">Testing</option>
                   <option value="documentation">Documentation</option>
                   <option value="research">Research</option>
-                  <option value="planning">Planning</option>
+                  <option value="meeting">Meeting</option>
                   <option value="review">Review</option>
                 </select>
               </div>
@@ -878,6 +1075,7 @@ function ProjectTasks() {
                 </select>
               </div>
 
+              {/* FIXED: Proper Member Assignment Dropdown */}
               <div style={styles.formGroup}>
                 <label style={styles.label} htmlFor="assigned_to">
                   Assigned To
@@ -889,13 +1087,18 @@ function ProjectTasks() {
                   onChange={handleInputChange}
                   style={styles.select}
                 >
-                  <option value="">Select assignee</option>
-                  {projectMembers.map(member => (
-                    <option key={member.user_id} value={member.user_id}>
-                      {member.full_name}
+                  <option value="">Unassigned</option>
+                  {assignableMembers.map(member => (
+                    <option key={member.id} value={member.id}>
+                      {member.name} {member.role !== 'member' ? `(${member.role})` : ''}
                     </option>
                   ))}
                 </select>
+                {assignableMembers.length === 0 && (
+                  <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                    No members found. Only project owner and members can be assigned tasks.
+                  </small>
+                )}
               </div>
 
               <div style={styles.formGroup}>

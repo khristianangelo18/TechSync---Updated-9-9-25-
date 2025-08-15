@@ -9,7 +9,7 @@ const {
   getTask,
   getTaskStats
 } = require('../controllers/taskController');
-const authMiddleware = require('../middleware/auth'); // FIXED: Changed from authMiddleware to auth
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -17,6 +17,7 @@ const router = express.Router();
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('❌ Validation errors:', errors.array());
     return res.status(400).json({
       success: false,
       message: 'Validation failed',
@@ -68,20 +69,47 @@ const createTaskValidation = [
   
   body('assigned_to')
     .optional()
-    .isUUID()
-    .withMessage('Assigned to must be a valid user ID'),
+    .custom((value) => {
+      // Allow null, undefined, or empty string for unassigned tasks
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      // If a value is provided, it must be a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        throw new Error('Assigned to must be a valid user ID');
+      }
+      return true;
+    }),
   
   body('estimated_hours')
     .optional()
-    .isInt({ min: 0 })
-    .withMessage('Estimated hours must be a positive integer'),
+    .custom((value) => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      const hours = parseInt(value);
+      if (isNaN(hours) || hours < 0) {
+        throw new Error('Estimated hours must be a positive integer');
+      }
+      return true;
+    }),
   
   body('due_date')
     .optional()
-    .isISO8601()
-    .withMessage('Due date must be a valid date')
+    .custom((value) => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        throw new Error('Due date must be a valid date');
+      }
+      return true;
+    })
 ];
 
+// FIXED: More flexible validation for updates
 const updateTaskValidation = [
   body('title')
     .optional()
@@ -91,9 +119,18 @@ const updateTaskValidation = [
   
   body('description')
     .optional()
-    .trim()
-    .isLength({ max: 2000 })
-    .withMessage('Description must not exceed 2000 characters'),
+    .custom((value) => {
+      // Allow null/undefined to clear description
+      if (value === null || value === undefined) {
+        return true;
+      }
+      // If provided, trim and validate length
+      const trimmed = value.toString().trim();
+      if (trimmed.length > 2000) {
+        throw new Error('Description must not exceed 2000 characters');
+      }
+      return true;
+    }),
   
   body('task_type')
     .optional()
@@ -112,23 +149,57 @@ const updateTaskValidation = [
   
   body('assigned_to')
     .optional()
-    .isUUID()
-    .withMessage('Assigned to must be a valid user ID'),
+    .custom((value) => {
+      // Allow null, undefined, or empty string for unassigned tasks
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      // If a value is provided, it must be a valid UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(value)) {
+        throw new Error('Assigned to must be a valid user ID');
+      }
+      return true;
+    }),
   
   body('estimated_hours')
     .optional()
-    .isInt({ min: 0 })
-    .withMessage('Estimated hours must be a positive integer'),
+    .custom((value) => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      const hours = parseInt(value);
+      if (isNaN(hours) || hours < 0) {
+        throw new Error('Estimated hours must be a positive integer');
+      }
+      return true;
+    }),
   
   body('actual_hours')
     .optional()
-    .isInt({ min: 0 })
-    .withMessage('Actual hours must be a positive integer'),
+    .custom((value) => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      const hours = parseInt(value);
+      if (isNaN(hours) || hours < 0) {
+        throw new Error('Actual hours must be a positive integer');
+      }
+      return true;
+    }),
   
   body('due_date')
     .optional()
-    .isISO8601()
-    .withMessage('Due date must be a valid date')
+    .custom((value) => {
+      if (value === null || value === undefined || value === '') {
+        return true;
+      }
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        throw new Error('Due date must be a valid date');
+      }
+      return true;
+    })
 ];
 
 const getTasksValidation = [
