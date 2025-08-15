@@ -192,6 +192,237 @@ const updateUser = async (req, res) => {
   }
 };
 
+// Delete user permanently (Admin only)
+const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const adminId = req.admin.id;
+
+    // Prevent admin from deleting themselves
+    if (userId === adminId) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot delete your own account'
+      });
+    }
+
+    // First, get user details for validation and logging
+    const { data: userToDelete, error: fetchError } = await supabase
+      .from('users')
+      .select('id, username, email, role, is_active')
+      .eq('id', userId)
+      .single();
+
+    if (fetchError || !userToDelete) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Prevent deletion of other admins (unless super admin feature is implemented)
+    if (userToDelete.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Cannot delete admin users'
+      });
+    }
+
+    // Safety check: Only allow deletion of inactive users
+    if (userToDelete.is_active) {
+      return res.status(400).json({
+        success: false,
+        message: 'User must be deactivated before deletion. Please deactivate the user first.'
+      });
+    }
+
+    console.log(`Admin ${adminId} attempting to delete user: ${userToDelete.username} (${userId})`);
+
+    // Delete user-related data in the correct order to handle foreign key constraints
+    
+    // 1. Delete comment notifications
+    await supabase
+      .from('comment_notifications')
+      .delete()
+      .eq('user_id', userId);
+
+    // 2. Delete task comments authored by user
+    await supabase
+      .from('task_comments')
+      .delete()
+      .eq('user_id', userId);
+
+    // 3. Delete task submissions
+    await supabase
+      .from('task_submissions')
+      .delete()
+      .eq('user_id', userId);
+
+    // 4. Delete task assignments
+    await supabase
+      .from('project_tasks')
+      .delete()
+      .eq('assigned_to', userId);
+
+    // 5. Delete file permissions
+    await supabase
+      .from('file_permissions')
+      .delete()
+      .eq('user_id', userId);
+
+    // 6. Delete project files uploaded by user
+    await supabase
+      .from('project_files')
+      .delete()
+      .eq('uploaded_by', userId);
+
+    // 7. Delete chat messages
+    await supabase
+      .from('chat_messages')
+      .delete()
+      .eq('sender_id', userId);
+
+    // 8. Delete learning recommendations
+    await supabase
+      .from('learning_recommendations')
+      .delete()
+      .eq('user_id', userId);
+
+    // 9. Delete project recommendations
+    await supabase
+      .from('project_recommendations')
+      .delete()
+      .eq('user_id', userId);
+
+    // 10. Delete recommendation feedback
+    await supabase
+      .from('recommendation_feedback')
+      .delete()
+      .eq('user_id', userId);
+
+    // 11. Delete user activity
+    await supabase
+      .from('user_activity')
+      .delete()
+      .eq('user_id', userId);
+
+    // 12. Delete notifications
+    await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId);
+
+    // 13. Delete project members
+    await supabase
+      .from('project_members')
+      .delete()
+      .eq('user_id', userId);
+
+    // 14. Delete user programming languages
+    await supabase
+      .from('user_programming_languages')
+      .delete()
+      .eq('user_id', userId);
+
+    // 15. Delete user topics
+    await supabase
+      .from('user_topics')
+      .delete()
+      .eq('user_id', userId);
+
+    // 16. Delete challenge attempts
+    await supabase
+      .from('challenge_attempts')
+      .delete()
+      .eq('user_id', userId);
+
+    // 17. Handle projects owned by the user
+    // Option 1: Delete projects owned by user (if no other members)
+    // Option 2: Transfer ownership to another admin (safer approach)
+    const { data: ownedProjects } = await supabase
+      .from('projects')
+      .select(`
+        id, title, description,
+        project_members!inner(user_id, role)
+      `)
+      .eq('owner_id', userId);
+
+    if (ownedProjects && ownedProjects.length > 0) {
+      for (const project of ownedProjects) {
+        // Check if project has other members who can take ownership
+        const otherMembers = project.project_members.filter(member => 
+          member.user_id !== userId && (member.role === 'admin' || member.role === 'moderator')
+        );
+
+        if (otherMembers.length > 0) {
+          // Transfer ownership to first available admin/moderator
+          await supabase
+            .from('projects')
+            .update({ owner_id: otherMembers[0].user_id })
+            .eq('id', project.id);
+        } else {
+          // No suitable members to transfer to - mark project as orphaned or delete
+          // For safety, we'll mark it as cancelled rather than delete
+          await supabase
+            .from('projects')
+            .update({ 
+              status: 'cancelled',
+              owner_id: adminId, // Transfer to deleting admin
+              description: (project.description || '') + '\n\n[Project ownership transferred due to user deletion]'
+            })
+            .eq('id', project.id);
+        }
+      }
+    }
+
+    // 18. Finally, delete the user account
+    const { error: deleteError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', userId);
+
+    if (deleteError) {
+      console.error('Error deleting user:', deleteError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to delete user account',
+        error: deleteError.message
+      });
+    }
+
+    // Log admin activity
+    await logAdminActivity(
+      adminId, 
+      'DELETE_USER', 
+      'user', 
+      userId, 
+      { 
+        deletedUser: {
+          username: userToDelete.username,
+          email: userToDelete.email,
+          role: userToDelete.role
+        }
+      }, 
+      req
+    );
+
+    console.log(`✅ User ${userToDelete.username} (${userId}) successfully deleted by admin ${adminId}`);
+
+    res.json({
+      success: true,
+      message: `User ${userToDelete.username} has been permanently deleted`
+    });
+
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete user',
+      error: error.message
+    });
+  }
+};
+
 // Get all projects for admin management
 const getProjects = async (req, res) => {
   try {
@@ -225,7 +456,7 @@ const getProjects = async (req, res) => {
     }
 
     if (difficulty) {
-      query = query.eq('difficulty_level', difficulty);
+      query = query.eq('difficulty', difficulty);
     }
 
     const { data: projects, error } = await query;
@@ -234,19 +465,13 @@ const getProjects = async (req, res) => {
       throw error;
     }
 
-    // Add member count to each project
-    const projectsWithCounts = projects.map(project => ({
-      ...project,
-      member_count: project.project_members?.length || 0
-    }));
-
     // Log admin access
     await logAdminActivity(req.admin.id, 'VIEW_PROJECTS', 'project', null, { filters: req.query }, req);
 
     res.json({
       success: true,
       data: {
-        projects: projectsWithCounts,
+        projects,
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
@@ -281,9 +506,9 @@ const getChallenges = async (req, res) => {
       .from('coding_challenges')
       .select(`
         *,
-        programming_languages (id, name),
-        users:created_by (id, username, full_name),
-        projects (id, title)
+        programming_languages (name),
+        users:created_by (username, full_name),
+        challenge_attempts (id)
       `)
       .range(offset, offset + limit - 1)
       .order('created_at', { ascending: false });
@@ -294,15 +519,17 @@ const getChallenges = async (req, res) => {
     }
 
     if (difficulty) {
-      query = query.eq('difficulty_level', difficulty);
+      query = query.eq('difficulty', difficulty);
     }
 
     if (language) {
-      query = query.eq('programming_language_id', language);
+      query = query.eq('language_id', parseInt(language));
     }
 
-    if (is_active !== undefined) {
-      query = query.eq('is_active', is_active === 'true');
+    if (is_active === 'true') {
+      query = query.eq('is_active', true);
+    } else if (is_active === 'false') {
+      query = query.eq('is_active', false);
     }
 
     const { data: challenges, error } = await query;
@@ -340,28 +567,24 @@ const getSystemSettings = async (req, res) => {
     const { data: settings, error } = await supabase
       .from('system_settings')
       .select('*')
-      .order('setting_key');
+      .order('key');
 
     if (error) {
       throw error;
     }
 
     // Convert to key-value object
-    const settingsObject = settings.reduce((acc, setting) => {
-      acc[setting.setting_key] = {
-        value: setting.setting_value,
-        description: setting.description,
-        updated_at: setting.updated_at
-      };
-      return acc;
-    }, {});
+    const settingsObj = {};
+    settings.forEach(setting => {
+      settingsObj[setting.key] = setting.value;
+    });
 
     // Log admin access
     await logAdminActivity(req.admin.id, 'VIEW_SETTINGS', 'system', null, {}, req);
 
     res.json({
       success: true,
-      data: { settings: settingsObject }
+      data: { settings: settingsObj }
     });
   } catch (error) {
     console.error('Get system settings error:', error);
@@ -378,19 +601,22 @@ const updateSystemSettings = async (req, res) => {
     const { settings } = req.body;
     const adminId = req.admin.id;
 
-    const updates = [];
-    for (const [key, value] of Object.entries(settings)) {
-      updates.push(
-        supabase
-          .from('system_settings')
-          .upsert({
-            setting_key: key,
-            setting_value: value,
-            updated_by: adminId,
-            updated_at: new Date().toISOString()
-          })
-      );
+    if (!settings || typeof settings !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid settings data'
+      });
     }
+
+    // Update each setting
+    const updates = Object.entries(settings).map(([key, value]) =>
+      supabase
+        .from('system_settings')
+        .upsert({
+          key,
+          value: value.toString()
+        })
+    );
 
     await Promise.all(updates);
 
@@ -485,6 +711,7 @@ module.exports = {
   getDashboardStats,
   getUsers,
   updateUser,
+  deleteUser,
   getProjects,
   getChallenges,
   getSystemSettings,

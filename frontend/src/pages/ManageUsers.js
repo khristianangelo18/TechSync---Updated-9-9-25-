@@ -1,5 +1,5 @@
 // frontend/src/pages/ManageUsers.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminAPI from '../services/adminAPI';
 
@@ -14,6 +14,7 @@ const ManageUsers = () => {
   const [suspensionReason, setSuspensionReason] = useState('');
   const [suspensionDuration, setSuspensionDuration] = useState(60); // minutes
   const [newRole, setNewRole] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState(''); // For delete confirmation
   const [processing, setProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
@@ -50,7 +51,11 @@ const ManageUsers = () => {
     fetchUsers();
   }, [filters]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleAction = (user, action) => {
+  const handleDeleteConfirmationChange = useCallback((e) => {
+    setDeleteConfirmation(e.target.value);
+  }, []);
+
+  const handleAction = useCallback((user, action) => {
     setSelectedUser(user);
     setActionType(action);
     
@@ -58,8 +63,13 @@ const ManageUsers = () => {
       setNewRole(user.role);
     }
     
+    // Reset delete confirmation when opening modal
+    if (action === 'delete') {
+      setDeleteConfirmation('');
+    }
+    
     setShowModal(true);
-  };
+  }, []);
 
   const executeAction = async () => {
     if (!selectedUser) return;
@@ -127,29 +137,56 @@ const ManageUsers = () => {
           successMsg = `${selectedUser.username}'s role changed to ${newRole}`;
           break;
           
+        case 'delete':
+          // Validate delete confirmation
+          if (deleteConfirmation !== selectedUser.username) {
+            setError(`Please type "${selectedUser.username}" to confirm deletion`);
+            return;
+          }
+          
+          // Call delete API endpoint
+          const deleteResponse = await AdminAPI.deleteUser(selectedUser.id);
+          
+          if (deleteResponse.success) {
+            setSuccessMessage(`User ${selectedUser.username} has been permanently deleted`);
+            setShowModal(false);
+            resetModal();
+            fetchUsers(); // Refresh the users list
+            
+            // Clear success message after 5 seconds
+            setTimeout(() => setSuccessMessage(''), 5000);
+            return; // Exit early since delete doesn't use updateUser
+          } else {
+            setError(deleteResponse.message || 'Failed to delete user');
+            return;
+          }
+          
         default:
           setError('Invalid action type');
           return;
       }
       
-      // Log the data being sent for debugging
-      console.log('Sending update data:', {
-        userId: selectedUser.id,
-        updateData: updateData
-      });
-      
-      const response = await AdminAPI.updateUser(selectedUser.id, updateData);
-      
-      if (response.success) {
-        setSuccessMessage(successMsg);
-        setShowModal(false);
-        resetModal();
-        fetchUsers(); // Refresh the users list
+      // For non-delete actions, use updateUser
+      if (actionType !== 'delete') {
+        // Log the data being sent for debugging
+        console.log('Sending update data:', {
+          userId: selectedUser.id,
+          updateData: updateData
+        });
         
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccessMessage(''), 3000);
-      } else {
-        setError(response.message || 'Action failed');
+        const response = await AdminAPI.updateUser(selectedUser.id, updateData);
+        
+        if (response.success) {
+          setSuccessMessage(successMsg);
+          setShowModal(false);
+          resetModal();
+          fetchUsers(); // Refresh the users list
+          
+          // Clear success message after 3 seconds
+          setTimeout(() => setSuccessMessage(''), 3000);
+        } else {
+          setError(response.message || 'Action failed');
+        }
       }
     } catch (error) {
       console.error('Error executing action:', error);
@@ -164,10 +201,10 @@ const ManageUsers = () => {
         setError('Access denied. You may not have permission to modify this user.');
       } else if (error.response?.status === 401) {
         setError('Authentication failed. Please log in again.');
-      } else if (!error.response) {
-        setError('Cannot connect to server. Please check if the backend is running.');
+      } else if (error.response?.status === 404) {
+        setError('User not found. They may have already been deleted.');
       } else {
-        setError(error.response?.data?.message || `Action failed (${error.response?.status})`);
+        setError(error.response?.data?.message || error.message || 'An unexpected error occurred');
       }
     } finally {
       setProcessing(false);
@@ -180,6 +217,8 @@ const ManageUsers = () => {
     setSuspensionReason('');
     setSuspensionDuration(60);
     setNewRole('');
+    setDeleteConfirmation('');
+    setError('');
   };
 
   const closeModal = () => {
@@ -193,6 +232,26 @@ const ManageUsers = () => {
       [key]: value,
       page: 1 // Reset to first page when filtering
     }));
+  };
+
+  const canModifyUser = (user) => {
+    // Prevent admin from modifying their own account or other admins (unless they're super admin)
+    return user.id !== currentUser.id && (user.role !== 'admin' || currentUser.role === 'super_admin');
+  };
+
+  const canDeleteUser = (user) => {
+    // Only allow deletion if user is not admin, not current user, and not the last admin
+    return user.id !== currentUser.id && 
+           user.role !== 'admin' && 
+           !user.is_active; // Only allow deletion of inactive users for safety
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   const getRoleColor = (role) => {
@@ -211,44 +270,30 @@ const ManageUsers = () => {
   };
 
   const getStatusText = (user) => {
-    if (user.is_suspended) return 'Suspended';
-    if (!user.is_active) return 'Inactive';
-    return 'Active';
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const canModifyUser = (user) => {
-    // Can't modify yourself
-    if (user.id === currentUser.id) return false;
-    
-    // Only admins can modify other admins
-    if (user.role === 'admin' && currentUser.role !== 'admin') return false;
-    
-    return true;
+    if (user.is_suspended) return 'SUSPENDED';
+    if (!user.is_active) return 'INACTIVE';
+    return 'ACTIVE';
   };
 
   const styles = {
     container: {
-      padding: '30px',
-      backgroundColor: '#f8f9fa',
-      minHeight: '100vh'
+      padding: '20px',
+      maxWidth: '1400px',
+      margin: '0 auto'
     },
     header: {
-      marginBottom: '30px'
+      marginBottom: '30px',
+      textAlign: 'center'
     },
     title: {
-      fontSize: '28px',
+      fontSize: '32px',
       fontWeight: 'bold',
       color: '#333',
-      margin: '0 0 10px 0'
+      marginBottom: '10px'
     },
     subtitle: {
       fontSize: '16px',
-      color: '#666',
-      margin: 0
+      color: '#666'
     },
     successMessage: {
       backgroundColor: '#d4edda',
@@ -323,7 +368,7 @@ const ManageUsers = () => {
       fontWeight: 'bold',
       borderBottom: '1px solid #dee2e6',
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 100px 120px 120px 150px',
+      gridTemplateColumns: '1fr 1fr 100px 120px 120px 200px',
       gap: '15px',
       alignItems: 'center'
     },
@@ -331,7 +376,7 @@ const ManageUsers = () => {
       padding: '15px 20px',
       borderBottom: '1px solid #f1f3f4',
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 100px 120px 120px 150px',
+      gridTemplateColumns: '1fr 1fr 100px 120px 120px 200px',
       gap: '15px',
       alignItems: 'center',
       transition: 'background-color 0.2s ease'
@@ -348,80 +393,83 @@ const ManageUsers = () => {
       height: '32px',
       borderRadius: '50%',
       backgroundColor: '#007bff',
+      color: 'white',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      color: 'white',
-      fontSize: '14px',
       fontWeight: 'bold',
-      marginRight: '10px'
+      fontSize: '14px',
+      marginRight: '12px'
     },
     userDetails: {
       display: 'flex',
       flexDirection: 'column'
     },
     userName: {
-      fontSize: '14px',
       fontWeight: '500',
-      color: '#333'
+      color: '#333',
+      fontSize: '14px'
     },
     userEmail: {
       fontSize: '12px',
       color: '#666'
     },
     roleBadge: {
+      display: 'inline-block',
       padding: '4px 8px',
       borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      textAlign: 'center',
-      color: 'white'
+      fontSize: '11px',
+      fontWeight: 'bold',
+      color: 'white',
+      textAlign: 'center'
     },
     statusBadge: {
+      display: 'inline-block',
       padding: '4px 8px',
       borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      textAlign: 'center',
-      color: 'white'
+      fontSize: '11px',
+      fontWeight: 'bold',
+      color: 'white',
+      textAlign: 'center'
     },
     actionButtons: {
       display: 'flex',
-      gap: '5px'
+      gap: '8px',
+      flexWrap: 'wrap'
     },
     actionButton: {
-      padding: '4px 8px',
+      padding: '6px 12px',
       border: 'none',
       borderRadius: '4px',
       cursor: 'pointer',
       fontSize: '12px',
       fontWeight: '500',
-      transition: 'opacity 0.2s ease'
+      transition: 'background-color 0.2s ease'
     },
     suspendButton: {
       backgroundColor: '#ffc107',
       color: '#212529'
     },
-    kickButton: {
-      backgroundColor: '#dc3545',
-      color: 'white'
-    },
-    roleButton: {
-      backgroundColor: '#17a2b8',
-      color: 'white'
-    },
-    activateButton: {
-      backgroundColor: '#28a745',
-      color: 'white'
-    },
     unsuspendButton: {
       backgroundColor: '#28a745',
       color: 'white'
     },
-    disabledButton: {
-      backgroundColor: '#e9ecef',
-      color: '#6c757d',
-      cursor: 'not-allowed'
+    kickButton: {
+      backgroundColor: '#dc3545',
+      color: 'white'
+    },
+    activateButton: {
+      backgroundColor: '#17a2b8',
+      color: 'white'
+    },
+    roleButton: {
+      backgroundColor: '#6f42c1',
+      color: 'white'
+    },
+    deleteButton: {
+      backgroundColor: '#dc3545',
+      color: 'white',
+      border: '2px solid #c82333'
     },
     modal: {
       position: 'fixed',
@@ -429,19 +477,20 @@ const ManageUsers = () => {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 2000
+      zIndex: 1000
     },
     modalContent: {
       backgroundColor: 'white',
       padding: '30px',
       borderRadius: '8px',
-      width: '90%',
       maxWidth: '500px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+      width: '90%',
+      maxHeight: '80%',
+      overflow: 'auto'
     },
     modalTitle: {
       fontSize: '20px',
@@ -463,6 +512,19 @@ const ManageUsers = () => {
       resize: 'vertical',
       minHeight: '80px',
       fontFamily: 'inherit'
+    },
+    deleteConfirmationInput: {
+      width: '100%',
+      padding: '10px',
+      border: '2px solid #dc3545',
+      borderRadius: '4px',
+      fontSize: '14px',
+      fontFamily: 'monospace'
+    },
+    warningText: {
+      color: '#dc3545',
+      fontWeight: 'bold',
+      marginBottom: '10px'
     },
     modalActions: {
       display: 'flex',
@@ -509,7 +571,7 @@ const ManageUsers = () => {
     }
   };
 
-  const ActionModal = () => {
+  const ActionModal = React.memo(() => {
     if (!showModal || !selectedUser) return null;
 
     const getModalTitle = () => {
@@ -519,6 +581,7 @@ const ManageUsers = () => {
         case 'kick': return `Deactivate ${selectedUser.username}`;
         case 'activate': return `Activate ${selectedUser.username}`;
         case 'changeRole': return `Change Role for ${selectedUser.username}`;
+        case 'delete': return `Delete ${selectedUser.username}`;
         default: return 'Confirm Action';
       }
     };
@@ -528,14 +591,14 @@ const ManageUsers = () => {
         case 'suspend':
           return (
             <div>
-              <p>You are about to suspend this user. They will not be able to access the platform.</p>
+              <p>You are about to suspend this user. They will not be able to access the platform until unsuspended.</p>
               <div style={styles.formGroup}>
                 <label style={styles.label}>Reason for suspension:</label>
                 <textarea
                   style={styles.textarea}
                   value={suspensionReason}
                   onChange={(e) => setSuspensionReason(e.target.value)}
-                  placeholder="Enter reason for suspension..."
+                  placeholder="Enter the reason for suspension..."
                   required
                 />
               </div>
@@ -545,25 +608,23 @@ const ManageUsers = () => {
                   type="number"
                   style={styles.input}
                   value={suspensionDuration}
-                  onChange={(e) => setSuspensionDuration(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => setSuspensionDuration(e.target.value)}
                   min="1"
                   max="525600"
+                  required
                 />
-                <small style={{ color: '#666', fontSize: '12px' }}>
-                  Common durations: 60 (1 hour), 1440 (1 day), 10080 (1 week)
-                </small>
               </div>
             </div>
           );
           
         case 'unsuspend':
-          return <p>Are you sure you want to unsuspend {selectedUser.username}? They will regain access to the platform.</p>;
+          return <p>Are you sure you want to unsuspend {selectedUser.username}? They will be able to access the platform again.</p>;
           
         case 'kick':
-          return <p>Are you sure you want to deactivate {selectedUser.username}? They will lose access to the platform until reactivated.</p>;
+          return <p>Are you sure you want to deactivate {selectedUser.username}? They will not be able to access the platform until reactivated.</p>;
           
         case 'activate':
-          return <p>Are you sure you want to activate {selectedUser.username}? They will regain access to the platform.</p>;
+          return <p>Are you sure you want to activate {selectedUser.username}? They will be able to access the platform.</p>;
           
         case 'changeRole':
           return (
@@ -578,21 +639,57 @@ const ManageUsers = () => {
                 >
                   <option value="user">User</option>
                   <option value="moderator">Moderator</option>
-                  {currentUser.role === 'admin' && (
-                    <option value="admin">Admin</option>
-                  )}
+                  <option value="admin">Admin</option>
                 </select>
               </div>
             </div>
           );
           
+        case 'delete':
+          return (
+            <div>
+              <div style={styles.warningText}>
+                ⚠️ WARNING: This action cannot be undone!
+              </div>
+              <p>You are about to permanently delete the user <strong>{selectedUser.username}</strong>. This will:</p>
+              <ul style={{ marginLeft: '20px', marginBottom: '15px', color: '#666' }}>
+                <li>Delete all user data permanently</li>
+                <li>Remove user from all projects</li>
+                <li>Delete all user activity and contributions</li>
+                <li>Cannot be reversed</li>
+              </ul>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>
+                  Type <strong>{selectedUser.username}</strong> to confirm:
+                </label>
+                <input
+                  type="text"
+                  style={styles.deleteConfirmationInput}
+                  value={deleteConfirmation}
+                  onChange={handleDeleteConfirmationChange}
+                  placeholder={`Type "${selectedUser.username}" here`}
+                  autoComplete="off"
+                  autoFocus
+                />
+              </div>
+            </div>
+          );
+          
         default:
-          return <p>Unknown action</p>;
+          return <p>Are you sure you want to perform this action?</p>;
       }
     };
 
     const getButtonColor = () => {
-      return ['suspend', 'kick'].includes(actionType) ? styles.dangerButton : styles.primaryButton;
+      return actionType === 'delete' || actionType === 'kick' || actionType === 'suspend' ? 
+        styles.dangerButton : styles.primaryButton;
+    };
+
+    const isConfirmDisabled = () => {
+      if (processing) return true;
+      if (actionType === 'suspend' && !suspensionReason.trim()) return true;
+      if (actionType === 'delete' && deleteConfirmation !== selectedUser.username) return true;
+      return false;
     };
 
     return (
@@ -618,15 +715,15 @@ const ManageUsers = () => {
             <button
               style={getButtonColor()}
               onClick={executeAction}
-              disabled={processing || (actionType === 'suspend' && !suspensionReason.trim())}
+              disabled={isConfirmDisabled()}
             >
-              {processing ? 'Processing...' : 'Confirm'}
+              {processing ? 'Processing...' : (actionType === 'delete' ? 'Delete Permanently' : 'Confirm')}
             </button>
           </div>
         </div>
       </div>
     );
-  };
+  });
 
   if (currentUser?.role !== 'admin') {
     return (
@@ -845,6 +942,17 @@ const ManageUsers = () => {
                     >
                       Role
                     </button>
+                    
+                    {/* Delete Button - Only show for inactive users */}
+                    {canDeleteUser(user) && (
+                      <button
+                        style={{ ...styles.actionButton, ...styles.deleteButton }}
+                        onClick={() => handleAction(user, 'delete')}
+                        title="Permanently delete user"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </>
                 ) : (
                   <span style={{ fontSize: '12px', color: '#666' }}>

@@ -108,6 +108,26 @@ class AdminAPI {
   }
 
   /**
+   * Delete user permanently
+   */
+  static async deleteUser(userId) {
+    try {
+      // Validate user ID
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('Invalid user ID');
+      }
+
+      console.log('Deleting user:', userId);
+
+      const response = await api.delete(`/admin/users/${userId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get projects for admin management
    */
   static async getProjects(filters = {}) {
@@ -173,6 +193,84 @@ class AdminAPI {
   }
 
   /**
+   * Get analytics data
+   */
+  static async getUserGrowthAnalytics(timeframe = '30d') {
+    try {
+      const response = await api.get('/admin/analytics/user-growth', { 
+        params: { timeframe } 
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user growth analytics:', error);
+      throw error;
+    }
+  }
+
+  static async getProjectStatsAnalytics(timeframe = '30d') {
+    try {
+      const response = await api.get('/admin/analytics/project-stats', { 
+        params: { timeframe } 
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching project stats analytics:', error);
+      throw error;
+    }
+  }
+
+  static async getChallengePerformanceAnalytics(timeframe = '30d') {
+    try {
+      const response = await api.get('/admin/analytics/challenge-performance', { 
+        params: { timeframe } 
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching challenge performance analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Development/Testing endpoints (only available in development mode)
+   */
+  static async seedConfusionMatrixData(userCount = 50, projectCount = 20) {
+    try {
+      const response = await api.post('/admin/dev/seed-confusion-matrix', {
+        userCount,
+        projectCount
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error seeding confusion matrix data:', error);
+      throw error;
+    }
+  }
+
+  static async testConfusionMatrix(userId, limit = 10) {
+    try {
+      const response = await api.post('/admin/dev/test-confusion-matrix', {
+        userId,
+        limit
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error testing confusion matrix:', error);
+      throw error;
+    }
+  }
+
+  static async clearConfusionMatrixData() {
+    try {
+      const response = await api.delete('/admin/dev/clear-confusion-matrix');
+      return response.data;
+    } catch (error) {
+      console.error('Error clearing confusion matrix data:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Convenience methods for common actions
    */
   static async suspendUser(userId, reason, durationMinutes) {
@@ -200,6 +298,13 @@ class AdminAPI {
     return this.updateUser(userId, {
       is_active: isActive
     });
+  }
+
+  /**
+   * Convenience method for deleting a user
+   */
+  static async deleteUserPermanently(userId) {
+    return this.deleteUser(userId);
   }
 }
 
