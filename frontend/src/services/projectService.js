@@ -1,4 +1,4 @@
-// frontend/src/services/projectService.js
+// frontend/src/services/projectService.js - FIXED VERSION (No Add Member)
 import api from './api';
 
 export const projectService = {
@@ -91,19 +91,7 @@ export const projectService = {
     }
   },
 
-  // Add a member to a project
-  addProjectMember: async (projectId, userId, role = 'member') => {
-    try {
-      const response = await api.post(`/projects/${projectId}/members`, {
-        user_id: userId,
-        role: role
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Add project member error:', error.response?.data || error.message);
-      throw error;
-    }
-  },
+  // REMOVED: addProjectMember function as requested
 
   // Update a member's role
   updateMemberRole: async (projectId, memberId, role) => {

@@ -3,10 +3,10 @@ const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const {
   getProjectMembers,
-  addProjectMember,
   updateMemberRole,
   removeMember,
   leaveProject
+  // addProjectMember removed as requested
 } = require('../controllers/projectMemberController');
 const authMiddleware = require('../middleware/auth');
 
@@ -38,17 +38,6 @@ const memberIdValidation = [
     .withMessage('Member ID must be a valid UUID')
 ];
 
-const addMemberValidation = [
-  body('user_id')
-    .isUUID()
-    .withMessage('User ID must be a valid UUID'),
-  
-  body('role')
-    .optional()
-    .isIn(['member', 'moderator', 'lead'])
-    .withMessage('Role must be one of: member, moderator, lead')
-];
-
 const updateRoleValidation = [
   body('role')
     .isIn(['member', 'moderator', 'lead'])
@@ -64,15 +53,6 @@ router.get(
   projectIdValidation,
   handleValidationErrors,
   getProjectMembers
-);
-
-// POST /api/projects/:projectId/members - Add a member to a project
-router.post(
-  '/:projectId/members',
-  projectIdValidation,
-  addMemberValidation,
-  handleValidationErrors,
-  addProjectMember
 );
 
 // PUT /api/projects/:projectId/members/:memberId/role - Update a member's role
@@ -101,5 +81,7 @@ router.post(
   handleValidationErrors,
   leaveProject
 );
+
+// REMOVED: POST /api/projects/:projectId/members route for adding members
 
 module.exports = router;
