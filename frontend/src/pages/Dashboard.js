@@ -1,13 +1,11 @@
-// frontend/src/pages/Dashboard.js - UPDATED WITH REAL NOTIFICATIONS
+// frontend/src/pages/Dashboard.js - SIMPLIFIED VERSION - Only Welcome & Recommendations
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { useNotifications } from '../contexts/NotificationContext'; // ADD THIS
+import { useNotifications } from '../contexts/NotificationContext';
 import CreateProject from './CreateProject';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
-import { projectService } from '../services/projectService';
-import NotificationDropdown from '../components/Notifications/NotificationDropdown'; // ADD THIS
-import NotificationDebug from '../components/Debug/NotificationDebug';
+import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 
 function Dashboard() {
   const { user } = useAuth();
@@ -23,47 +21,6 @@ function Dashboard() {
     notifications, 
     fetchNotifications 
   } = useNotifications();
-
-  // New state for project statistics
-  const [projectStats, setProjectStats] = useState({
-    activeProjects: 0,
-    completedProjects: 0,
-    friends: 0,
-    learningModules: 0
-  });
-  const [loadingStats, setLoadingStats] = useState(true);
-
-  // Fetch project statistics
-  useEffect(() => {
-    const fetchProjectStats = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setLoadingStats(true);
-        const response = await projectService.getUserProjects();
-        const projects = response.data.projects || [];
-        
-        // Calculate statistics
-        const stats = {
-          activeProjects: projects.filter(p => 
-            p.status === 'active' || p.status === 'recruiting'
-          ).length,
-          completedProjects: projects.filter(p => p.status === 'completed').length,
-          friends: 0, // TODO: Implement friends functionality
-          learningModules: 0 // TODO: Implement learning modules
-        };
-        
-        setProjectStats(stats);
-      } catch (error) {
-        console.error('Error fetching project stats:', error);
-        // Keep default stats (all 0) on error
-      } finally {
-        setLoadingStats(false);
-      }
-    };
-
-    fetchProjectStats();
-  }, [user?.id]);
 
   // Fetch recommended projects when component mounts
   useEffect(() => {
@@ -93,7 +50,6 @@ function Dashboard() {
     setShowCreateProject(false);
   };
 
-  // UPDATED: Enhanced notification click handler with console logging
   const handleNotificationClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -133,43 +89,55 @@ function Dashboard() {
   };
 
   const handleJoinProject = async (project, event) => {
-  event.stopPropagation(); // Prevent triggering the card click
+    event.stopPropagation(); // Prevent triggering the card click
 
-  try {
-    console.log('🚀 Navigating to project challenge:', project);
-    
-    // Update recommendation feedback for analytics
     try {
-      await SkillMatchingAPI.updateRecommendationFeedback(
-        project.recommendationId, 
-        'applied'
-      );
-      console.log('✅ Updated recommendation feedback');
-    } catch (feedbackError) {
-      console.warn('⚠️ Failed to update recommendation feedback:', feedbackError);
-      // Continue with navigation even if feedback fails
-    }
-    
-    // Navigate directly to the challenge/join page
-    // This will show the coding challenge interface
-    console.log('🎯 Navigating to:', `/projects/${project.projectId}/join`);
-    navigate(`/projects/${project.projectId}/join`);
-    
-  } catch (error) {
-    console.error('❌ Error in join project handler:', error);
-    // Still try to navigate even if there's an error
-    navigate(`/projects/${project.projectId}/join`);
-  }
-};
-
-  // UPDATED: Enhanced click outside handler
-  React.useEffect(() => {
-    const handleClickOutside = (event) => {
-      // Only close if clicking outside the notification area
-      if (showNotifications && !event.target.closest('.notification-dropdown')) {
-        console.log('🔔 Dashboard: Clicking outside, closing notifications');
-        setShowNotifications(false);
+      console.log('🚀 Navigating to project challenge:', project);
+      
+      // Update recommendation feedback for analytics
+      try {
+        await SkillMatchingAPI.updateRecommendationFeedback(
+          project.recommendationId, 
+          'applied'
+        );
+        console.log('✅ Updated recommendation feedback');
+      } catch (feedbackError) {
+        console.warn('⚠️ Failed to update recommendation feedback:', feedbackError);
+        // Continue with navigation even if feedback fails
       }
+      
+      // Navigate directly to the challenge/join page
+      // This will show the coding challenge interface
+      console.log('🎯 Navigating to:', `/projects/${project.projectId}/join`);
+      navigate(`/projects/${project.projectId}/join`);
+      
+    } catch (error) {
+      console.error('Error joining project:', error);
+      // Show user feedback about the error if needed
+    }
+  };
+
+  const getDifficultyStyle = (difficulty) => {
+    const colors = {
+      easy: '#28a745',
+      medium: '#ffc107', 
+      hard: '#dc3545'
+    };
+    
+    return {
+      backgroundColor: colors[difficulty?.toLowerCase()] || colors.medium,
+      color: 'white',
+      padding: '2px 8px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: 'bold'
+    };
+  };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowNotifications(false);
     };
 
     if (showNotifications) {
@@ -180,22 +148,29 @@ function Dashboard() {
 
   const styles = {
     container: {
-      padding: '30px',
       maxWidth: '1200px',
-      margin: '0 auto'
+      margin: '0 auto',
+      padding: '20px',
+      fontFamily: 'Arial, sans-serif'
     },
     header: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: '30px',
-      paddingBottom: '20px',
-      borderBottom: '1px solid #ddd'
+      padding: '0 0 20px 0',
+      borderBottom: '1px solid #e9ecef'
+    },
+    headerLeft: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '20px'
     },
     title: {
+      fontSize: '28px',
+      fontWeight: 'bold',
       color: '#333',
-      margin: 0,
-      fontSize: '28px'
+      margin: 0
     },
     headerActions: {
       display: 'flex',
@@ -203,31 +178,30 @@ function Dashboard() {
       gap: '15px'
     },
     createButton: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '10px 16px',
-      backgroundColor: '#28a745',
+      backgroundColor: '#007bff',
       color: 'white',
       border: 'none',
+      padding: '10px 20px',
       borderRadius: '6px',
       cursor: 'pointer',
       fontSize: '14px',
       fontWeight: '500',
-      transition: 'background-color 0.2s ease'
+      transition: 'background-color 0.2s ease',
+      ':hover': {
+        backgroundColor: '#0056b3'
+      }
     },
-    iconButton: {
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '40px',
-      height: '40px',
-      backgroundColor: '#f8f9fa',
-      border: '1px solid #dee2e6',
-      borderRadius: '50%',
+    notificationContainer: {
+      position: 'relative'
+    },
+    notificationButton: {
+      backgroundColor: 'transparent',
+      border: '2px solid #dee2e6',
+      borderRadius: '6px',
+      padding: '8px 12px',
       cursor: 'pointer',
-      fontSize: '18px',
+      fontSize: '16px',
+      position: 'relative',
       transition: 'all 0.2s ease'
     },
     notificationBadge: {
@@ -245,66 +219,32 @@ function Dashboard() {
       justifyContent: 'center',
       fontWeight: 'bold'
     },
-    notificationDropdown: {
-      position: 'absolute',
-      top: '100%',
-      right: 0,
-      marginTop: '5px',
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '6px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      minWidth: '300px',
-      maxHeight: '400px',
-      overflowY: 'auto',
+    modal: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       zIndex: 1000
     },
-    notificationHeader: {
-      padding: '15px',
-      borderBottom: '1px solid #f8f9fa',
-      fontWeight: 'bold',
-      fontSize: '14px'
-    },
-    notificationItem: {
-      padding: '12px 15px',
-      borderBottom: '1px solid #f8f9fa',
-      fontSize: '13px'
-    },
-    notificationEmpty: {
-      padding: '20px',
-      textAlign: 'center',
-      color: '#6c757d',
-      fontSize: '14px'
+    modalContent: {
+      backgroundColor: 'white',
+      borderRadius: '8px',
+      padding: '0',
+      maxWidth: '90%',
+      maxHeight: '90%',
+      overflow: 'auto'
     },
     welcomeCard: {
       backgroundColor: '#f8f9fa',
       border: '1px solid #dee2e6',
       borderRadius: '8px',
       padding: '20px',
-      marginBottom: '20px'
-    },
-    statsContainer: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '20px',
       marginBottom: '30px'
-    },
-    statCard: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px',
-      textAlign: 'center'
-    },
-    statValue: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#007bff',
-      marginBottom: '5px'
-    },
-    statLabel: {
-      color: '#666',
-      fontSize: '14px'
     },
     profileSection: {
       backgroundColor: 'white',
@@ -316,13 +256,14 @@ function Dashboard() {
     sectionTitle: {
       color: '#333',
       marginBottom: '15px',
-      fontSize: '18px'
+      fontSize: '18px',
+      fontWeight: 'bold'
     },
     recommendationsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
       gap: '20px',
-      marginTop: '15px'
+      marginTop: '20px'
     },
     projectCard: {
       backgroundColor: 'white',
@@ -338,44 +279,40 @@ function Dashboard() {
       boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
       border: '1px solid #007bff'
     },
-    projectTitle: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#333',
-      marginBottom: '8px'
-    },
-    projectDescription: {
-      color: '#666',
-      fontSize: '14px',
-      marginBottom: '12px',
-      lineHeight: '1.4',
-      display: '-webkit-box',
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: 'vertical',
-      overflow: 'hidden'
-    },
     matchScore: {
       position: 'absolute',
       top: '15px',
       right: '15px',
-      backgroundColor: '#28a745',
+      backgroundColor: '#007bff',
       color: 'white',
       padding: '4px 8px',
       borderRadius: '12px',
       fontSize: '12px',
       fontWeight: 'bold'
     },
+    projectTitle: {
+      fontSize: '16px',
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: '8px',
+      paddingRight: '60px' // Make room for match score
+    },
+    projectDescription: {
+      color: '#666',
+      fontSize: '14px',
+      lineHeight: '1.4',
+      marginBottom: '12px',
+      display: '-webkit-box',
+      WebkitLineClamp: 3,
+      WebkitBoxOrient: 'vertical',
+      overflow: 'hidden'
+    },
     projectMeta: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '12px'
-    },
-    difficultyBadge: {
-      padding: '2px 8px',
-      borderRadius: '4px',
-      fontSize: '12px',
-      fontWeight: 'bold'
+      marginBottom: '12px',
+      fontSize: '12px'
     },
     memberCount: {
       color: '#666',
@@ -384,22 +321,23 @@ function Dashboard() {
     tagsContainer: {
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '4px',
-      marginBottom: '12px'
+      gap: '6px',
+      marginBottom: '15px'
     },
     tag: {
       backgroundColor: '#e9ecef',
       color: '#495057',
-      padding: '2px 6px',
-      borderRadius: '4px',
-      fontSize: '11px'
+      padding: '3px 8px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: '500'
     },
     joinButton: {
       width: '100%',
-      padding: '8px 12px',
       backgroundColor: '#007bff',
       color: 'white',
       border: 'none',
+      padding: '8px 16px',
       borderRadius: '4px',
       cursor: 'pointer',
       fontSize: '14px',
@@ -418,149 +356,36 @@ function Dashboard() {
       color: '#666',
       fontSize: '14px',
       padding: '40px 20px'
-    },
-    userInfoContainer: {
-      marginTop: '20px',
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-      gap: '20px'
-    },
-    userInfoSection: {
-      backgroundColor: 'white',
-      border: '1px solid #e9ecef',
-      borderRadius: '8px',
-      padding: '16px'
-    },
-    userInfoTitle: {
-      margin: '0 0 12px 0',
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#333'
-    },
-    userInfoGrid: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '8px',
-      marginBottom: '12px'
-    },
-    userInfoItem: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '2px'
-    },
-    userInfoLabel: {
-      fontSize: '12px',
-      color: '#666',
-      fontWeight: '500'
-    },
-    userInfoValue: {
-      fontSize: '14px',
-      color: '#333',
-      fontWeight: '400'
-    },
-    bioSection: {
-      marginTop: '12px',
-      paddingTop: '12px',
-      borderTop: '1px solid #f1f3f4'
-    },
-    bioText: {
-      margin: '4px 0 0 0',
-      fontSize: '14px',
-      color: '#333',
-      lineHeight: '1.4'
-    },
-    skillsContainer: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '6px'
-    },
-    languageTag: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      backgroundColor: '#007bff',
-      color: 'white',
-      padding: '4px 8px',
-      borderRadius: '16px',
-      fontSize: '12px',
-      fontWeight: '500',
-      gap: '4px'
-    },
-    topicTag: {
-      display: 'inline-flex',
-      alignItems: 'center',
-      backgroundColor: '#28a745',
-      color: 'white',
-      padding: '4px 8px',
-      borderRadius: '16px',
-      fontSize: '12px',
-      fontWeight: '500',
-      gap: '4px'
-    },
-    skillLevel: {
-      fontSize: '10px',
-      opacity: 0.8,
-      fontWeight: '400'
-    },
-    emptySkills: {
-      color: '#666',
-      fontSize: '13px',
-      fontStyle: 'italic',
-      margin: 0
-    },
-    modal: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000
-    },
-    modalContent: {
-      backgroundColor: 'white',
-      padding: '30px',
-      borderRadius: '8px',
-      maxWidth: '500px',
-      width: '90%',
-      maxHeight: '80vh',
-      overflowY: 'auto'
-    }
-  };
-
-  // Helper function to get difficulty badge style
-  const getDifficultyStyle = (difficulty) => {
-    const baseStyle = styles.difficultyBadge;
-    switch (difficulty?.toLowerCase()) {
-      case 'easy':
-        return { ...baseStyle, backgroundColor: '#d4edda', color: '#155724' };
-      case 'medium':
-        return { ...baseStyle, backgroundColor: '#fff3cd', color: '#856404' };
-      case 'hard':
-        return { ...baseStyle, backgroundColor: '#f8d7da', color: '#721c24' };
-      case 'expert':
-        return { ...baseStyle, backgroundColor: '#d1ecf1', color: '#0c5460' };
-      default:
-        return { ...baseStyle, backgroundColor: '#e9ecef', color: '#495057' };
     }
   };
 
   return (
     <div style={styles.container}>
+      {/* Header */}
       <header style={styles.header}>
-        <h1 style={styles.title}>Welcome back, {user?.full_name || user?.username}!</h1>
+        <div style={styles.headerLeft}>
+          <h1 style={styles.title}>Dashboard</h1>
+        </div>
+
         <div style={styles.headerActions}>
-          <button style={styles.createButton} onClick={handleCreateClick}>
-            <span>➕</span>
-            Create Project
+          <button
+            style={styles.createButton}
+            onClick={handleCreateClick}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#0056b3';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#007bff';
+            }}
+          >
+            + Create Project
           </button>
           
-          <div style={{ position: 'relative' }}>
+          {/* Notification Bell */}
+          <div style={styles.notificationContainer}>
             <button 
               style={{
-                ...styles.iconButton,
+                ...styles.notificationButton,
                 color: unreadCount > 0 ? '#3498db' : '#6c757d' // Change color when has notifications
               }} 
               onClick={handleNotificationClick}
@@ -602,121 +427,20 @@ function Dashboard() {
         </div>
       )}
 
+      {/* Welcome Section */}
       <div style={styles.welcomeCard}>
-        <h2>🎉 Dashboard Overview</h2>
+        <h2>🎉 Welcome Back!</h2>
         <p>
-          Great to see you back! Here's your personalized dashboard where you can track your projects,
-          connect with fellow developers, and continue learning. FIX TASK VIEW
+          Great to see you back! Ready to start or continue working on your projects? 
+          Check out our personalized recommendations below.
         </p>
-
-        {/* User Profile Information */}
-        <div style={styles.userInfoContainer}>
-          <div style={styles.userInfoSection}>
-            <h4 style={styles.userInfoTitle}>👤 Profile Info</h4>
-            <div style={styles.userInfoGrid}>
-              <div style={styles.userInfoItem}>
-                <span style={styles.userInfoLabel}>Experience:</span>
-                <span style={styles.userInfoValue}>{user?.years_experience || 0} years</span>
-              </div>
-              <div style={styles.userInfoItem}>
-                <span style={styles.userInfoLabel}>Username:</span>
-                <span style={styles.userInfoValue}>@{user?.username}</span>
-              </div>
-              <div style={styles.userInfoItem}>
-                <span style={styles.userInfoLabel}>Email:</span>
-                <span style={styles.userInfoValue}>{user?.email}</span>
-              </div>
-              {user?.github_username && (
-                <div style={styles.userInfoItem}>
-                  <span style={styles.userInfoLabel}>GitHub:</span>
-                  <span style={styles.userInfoValue}>@{user.github_username}</span>
-                </div>
-              )}
-            </div>
-            
-            {user?.bio && (
-              <div style={styles.bioSection}>
-                <span style={styles.userInfoLabel}>Bio:</span>
-                <p style={styles.bioText}>{user.bio}</p>
-              </div>
-            )}
-          </div>
-
-          <div style={styles.userInfoSection}>
-            <h4 style={styles.userInfoTitle}>💻 Programming Languages</h4>
-            {user?.programming_languages && user.programming_languages.length > 0 ? (
-              <div style={styles.skillsContainer}>
-                {user.programming_languages.map(lang => (
-                  <span key={lang.id} style={styles.languageTag}>
-                    {lang.programming_languages?.name || lang.name}
-                    <span style={styles.skillLevel}>({lang.proficiency_level})</span>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p style={styles.emptySkills}>No programming languages added yet</p>
-            )}
-          </div>
-
-          <div style={styles.userInfoSection}>
-            <h4 style={styles.userInfoTitle}>🎯 Areas of Interest</h4>
-            {user?.topics && user.topics.length > 0 ? (
-              <div style={styles.skillsContainer}>
-                {user.topics.map(topic => (
-                  <span key={topic.id} style={styles.topicTag}>
-                    {topic.topics?.name || topic.name}
-                    <span style={styles.skillLevel}>({topic.interest_level})</span>
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p style={styles.emptySkills}>No topics selected yet</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats - Updated with Real Data but keeping original styling */}
-      <div style={styles.statsContainer}>
-        <div style={styles.statCard}>
-          <div style={styles.statValue}>
-            {loadingStats ? '...' : projectStats.activeProjects}
-          </div>
-          <div style={styles.statLabel}>Active Projects</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statValue}>
-            {loadingStats ? '...' : projectStats.completedProjects}
-          </div>
-          <div style={styles.statLabel}>Completed Projects</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statValue}>
-            {loadingStats ? '...' : projectStats.friends}
-          </div>
-          <div style={styles.statLabel}>Friends</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statValue}>
-            {loadingStats ? '...' : projectStats.learningModules}
-          </div>
-          <div style={styles.statLabel}>Learning Modules</div>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div style={styles.profileSection}>
-        <h3 style={styles.sectionTitle}>🎯 Recent Activity</h3>
-        <div style={styles.emptyState}>
-          No recent activity yet. Start by joining a project or connecting with other developers!
-        </div>
       </div>
 
       {/* Recommended Projects Section */}
       <div style={styles.profileSection}>
         <h3 style={styles.sectionTitle}>🚀 Recommended Projects</h3>
         <p style={{ color: '#666', marginBottom: '15px' }}>
-          Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, we'll recommend relevant projects here.
+          Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, here are some projects you might like.
         </p>
         
         {loadingRecommendations ? (
@@ -792,32 +516,11 @@ function Dashboard() {
           </div>
         ) : (
           <div style={styles.emptyState}>
-            No project recommendations available yet. Complete more of your profile to get personalized recommendations!
+            No project recommendations available yet.
+            Complete more of your profile to get personalized recommendations!
           </div>
         )}
       </div>
-
-      {/* Continue Learning Section */}
-      <div style={styles.profileSection}>
-        <h3 style={styles.sectionTitle}>📚 Continue Learning</h3>
-        <p style={{ color: '#666' }}>
-          Enhance your skills with personalized learning paths and tutorials.
-        </p>
-        <div style={{ marginTop: '15px' }}>
-          <button style={{ 
-            padding: '10px 20px', 
-            backgroundColor: '#28a745', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px', 
-            cursor: 'pointer' 
-          }}>
-            Start Learning
-          </button>
-        </div>
-      </div>
-      
-      <NotificationDebug />
     </div>
   );
 }
