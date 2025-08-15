@@ -13,7 +13,15 @@ function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [recommendedProjects, setRecommendedProjects] = useState([]);
+  const [filteredProjects, setFilteredProjects] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
+  
+  // NEW: Filter and Sort States
+  const [sortBy, setSortBy] = useState('match'); // 'match', 'difficulty', 'members', 'title'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
+  const [filterLanguage, setFilterLanguage] = useState('all');
+  const [filterDifficulty, setFilterDifficulty] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Real notifications from context
   const { 
@@ -30,10 +38,12 @@ function Dashboard() {
       try {
         setLoadingRecommendations(true);
         const recommendations = await SkillMatchingAPI.getRecommendations(user.id);
-        setRecommendedProjects(recommendations.slice(0, 6)); // Show top 6 recommendations
+        setRecommendedProjects(recommendations.slice(0, 12)); // Show top 12 recommendations
+        setFilteredProjects(recommendations.slice(0, 12)); // Initialize filtered projects
       } catch (error) {
         console.error('Error fetching recommendations:', error);
         setRecommendedProjects([]);
+        setFilteredProjects([]);
       } finally {
         setLoadingRecommendations(false);
       }
@@ -41,6 +51,89 @@ function Dashboard() {
 
     fetchRecommendations();
   }, [user?.id]);
+
+  // NEW: Filter and Sort Effect
+  useEffect(() => {
+    let filtered = [...recommendedProjects];
+
+    // Apply language filter
+    if (filterLanguage !== 'all') {
+      filtered = filtered.filter(project => 
+        project.technologies?.some(tech => 
+          tech.toLowerCase().includes(filterLanguage.toLowerCase())
+        )
+      );
+    }
+
+    // Apply difficulty filter
+    if (filterDifficulty !== 'all') {
+      filtered = filtered.filter(project => 
+        project.difficulty_level?.toLowerCase() === filterDifficulty.toLowerCase()
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'match':
+          aValue = a.score || 0;
+          bValue = b.score || 0;
+          break;
+        case 'difficulty':
+          const difficultyOrder = { easy: 1, medium: 2, hard: 3 };
+          aValue = difficultyOrder[a.difficulty_level?.toLowerCase()] || 2;
+          bValue = difficultyOrder[b.difficulty_level?.toLowerCase()] || 2;
+          break;
+        case 'members':
+          aValue = a.current_members || 0;
+          bValue = b.current_members || 0;
+          break;
+        case 'title':
+          aValue = a.title?.toLowerCase() || '';
+          bValue = b.title?.toLowerCase() || '';
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    setFilteredProjects(filtered);
+  }, [recommendedProjects, sortBy, sortOrder, filterLanguage, filterDifficulty]);
+
+  // NEW: Get unique languages from projects
+  const getAvailableLanguages = () => {
+    const languages = new Set();
+    recommendedProjects.forEach(project => {
+      project.technologies?.forEach(tech => languages.add(tech));
+    });
+    return Array.from(languages).sort();
+  };
+
+  // NEW: Handle sort change
+  const handleSortChange = (newSortBy) => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder(newSortBy === 'title' ? 'asc' : 'desc');
+    }
+  };
+
+  // NEW: Reset filters
+  const resetFilters = () => {
+    setSortBy('match');
+    setSortOrder('desc');
+    setFilterLanguage('all');
+    setFilterDifficulty('all');
+  };
 
   const handleCreateClick = () => {
     setShowCreateProject(true);
@@ -356,6 +449,96 @@ function Dashboard() {
       color: '#666',
       fontSize: '14px',
       padding: '40px 20px'
+    },
+    // NEW: Filter and Sort Styles
+    filterSection: {
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      padding: '16px',
+      marginBottom: '20px'
+    },
+    filterHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '16px'
+    },
+    filterToggle: {
+      backgroundColor: 'transparent',
+      border: '1px solid #007bff',
+      color: '#007bff',
+      padding: '6px 12px',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '13px',
+      fontWeight: '500',
+      transition: 'all 0.2s ease'
+    },
+    filterControls: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+      gap: '16px',
+      marginBottom: '16px'
+    },
+    filterGroup: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '6px'
+    },
+    filterLabel: {
+      fontSize: '12px',
+      fontWeight: '500',
+      color: '#333',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px'
+    },
+    filterSelect: {
+      padding: '8px 12px',
+      border: '1px solid #dee2e6',
+      borderRadius: '4px',
+      fontSize: '14px',
+      backgroundColor: 'white',
+      cursor: 'pointer'
+    },
+    sortButtons: {
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap'
+    },
+    sortButton: {
+      padding: '6px 12px',
+      border: '1px solid #dee2e6',
+      borderRadius: '4px',
+      backgroundColor: 'white',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '500',
+      transition: 'all 0.2s ease',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px'
+    },
+    sortButtonActive: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      borderColor: '#007bff'
+    },
+    resetButton: {
+      padding: '6px 12px',
+      backgroundColor: '#6c757d',
+      color: 'white',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      fontWeight: '500'
+    },
+    resultsCount: {
+      fontSize: '14px',
+      color: '#666',
+      marginBottom: '16px',
+      textAlign: 'center'
     }
   };
 
@@ -442,14 +625,142 @@ function Dashboard() {
         <p style={{ color: '#666', marginBottom: '15px' }}>
           Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, here are some projects you might like.
         </p>
+
+        {/* NEW: Filter and Sort Section */}
+        {!loadingRecommendations && recommendedProjects.length > 0 && (
+          <div style={styles.filterSection}>
+            <div style={styles.filterHeader}>
+              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+                Filter & Sort Projects
+              </h4>
+              <button
+                style={styles.filterToggle}
+                onClick={() => setShowFilters(!showFilters)}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = '#007bff';
+                  e.target.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#007bff';
+                }}
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+            </div>
+
+            {showFilters && (
+              <>
+                <div style={styles.filterControls}>
+                  {/* Language Filter */}
+                  <div style={styles.filterGroup}>
+                    <label style={styles.filterLabel}>Filter by Language</label>
+                    <select
+                      style={styles.filterSelect}
+                      value={filterLanguage}
+                      onChange={(e) => setFilterLanguage(e.target.value)}
+                    >
+                      <option value="all">All Languages</option>
+                      {getAvailableLanguages().map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Difficulty Filter */}
+                  <div style={styles.filterGroup}>
+                    <label style={styles.filterLabel}>Filter by Difficulty</label>
+                    <select
+                      style={styles.filterSelect}
+                      value={filterDifficulty}
+                      onChange={(e) => setFilterDifficulty(e.target.value)}
+                    >
+                      <option value="all">All Difficulties</option>
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Options */}
+                  <div style={styles.filterGroup}>
+                    <label style={styles.filterLabel}>Sort by</label>
+                    <div style={styles.sortButtons}>
+                      <button
+                        style={{
+                          ...styles.sortButton,
+                          ...(sortBy === 'match' ? styles.sortButtonActive : {})
+                        }}
+                        onClick={() => handleSortChange('match')}
+                      >
+                        Match Rate {sortBy === 'match' && (sortOrder === 'desc' ? '↓' : '↑')}
+                      </button>
+                      <button
+                        style={{
+                          ...styles.sortButton,
+                          ...(sortBy === 'difficulty' ? styles.sortButtonActive : {})
+                        }}
+                        onClick={() => handleSortChange('difficulty')}
+                      >
+                        Difficulty {sortBy === 'difficulty' && (sortOrder === 'desc' ? '↓' : '↑')}
+                      </button>
+                      <button
+                        style={{
+                          ...styles.sortButton,
+                          ...(sortBy === 'members' ? styles.sortButtonActive : {})
+                        }}
+                        onClick={() => handleSortChange('members')}
+                      >
+                        Team Size {sortBy === 'members' && (sortOrder === 'desc' ? '↓' : '↑')}
+                      </button>
+                      <button
+                        style={{
+                          ...styles.sortButton,
+                          ...(sortBy === 'title' ? styles.sortButtonActive : {})
+                        }}
+                        onClick={() => handleSortChange('title')}
+                      >
+                        Title {sortBy === 'title' && (sortOrder === 'desc' ? '↓' : '↑')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reset Button */}
+                <div style={{ textAlign: 'right' }}>
+                  <button
+                    style={styles.resetButton}
+                    onClick={resetFilters}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#5a6268';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#6c757d';
+                    }}
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Results Count */}
+            <div style={styles.resultsCount}>
+              Showing {filteredProjects.length} of {recommendedProjects.length} projects
+              {(filterLanguage !== 'all' || filterDifficulty !== 'all') && (
+                <span style={{ color: '#007bff', fontWeight: '500' }}> (filtered)</span>
+              )}
+            </div>
+          </div>
+        )}
         
         {loadingRecommendations ? (
           <div style={styles.loadingSpinner}>
             <div>Loading recommendations...</div>
           </div>
-        ) : recommendedProjects.length > 0 ? (
+        ) : filteredProjects.length > 0 ? (
           <div style={styles.recommendationsGrid}>
-            {recommendedProjects.map((project, index) => (
+            {filteredProjects.map((project, index) => (
               <div
                 key={index}
                 style={styles.projectCard}
@@ -513,6 +824,20 @@ function Dashboard() {
                 </button>
               </div>
             ))}
+          </div>
+        ) : recommendedProjects.length > 0 ? (
+          <div style={styles.emptyState}>
+            No projects match your current filters.
+            <br />
+            <button
+              style={{
+                ...styles.resetButton,
+                marginTop: '10px'
+              }}
+              onClick={resetFilters}
+            >
+              Reset Filters
+            </button>
           </div>
         ) : (
           <div style={styles.emptyState}>
