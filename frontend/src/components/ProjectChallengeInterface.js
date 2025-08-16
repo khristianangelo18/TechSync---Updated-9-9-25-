@@ -60,7 +60,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     return data;
   }, []);
 
-  // Real-time code validation
+  // Real-time code validation (SAME AS WORKING VERSION)
   const validateCodeRealTime = useCallback((code) => {
     const validation = {
       length: code.trim().length,
@@ -156,14 +156,14 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     }
   }, [projectId, canAttempt, API_BASE_URL, getAuthHeaders, handleApiResponse, submittedCode]);
 
-  // Handle starting the challenge (SAME AS WORKING VERSION)
+  // Handle starting the challenge - UPDATED: Convert to seconds for countdown
   const handleStartChallenge = useCallback(() => {
     const now = new Date();
     setStartedAt(now.toISOString());
     
-    // Set timer if challenge has time limit
+    // Set timer in seconds for precise countdown (UPDATED)
     if (challenge?.challenge?.time_limit_minutes) {
-      setTimeRemaining(challenge.challenge.time_limit_minutes);
+      setTimeRemaining(challenge.challenge.time_limit_minutes * 60);
     }
     
     console.log('Challenge started at:', now.toISOString());
@@ -248,7 +248,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
   // Update ref for timer callback (SAME AS WORKING VERSION)
   handleSubmitRef.current = handleSubmit;
 
-  // Timer countdown effect (SAME AS WORKING VERSION)
+  // Timer countdown effect - UPDATED: Use seconds instead of minutes
   useEffect(() => {
     if (!startedAt || !challenge?.challenge?.time_limit_minutes || result) {
       return;
@@ -256,14 +256,14 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
 
     const timer = setInterval(() => {
       setTimeRemaining(prev => {
-        if (prev <= 1) {
+        if (prev <= 0) {
           alert('Time is up! Your current code will be submitted automatically.');
           handleSubmitRef.current();
           return 0;
         }
         return prev - 1;
       });
-    }, 60000); // Update every minute
+    }, 1000); // Update every second instead of every minute
 
     return () => clearInterval(timer);
   }, [startedAt, challenge, result]);
@@ -293,18 +293,37 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     }
   }, [canAttempt, challenge, fetchChallenge]);
 
-  // Handle code change
+  // Handle code change - UPDATED: Only allow changes when challenge started
   const handleCodeChange = (e) => {
+    // Only allow code changes if challenge has started
+    if (!startedAt) return;
+    
     const newCode = e.target.value;
     setSubmittedCode(newCode);
     validateCodeRealTime(newCode);
   };
 
-  // Format time helper (SAME AS WORKING VERSION)
-  const formatTime = (minutes) => {
-    if (minutes === null || minutes === undefined) return 'No limit';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
+  // Format time helper - UPDATED: Handle both minutes and seconds
+  const formatTime = (timeValue) => {
+    if (timeValue === null || timeValue === undefined) return 'No limit';
+    
+    // If challenge started and timeValue is in seconds (less than original minutes)
+    if (startedAt && timeValue < (challenge?.challenge?.time_limit_minutes || 0) * 60) {
+      // Format as MM:SS
+      const totalSeconds = Math.max(0, Math.floor(timeValue));
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+      
+      if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Original format for initial display (before challenge starts)
+    const hours = Math.floor(timeValue / 60);
+    const mins = timeValue % 60;
     if (hours > 0) {
       return `${hours}h ${mins}m`;
     }
@@ -328,7 +347,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     return '#dc3545';
   };
 
-  // Styles
+  // Styles (SAME AS WORKING VERSION)
   const styles = {
     container: {
       position: 'fixed',
@@ -490,6 +509,29 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
       resize: 'vertical',
       outline: 'none'
     },
+    disabledOverlay: {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      right: '0',
+      bottom: '0',
+      backgroundColor: 'rgba(248, 249, 250, 0.95)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '8px',
+      zIndex: 1,
+      backdropFilter: 'blur(2px)'
+    },
+    disabledMessage: {
+      textAlign: 'center',
+      color: '#6c757d',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      fontSize: '16px',
+      fontWeight: '500'
+    },
     validationPanel: {
       display: 'flex',
       justifyContent: 'space-between',
@@ -621,7 +663,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     }
   };
 
-  // Loading state
+  // Loading state (SAME AS WORKING VERSION)
   if (loading) {
     return (
       <div style={styles.container}>
@@ -636,7 +678,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     );
   }
 
-  // Error state
+  // Error state (SAME AS WORKING VERSION)
   if (error) {
     return (
       <div style={styles.container}>
@@ -666,7 +708,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     );
   }
 
-  // Cannot attempt state
+  // Cannot attempt state (SAME AS WORKING VERSION)
   if (canAttempt && !canAttempt.canAttempt) {
     return (
       <div style={styles.container}>
@@ -691,7 +733,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     );
   }
 
-  // No challenge available
+  // No challenge available (SAME AS WORKING VERSION)
   if (!challenge) {
     return (
       <div style={styles.container}>
@@ -711,7 +753,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     );
   }
 
-  // Main challenge interface
+  // Main challenge interface (UPDATED with input restriction and overlay)
   return (
     <div style={styles.container}>
       <div style={styles.modal}>
@@ -756,14 +798,14 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
             </div>
           </div>
 
-          {/* Timer */}
+          {/* Timer - UPDATED: Color warning at 5 minutes (300 seconds) */}
           {startedAt && timeRemaining !== null && (
             <div style={styles.timerContainer}>
               <div style={styles.timerContent}>
                 <span style={styles.timerLabel}>Time Remaining:</span>
                 <span style={{
                   ...styles.timerValue,
-                  color: timeRemaining <= 10 ? '#dc3545' : '#28a745'
+                  color: timeRemaining <= 300 ? '#dc3545' : '#28a745'
                 }}>
                   {formatTime(timeRemaining)}
                 </span>
@@ -819,19 +861,38 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
             )}
           </div>
 
-          {/* Code Editor */}
-          <div style={styles.section}>
+          {/* Code Editor - UPDATED: Disabled until challenge starts with overlay */}
+          <div style={{ ...styles.section, position: 'relative' }}>
             <h3 style={styles.sectionTitle}>💻 Your Solution</h3>
-            <textarea
-              value={submittedCode}
-              onChange={handleCodeChange}
-              style={styles.codeEditor}
-              placeholder="Write your solution here..."
-              disabled={isSubmitting || (result && result.passed)}
-            />
+            <div style={{ position: 'relative' }}>
+              <textarea
+                value={submittedCode}
+                onChange={handleCodeChange}
+                style={{
+                  ...styles.codeEditor,
+                  ...((!startedAt || isSubmitting || (result && result.passed)) ? {
+                    backgroundColor: '#f8f9fa',
+                    cursor: 'not-allowed',
+                    color: '#6c757d'
+                  } : {})
+                }}
+                placeholder={!startedAt ? "Click 'Start Challenge' to begin coding..." : "Write your solution here..."}
+                disabled={!startedAt || isSubmitting || (result && result.passed)}
+              />
+              
+              {/* Disabled overlay when challenge hasn't started */}
+              {!startedAt && (
+                <div style={styles.disabledOverlay}>
+                  <div style={styles.disabledMessage}>
+                    <span style={{ fontSize: '24px', marginBottom: '8px' }}>🔒</span>
+                    <p>Start the challenge to begin coding</p>
+                  </div>
+                </div>
+              )}
+            </div>
             
-            {/* Real-time Code Validation */}
-            {codeValidation && (
+            {/* Real-time Code Validation - Only show when challenge started */}
+            {startedAt && codeValidation && (
               <div style={styles.validationPanel}>
                 <div style={styles.validationLeft}>
                   <div style={styles.validationItem}>
@@ -878,7 +939,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Result Display */}
+          {/* Result Display (SAME AS WORKING VERSION) */}
           {result && (
             <div style={{
               ...styles.resultBox,
@@ -966,7 +1027,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
             </div>
           )}
 
-          {/* Action Buttons */}
+          {/* Action Buttons (SAME AS WORKING VERSION) */}
           <div style={styles.actionButtons}>
             {!startedAt && !result && (
               <>
@@ -1041,7 +1102,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
         </div>
       </div>
 
-      {/* CSS Animations */}
+      {/* CSS Animations (SAME AS WORKING VERSION) */}
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
