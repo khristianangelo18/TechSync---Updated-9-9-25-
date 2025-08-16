@@ -1,4 +1,4 @@
-// frontend/src/pages/project/ProjectMembers.js - FIXED VERSION (No Add Member)
+// frontend/src/pages/project/ProjectMembers.js - FIXED VERSION (Properly handles new API structure)
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -29,6 +29,9 @@ function ProjectMembers() {
 
         setProject(projectResponse.data.project);
         setMemberData(membersResponse.data);
+        
+        console.log('📋 Project:', projectResponse.data.project);
+        console.log('📋 Member data:', membersResponse.data);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load project members');
@@ -93,13 +96,15 @@ function ProjectMembers() {
     }
   };
 
-  // Calculate member counts
-  const members = memberData || [];
-  const owner = project?.owner || null;
+  // FIXED: Extract members and owner from the new API structure
+  const members = memberData?.members || []; // Extract members array from API response
+  const owner = memberData?.owner || null;   // Extract owner from API response
   const total_members = members.length + (owner ? 1 : 0);
+  
+  // Safe filter operations - ensure members is always an array
   const leadCount = members.filter(member => member.role === 'lead').length;
   const moderatorCount = members.filter(member => member.role === 'moderator').length;
-  const memberCount = members.filter(member => member.role === 'member').length;
+  const memberCount = members.filter(member => member.role === 'member' || !member.role).length;
 
   // Loading state
   if (loading) {
@@ -117,19 +122,8 @@ function ProjectMembers() {
         <div style={styles.headerLeft}>
           <h1 style={styles.title}>Project Members</h1>
           <p style={styles.subtitle}>
-            {total_members} member{total_members !== 1 ? 's' : ''} total
+            {total_members} member{total_members !== 1 ? 's' : ''}
           </p>
-        </div>
-        <div style={styles.headerRight}>
-          {/* REMOVED: Add Member button */}
-          {!isOwner && (
-            <button
-              style={styles.leaveButton}
-              onClick={handleLeaveProject}
-            >
-              Leave Project
-            </button>
-          )}
         </div>
       </div>
 
@@ -137,12 +131,6 @@ function ProjectMembers() {
       {error && (
         <div style={styles.errorMessage}>
           {error}
-          <button 
-            onClick={() => setError(null)}
-            style={{ float: 'right', background: 'none', border: 'none', cursor: 'pointer' }}
-          >
-            ×
-          </button>
         </div>
       )}
 
@@ -166,11 +154,11 @@ function ProjectMembers() {
         </div>
       </div>
 
-      {/* Members Grid */}
+      {/* Members List */}
       <div style={styles.membersGrid}>
-        {/* Project Owner - Always shown first */}
+        {/* Project Owner */}
         {owner && (
-          <div style={{...styles.memberCard, ...styles.ownerCard}}>
+          <div style={{ ...styles.memberCard, ...styles.ownerCard }}>
             <div style={styles.memberHeader}>
               <div style={styles.memberAvatar}>
                 {owner.avatar_url ? (
@@ -182,7 +170,7 @@ function ProjectMembers() {
               <div style={styles.memberInfo}>
                 <h3 style={styles.memberName}>{owner.full_name || owner.username}</h3>
                 <div style={styles.memberRole}>
-                  <span style={styles.ownerBadge}>Project Owner</span>
+                  <span style={styles.ownerBadge}>Owner</span>
                 </div>
                 <div style={styles.memberEmail}>{owner.email}</div>
               </div>
@@ -251,7 +239,7 @@ function ProjectMembers() {
         ))}
 
         {/* Empty State */}
-        {members.length === 0 && !owner && (
+        {!owner && members.length === 0 && (
           <div style={styles.emptyState}>
             <h3>No members found</h3>
             <p>This project doesn't have any members yet.</p>
@@ -259,7 +247,14 @@ function ProjectMembers() {
         )}
       </div>
 
-      {/* REMOVED: Add Member Modal */}
+      {/* Current User Actions */}
+      {!isOwner && members.some(member => member.user_id === user?.id) && (
+        <div style={styles.userActions}>
+          <button style={styles.leaveButton} onClick={handleLeaveProject}>
+            Leave Project
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -275,48 +270,35 @@ const styles = {
     textAlign: 'center',
     padding: '40px',
     fontSize: '18px',
-    color: '#666'
+    color: '#6c757d'
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '30px',
-    flexWrap: 'wrap',
-    gap: '15px'
+    paddingBottom: '20px',
+    borderBottom: '1px solid #e9ecef'
   },
   headerLeft: {
     flex: 1
   },
-  headerRight: {
-    display: 'flex',
-    gap: '10px'
-  },
   title: {
-    margin: '0 0 5px 0',
     fontSize: '28px',
-    color: '#333'
+    fontWeight: 'bold',
+    margin: '0 0 5px 0',
+    color: '#343a40'
   },
   subtitle: {
-    margin: 0,
     color: '#6c757d',
-    fontSize: '16px'
-  },
-  leaveButton: {
-    backgroundColor: '#dc3545',
-    color: 'white',
-    border: 'none',
-    padding: '10px 20px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500'
+    margin: 0,
+    fontSize: '14px'
   },
   errorMessage: {
     backgroundColor: '#f8d7da',
     color: '#721c24',
-    padding: '15px',
-    borderRadius: '6px',
+    padding: '10px 15px',
+    borderRadius: '4px',
     marginBottom: '20px',
     border: '1px solid #f5c6cb'
   },
@@ -347,18 +329,20 @@ const styles = {
   membersGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-    gap: '20px'
+    gap: '20px',
+    marginBottom: '30px'
   },
   memberCard: {
     backgroundColor: 'white',
     border: '1px solid #e9ecef',
     borderRadius: '8px',
     padding: '20px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+    transition: 'box-shadow 0.2s'
   },
   ownerCard: {
     border: '2px solid #007bff',
-    backgroundColor: '#f8f9ff'
+    backgroundColor: '#f8f9fa'
   },
   memberHeader: {
     display: 'flex',
@@ -370,76 +354,101 @@ const styles = {
     height: '50px',
     borderRadius: '50%',
     backgroundColor: '#007bff',
-    color: 'white',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '20px',
+    color: 'white',
     fontWeight: 'bold',
-    marginRight: '15px'
+    fontSize: '18px',
+    marginRight: '15px',
+    overflow: 'hidden'
   },
   memberInfo: {
     flex: 1
   },
   memberName: {
     margin: '0 0 5px 0',
-    fontSize: '18px',
-    color: '#333'
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#343a40'
   },
   memberRole: {
     marginBottom: '5px'
   },
-  ownerBadge: {
-    backgroundColor: '#007bff',
-    color: 'white',
-    padding: '3px 8px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500'
-  },
   roleBadge: {
+    display: 'inline-block',
     backgroundColor: '#6c757d',
     color: 'white',
-    padding: '3px 8px',
+    padding: '2px 8px',
     borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500'
+    fontSize: '11px',
+    fontWeight: '500',
+    textTransform: 'uppercase'
+  },
+  ownerBadge: {
+    display: 'inline-block',
+    backgroundColor: '#007bff',
+    color: 'white',
+    padding: '2px 8px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '500',
+    textTransform: 'uppercase'
   },
   memberEmail: {
-    color: '#6c757d',
-    fontSize: '14px'
+    fontSize: '12px',
+    color: '#6c757d'
   },
   memberMeta: {
+    fontSize: '12px',
     color: '#6c757d',
-    fontSize: '14px',
-    lineHeight: '1.4'
+    lineHeight: '1.5',
+    marginBottom: '15px'
   },
   memberActions: {
     display: 'flex',
     gap: '10px',
-    marginTop: '15px'
+    alignItems: 'center'
   },
   roleSelect: {
-    padding: '5px 10px',
+    padding: '4px 8px',
     border: '1px solid #ddd',
     borderRadius: '4px',
-    fontSize: '14px',
+    fontSize: '12px',
     backgroundColor: 'white'
   },
   dangerButton: {
     backgroundColor: '#dc3545',
     color: 'white',
     border: 'none',
-    padding: '5px 15px',
+    padding: '4px 12px',
     borderRadius: '4px',
+    fontSize: '12px',
     cursor: 'pointer',
-    fontSize: '14px'
+    transition: 'background-color 0.2s'
   },
   emptyState: {
     gridColumn: '1 / -1',
     textAlign: 'center',
-    padding: '60px 20px',
-    color: '#6c757d'
+    padding: '40px',
+    backgroundColor: '#f8f9fa',
+    borderRadius: '8px',
+    border: '1px dashed #dee2e6'
+  },
+  userActions: {
+    textAlign: 'center',
+    paddingTop: '20px',
+    borderTop: '1px solid #e9ecef'
+  },
+  leaveButton: {
+    backgroundColor: '#dc3545',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '4px',
+    fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s'
   }
 };
 
