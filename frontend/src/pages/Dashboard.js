@@ -547,7 +547,7 @@ function Dashboard() {
       {/* Header */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
-          <h1 style={styles.title}>Dashboard</h1>
+          <h1 style={styles.title}>Home</h1>
         </div>
 
         <div style={styles.headerActions}>
