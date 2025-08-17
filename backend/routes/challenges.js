@@ -1,9 +1,11 @@
 // backend/routes/challenges.js
+// Enhanced routes with alert system support
+
 const express = require('express');
 const router = express.Router();
 const { body, param, query, validationResult } = require('express-validator');
 
-// Import controllers - FIXED IMPORTS
+// Import controllers
 const {
   createChallenge,
   getChallenges,
@@ -16,88 +18,31 @@ const {
   getAttemptDetails
 } = require('../controllers/challengeController');
 
-// Import project recruitment specific controllers
+// Import enhanced project recruitment controller with alert system
 const {
   getProjectChallenge,
   canAttemptChallenge,
-  submitChallengeAttempt
+  submitChallengeAttempt,
+  getFailedAttemptsCount,
+  generateComfortingMessage
 } = require('../controllers/projectRecruitmentController');
 
-// Import middleware
-const authMiddleware = require('../middleware/auth');
+const { authMiddleware } = require('../middleware/auth');
 
-// Error handling middleware
+// Validation middleware
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Validation errors',
+      message: 'Validation failed',
       errors: errors.array()
     });
   }
   next();
 };
 
-// Validation rules
-const getChallengesValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page must be a positive integer'),
-  
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
-  
-  query('difficulty_level')
-    .optional()
-    .isIn(['easy', 'medium', 'hard', 'expert'])
-    .withMessage('Difficulty level must be easy, medium, hard, or expert'),
-  
-  query('programming_language_id')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Programming language ID must be a positive integer'),
-  
-  query('created_by')
-    .optional()
-    .custom((value) => {
-      if (value === '') return true;
-      return value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-    })
-    .withMessage('Created by must be a valid UUID'),
-  
-  query('project_id')
-    .optional()
-    .custom((value) => {
-      if (value === '' || value === 'null') return true;
-      return value.match(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
-    })
-    .withMessage('Project ID must be a valid UUID or "null"'),
-  
-  query('search')
-    .optional()
-    .custom((value) => {
-      if (value === '') return true;
-      return value.length >= 1 && value.length <= 100;
-    })
-    .withMessage('Search term must be between 1 and 100 characters')
-];
-
-const challengeIdValidation = [
-  param('id')
-    .isUUID()
-    .withMessage('Challenge ID must be a valid UUID')
-];
-
-const languageIdValidation = [
-  param('languageId')
-    .isInt({ min: 1 })
-    .withMessage('Language ID must be a positive integer')
-];
-
+// Enhanced validation for project challenge routes
 const projectChallengeValidation = [
   param('projectId')
     .isUUID()
@@ -110,90 +55,41 @@ const submitAttemptValidation = [
     .withMessage('Project ID must be a valid UUID'),
   
   body('submittedCode')
+    .isString()
     .isLength({ min: 10, max: 50000 })
     .withMessage('Submitted code must be between 10 and 50000 characters'),
   
   body('startedAt')
     .optional()
     .isISO8601()
-    .withMessage('Started at must be a valid ISO date'),
-    
+    .withMessage('Started at must be a valid ISO 8601 date'),
+  
   body('challengeId')
     .optional()
-    .custom(() => true) // Always pass - challengeId is optional for temporary challenges
-];
-
-const attemptIdValidation = [
-  param('attemptId')
     .isUUID()
-    .withMessage('Attempt ID must be a valid UUID')
+    .withMessage('Challenge ID must be a valid UUID')
 ];
 
-const createChallengeValidation = [
+// Basic challenge validation
+const challengeValidation = [
   body('title')
-    .isLength({ min: 5, max: 255 })
-    .withMessage('Title must be between 5 and 255 characters'),
+    .isString()
+    .isLength({ min: 1, max: 200 })
+    .withMessage('Title must be between 1 and 200 characters'),
   
   body('description')
-    .isLength({ min: 20, max: 10000 })
-    .withMessage('Description must be between 20 and 10000 characters'),
+    .isString()
+    .isLength({ min: 1, max: 5000 })
+    .withMessage('Description must be between 1 and 5000 characters'),
   
   body('difficulty_level')
-    .isIn(['easy', 'medium', 'hard', 'expert'])
-    .withMessage('Difficulty level must be easy, medium, hard, or expert'),
+    .isIn(['easy', 'medium', 'hard'])
+    .withMessage('Difficulty level must be easy, medium, or hard'),
   
-  body('programming_language_id')
-    .isInt({ min: 1 })
-    .withMessage('Programming language ID must be a positive integer'),
-  
-  body('time_limit_minutes')
-    .optional()
-    .isInt({ min: 1, max: 480 })
-    .withMessage('Time limit must be between 1 and 480 minutes'),
-  
-  body('project_id')
-    .optional()
-    .isUUID()
-    .withMessage('Project ID must be a valid UUID'),
-  
-  body('test_cases')
-    .optional(),
-  
-  body('starter_code')
-    .optional()
-    .isLength({ max: 10000 })
-    .withMessage('Starter code must not exceed 10000 characters'),
-  
-  body('expected_solution')
-    .optional()
-    .isLength({ max: 50000 })
-    .withMessage('Expected solution must not exceed 50000 characters')
-];
-
-const updateChallengeValidation = [
-  param('id')
-    .isUUID()
-    .withMessage('Challenge ID must be a valid UUID'),
-  
-  body('title')
-    .optional()
-    .isLength({ min: 5, max: 255 })
-    .withMessage('Title must be between 5 and 255 characters'),
-  
-  body('description')
-    .optional()
-    .isLength({ min: 20, max: 10000 })
-    .withMessage('Description must be between 20 and 10000 characters'),
-  
-  body('difficulty_level')
-    .optional()
-    .isIn(['easy', 'medium', 'hard', 'expert'])
-    .withMessage('Difficulty level must be easy, medium, hard, or expert'),
-  
-  body('programming_language_id')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Programming language ID must be a positive integer'),
+  body('programming_language')
+    .isString()
+    .isLength({ min: 1, max: 50 })
+    .withMessage('Programming language must be between 1 and 50 characters'),
   
   body('time_limit_minutes')
     .optional()
@@ -248,7 +144,7 @@ router.get('/project/:projectId/challenge',
   getProjectChallenge
 );
 
-// Check if user can attempt a project challenge
+// Check if user can attempt a project challenge (Enhanced with alert system)
 router.get('/project/:projectId/can-attempt',
   authMiddleware,
   projectChallengeValidation,
@@ -256,7 +152,7 @@ router.get('/project/:projectId/can-attempt',
   canAttemptChallenge
 );
 
-// Submit coding challenge attempt for project recruitment
+// Submit coding challenge attempt for project recruitment (Enhanced with alert system)
 router.post('/project/:projectId/attempt',
   authMiddleware,
   submitAttemptValidation,
@@ -264,89 +160,164 @@ router.post('/project/:projectId/attempt',
   submitChallengeAttempt
 );
 
+// NEW: Get user's failed attempts count for a specific project (for debugging/analytics)
+router.get('/project/:projectId/failed-attempts-count',
+  authMiddleware,
+  projectChallengeValidation,
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { projectId } = req.params;
+      const userId = req.user.id;
+
+      const failedCount = await getFailedAttemptsCount(userId, projectId);
+      const comfortingMessage = failedCount >= 7 ? 
+        generateComfortingMessage(failedCount, 'this project') : null;
+
+      res.json({
+        success: true,
+        data: {
+          failedAttemptsCount: failedCount,
+          shouldShowAlert: failedCount >= 7,
+          comfortingMessage
+        }
+      });
+    } catch (error) {
+      console.error('Error getting failed attempts count:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+        error: error.message
+      });
+    }
+  }
+);
+
 // USER-SPECIFIC ROUTES
 
 // Get user's challenge attempts with pagination
-router.get('/user/attempts',
+router.get('/attempts',
   authMiddleware,
+  [
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100')
+  ],
+  handleValidationErrors,
   getUserAttempts
 );
 
 // Get user's challenge statistics
-router.get('/user/stats',
+router.get('/stats',
   authMiddleware,
   getUserStats
 );
 
 // Get detailed information about a specific attempt
-router.get('/attempt/:attemptId',
+router.get('/attempts/:attemptId',
   authMiddleware,
-  attemptIdValidation,
+  [
+    param('attemptId')
+      .isUUID()
+      .withMessage('Attempt ID must be a valid UUID')
+  ],
   handleValidationErrors,
   getAttemptDetails
 );
 
-// LANGUAGE-SPECIFIC ROUTES
+// ADMIN/GENERIC CHALLENGE ROUTES
 
-// Get challenges by language
-router.get('/language/:languageId', 
-  languageIdValidation, 
-  handleValidationErrors, 
+// Get challenges by programming language
+router.get('/language/:language',
+  authMiddleware,
+  [
+    param('language')
+      .isString()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Language must be between 1 and 50 characters')
+  ],
+  handleValidationErrors,
   getChallengesByLanguage
 );
 
-// ============== GENERAL ROUTES (MUST COME AFTER SPECIFIC ROUTES) ==============
-
-// PUBLIC ROUTES (no authentication required)
-
-// GET /api/challenges - Get all challenges with filtering
-router.get('/', 
-  getChallengesValidation, 
-  handleValidationErrors, 
-  getChallenges
-);
-
-// Get challenge by ID (MUST BE LAST AMONG GET ROUTES)
-router.get('/:id', 
-  challengeIdValidation, 
-  handleValidationErrors, 
+// Get challenge by ID
+router.get('/:id',
+  authMiddleware,
+  [
+    param('id')
+      .isUUID()
+      .withMessage('Challenge ID must be a valid UUID')
+  ],
+  handleValidationErrors,
   getChallengeById
 );
 
-// ============== PROTECTED ROUTES (require authentication) ==============
-
-// Apply authentication to routes below this point
-router.use(authMiddleware);
-
-// POST /api/challenges - Create new challenge
-router.post('/', 
-  createChallengeValidation, 
-  handleValidationErrors, 
+// Create new challenge
+router.post('/',
+  authMiddleware,
+  challengeValidation,
+  handleValidationErrors,
   createChallenge
 );
 
-// PUT /api/challenges/:id - Update challenge
-router.put('/:id', 
-  updateChallengeValidation, 
-  handleValidationErrors, 
+// Update challenge
+router.put('/:id',
+  authMiddleware,
+  [
+    param('id')
+      .isUUID()
+      .withMessage('Challenge ID must be a valid UUID'),
+    ...challengeValidation
+  ],
+  handleValidationErrors,
   updateChallenge
 );
 
-// DELETE /api/challenges/:id - Delete challenge
-router.delete('/:id', 
-  challengeIdValidation, 
-  handleValidationErrors, 
+// Delete challenge
+router.delete('/:id',
+  authMiddleware,
+  [
+    param('id')
+      .isUUID()
+      .withMessage('Challenge ID must be a valid UUID')
+  ],
+  handleValidationErrors,
   deleteChallenge
 );
 
-// Error handling middleware (should be last)
-router.use((err, req, res, next) => {
-  console.error('Challenge routes error:', err);
-  res.status(500).json({
-    success: false,
-    message: 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
-});
+// Get all challenges (must be last to avoid conflicts)
+router.get('/',
+  authMiddleware,
+  [
+    query('page')
+      .optional()
+      .isInt({ min: 1 })
+      .withMessage('Page must be a positive integer'),
+    
+    query('limit')
+      .optional()
+      .isInt({ min: 1, max: 100 })
+      .withMessage('Limit must be between 1 and 100'),
+    
+    query('difficulty')
+      .optional()
+      .isIn(['easy', 'medium', 'hard'])
+      .withMessage('Difficulty must be easy, medium, or hard'),
+    
+    query('language')
+      .optional()
+      .isString()
+      .isLength({ min: 1, max: 50 })
+      .withMessage('Language must be between 1 and 50 characters')
+  ],
+  handleValidationErrors,
+  getChallenges
+);
 
 module.exports = router;

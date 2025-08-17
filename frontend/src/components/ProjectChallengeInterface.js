@@ -1,7 +1,8 @@
-// Fixed Project Challenge Interface - Based on Working Reference
+// Enhanced Project Challenge Interface - Based on Working Reference + Alert System
 // frontend/src/components/ProjectChallengeInterface.js
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ChallengeFailureAlert from './ChallengeFailureAlert';
 
 const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
   const [challenge, setChallenge] = useState(null);
@@ -15,6 +16,10 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
   const [canAttempt, setCanAttempt] = useState(null);
   const [showHints, setShowHints] = useState(false);
   const [codeValidation, setCodeValidation] = useState(null);
+
+  // NEW: Alert system state
+  const [alertData, setAlertData] = useState(null);
+  const [showAlert, setShowAlert] = useState(false);
 
   // Use ref to avoid stale closure issues
   const handleSubmitRef = useRef();
@@ -85,7 +90,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     setCodeValidation(validation);
   }, []);
 
-  // Check if user can attempt challenge (SAME AS WORKING VERSION)
+  // Check if user can attempt challenge (ENHANCED WITH ALERT DETECTION)
   const checkCanAttempt = useCallback(async () => {
     try {
       console.log('Checking if user can attempt challenge...');
@@ -104,6 +109,12 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
       console.log('Can-attempt result:', data);
       
       setCanAttempt(data);
+      
+      // NEW: Check for alert data in response
+      if (data.alertData && data.alertData.shouldShow) {
+        setAlertData(data.alertData);
+        setShowAlert(true);
+      }
       
       if (!data.canAttempt) {
         setLoading(false);
@@ -169,7 +180,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     console.log('Challenge started at:', now.toISOString());
   }, [challenge]);
 
-  // Handle challenge submission (SAME AS WORKING VERSION)
+  // Handle challenge submission (ENHANCED WITH ALERT DETECTION)
   const handleSubmit = useCallback(async () => {
     if (!submittedCode.trim()) {
       alert('Please write your solution before submitting.');
@@ -211,6 +222,12 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
       
       setResult(data.data);
       
+      // NEW: Check for alert data in failed attempts
+      if (data.data.alertData && data.data.alertData.shouldShow && !data.data.passed) {
+        setAlertData(data.data.alertData);
+        setShowAlert(true);
+      }
+      
       // Show success/failure message
       if (data.data.projectJoined) {
         // Store success event for other tabs to detect
@@ -234,7 +251,10 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
       } else if (data.data.passed) {
         alert('✅ Great! You passed the challenge!');
       } else {
-        alert(`❌ Challenge not passed. Score: ${data.data.score}%. Keep practicing!`);
+        // Don't show alert here if alert system will handle it
+        if (!data.data.alertData || !data.data.alertData.shouldShow) {
+          alert(`❌ Challenge not passed. Score: ${data.data.score}%. Keep practicing!`);
+        }
       }
       
     } catch (err) {
@@ -301,6 +321,22 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     const newCode = e.target.value;
     setSubmittedCode(newCode);
     validateCodeRealTime(newCode);
+  };
+
+  // NEW: Alert system handlers
+  const handleAlertClose = () => {
+    setShowAlert(false);
+    setAlertData(null);
+  };
+
+  const handleAlertContinue = () => {
+    setShowAlert(false);
+    // Reset the form for another attempt
+    setResult(null);
+    setError(null);
+    if (challenge?.challenge?.time_limit_minutes && !startedAt) {
+      setTimeRemaining(challenge.challenge.time_limit_minutes * 60);
+    }
   };
 
   // Format time helper - UPDATED: Handle both minutes and seconds
@@ -708,28 +744,40 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     );
   }
 
-  // Cannot attempt state (SAME AS WORKING VERSION)
+  // Cannot attempt state (ENHANCED WITH ALERT SUPPORT)
   if (canAttempt && !canAttempt.canAttempt) {
     return (
-      <div style={styles.container}>
-        <div style={styles.modal}>
-          <div style={styles.centerContent}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-            <h3>Cannot Attempt Challenge</h3>
-            <p>{canAttempt.reason}</p>
-            {canAttempt.nextAttemptAt && (
-              <p style={{ fontSize: '12px' }}>
-                Next attempt available: {new Date(canAttempt.nextAttemptAt).toLocaleString()}
-              </p>
-            )}
-            {onClose && (
-              <button onClick={onClose} style={{ ...styles.button, ...styles.secondaryButton }}>
-                Close
-              </button>
-            )}
+      <>
+        <div style={styles.container}>
+          <div style={styles.modal}>
+            <div style={styles.centerContent}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+              <h3>Cannot Attempt Challenge</h3>
+              <p>{canAttempt.reason}</p>
+              {canAttempt.nextAttemptAt && (
+                <p style={{ fontSize: '12px' }}>
+                  Next attempt available: {new Date(canAttempt.nextAttemptAt).toLocaleString()}
+                </p>
+              )}
+              {onClose && (
+                <button onClick={onClose} style={{ ...styles.button, ...styles.secondaryButton }}>
+                  Close
+                </button>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+        
+        {/* NEW: Show alert even when cannot attempt */}
+        {showAlert && alertData && (
+          <ChallengeFailureAlert
+            alertData={alertData}
+            onClose={handleAlertClose}
+            onContinue={handleAlertContinue}
+            projectTitle={challenge?.project?.title || 'this project'}
+          />
+        )}
+      </>
     );
   }
 
@@ -753,393 +801,405 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
     );
   }
 
-  // Main challenge interface (UPDATED with input restriction and overlay)
+  // Main challenge interface (ENHANCED WITH ALERT SUPPORT)
   return (
-    <div style={styles.container}>
-      <div style={styles.modal}>
-        {/* Header */}
-        <div style={styles.header}>
-          <div style={styles.headerContent}>
-            <h1 style={styles.title}>Join "{challenge.project?.title || 'Project'}"</h1>
-            <p style={styles.subtitle}>Complete this coding challenge to join the project</p>
-          </div>
-          {onClose && (
-            <button onClick={onClose} style={styles.closeIcon}>×</button>
-          )}
-        </div>
-
-        <div style={styles.content}>
-          {/* Challenge Info Cards */}
-          <div style={styles.infoGrid}>
-            <div style={styles.infoCard}>
-              <div style={styles.infoLabel}>Difficulty</div>
-              <div style={{
-                ...styles.infoValue, 
-                color: getDifficultyColor(challenge.challenge?.difficulty_level)
-              }}>
-                {challenge.challenge?.difficulty_level || 'Medium'}
-              </div>
+    <>
+      <div style={styles.container}>
+        <div style={styles.modal}>
+          {/* Header */}
+          <div style={styles.header}>
+            <div style={styles.headerContent}>
+              <h1 style={styles.title}>Join "{challenge.project?.title || 'Project'}"</h1>
+              <p style={styles.subtitle}>Complete this coding challenge to join the project</p>
             </div>
-            
-            <div style={styles.infoCard}>
-              <div style={styles.infoLabel}>Language</div>
-              <div style={styles.infoValue}>
-                {challenge.challenge?.programming_languages?.name || 
-                 challenge.project?.primaryLanguage || 
-                 'JavaScript'}
-              </div>
-            </div>
-            
-            <div style={styles.infoCard}>
-              <div style={styles.infoLabel}>Time Limit</div>
-              <div style={styles.infoValue}>
-                {formatTime(challenge.challenge?.time_limit_minutes)}
-              </div>
-            </div>
+            {onClose && (
+              <button onClick={onClose} style={styles.closeIcon}>×</button>
+            )}
           </div>
 
-          {/* Timer - UPDATED: Color warning at 5 minutes (300 seconds) */}
-          {startedAt && timeRemaining !== null && (
-            <div style={styles.timerContainer}>
-              <div style={styles.timerContent}>
-                <span style={styles.timerLabel}>Time Remaining:</span>
-                <span style={{
-                  ...styles.timerValue,
-                  color: timeRemaining <= 300 ? '#dc3545' : '#28a745'
+          <div style={styles.content}>
+            {/* Challenge Info Cards */}
+            <div style={styles.infoGrid}>
+              <div style={styles.infoCard}>
+                <div style={styles.infoLabel}>Difficulty</div>
+                <div style={{
+                  ...styles.infoValue, 
+                  color: getDifficultyColor(challenge.challenge?.difficulty_level)
                 }}>
-                  {formatTime(timeRemaining)}
-                </span>
+                  {challenge.challenge?.difficulty_level || 'Medium'}
+                </div>
+              </div>
+              
+              <div style={styles.infoCard}>
+                <div style={styles.infoLabel}>Language</div>
+                <div style={styles.infoValue}>
+                  {challenge.challenge?.programming_languages?.name || 
+                   challenge.project?.primaryLanguage || 
+                   'JavaScript'}
+                </div>
+              </div>
+              
+              <div style={styles.infoCard}>
+                <div style={styles.infoLabel}>Time Limit</div>
+                <div style={styles.infoValue}>
+                  {formatTime(challenge.challenge?.time_limit_minutes)}
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Challenge Description */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>📋 Challenge Description</h3>
-            <div style={styles.descriptionBox}>
-              <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                {challenge.challenge?.description || 'No description available.'}
-              </pre>
-            </div>
-          </div>
+            {/* Timer - UPDATED: Color warning at 5 minutes (300 seconds) */}
+            {startedAt && timeRemaining !== null && (
+              <div style={styles.timerContainer}>
+                <div style={styles.timerContent}>
+                  <span style={styles.timerLabel}>Time Remaining:</span>
+                  <span style={{
+                    ...styles.timerValue,
+                    color: timeRemaining <= 300 ? '#dc3545' : '#28a745'
+                  }}>
+                    {formatTime(timeRemaining)}
+                  </span>
+                </div>
+              </div>
+            )}
 
-          {/* Test Cases */}
-          {challenge.challenge?.test_cases && (
+            {/* Challenge Description */}
             <div style={styles.section}>
-              <h3 style={styles.sectionTitle}>🧪 Test Cases</h3>
-              <div style={styles.testCasesBox}>
-                <pre style={{ margin: 0, fontSize: '13px', fontFamily: 'Monaco, Consolas, monospace' }}>
-                  {typeof challenge.challenge.test_cases === 'string' 
-                    ? challenge.challenge.test_cases 
-                    : JSON.stringify(challenge.challenge.test_cases, null, 2)
-                  }
+              <h3 style={styles.sectionTitle}>📋 Challenge Description</h3>
+              <div style={styles.descriptionBox}>
+                <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
+                  {challenge.challenge?.description || 'No description available.'}
                 </pre>
               </div>
             </div>
-          )}
 
-          {/* Hints */}
-          <div style={styles.hintSection}>
-            <button 
-              onClick={() => setShowHints(!showHints)}
-              style={styles.hintToggle}
-            >
-              💡 {showHints ? 'Hide' : 'Show'} Hints
-              <span>{showHints ? '▲' : '▼'}</span>
-            </button>
-            {showHints && (
-              <div style={styles.hintContent}>
-                <ul>
-                  <li>Read the requirements carefully before starting</li>
-                  <li>Make sure your solution handles all test cases</li>
-                  <li>Include proper function definitions and logic</li>
-                  <li>Add comments to explain your approach</li>
-                  <li>Test your solution with the provided examples</li>
-                  <li>Use appropriate variable names and code structure</li>
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* Code Editor - UPDATED: Disabled until challenge starts with overlay */}
-          <div style={{ ...styles.section, position: 'relative' }}>
-            <h3 style={styles.sectionTitle}>💻 Your Solution</h3>
-            <div style={{ position: 'relative' }}>
-              <textarea
-                value={submittedCode}
-                onChange={handleCodeChange}
-                style={{
-                  ...styles.codeEditor,
-                  ...((!startedAt || isSubmitting || (result && result.passed)) ? {
-                    backgroundColor: '#f8f9fa',
-                    cursor: 'not-allowed',
-                    color: '#6c757d'
-                  } : {})
-                }}
-                placeholder={!startedAt ? "Click 'Start Challenge' to begin coding..." : "Write your solution here..."}
-                disabled={!startedAt || isSubmitting || (result && result.passed)}
-              />
-              
-              {/* Disabled overlay when challenge hasn't started */}
-              {!startedAt && (
-                <div style={styles.disabledOverlay}>
-                  <div style={styles.disabledMessage}>
-                    <span style={{ fontSize: '24px', marginBottom: '8px' }}>🔒</span>
-                    <p>Start the challenge to begin coding</p>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Real-time Code Validation - Only show when challenge started */}
-            {startedAt && codeValidation && (
-              <div style={styles.validationPanel}>
-                <div style={styles.validationLeft}>
-                  <div style={styles.validationItem}>
-                    <span>{codeValidation.hasFunction ? '✅' : '❌'}</span>
-                    <span>Function</span>
-                  </div>
-                  <div style={styles.validationItem}>
-                    <span>{codeValidation.hasLogic ? '✅' : '❌'}</span>
-                    <span>Logic</span>
-                  </div>
-                  <div style={styles.validationItem}>
-                    <span>{codeValidation.hasReturn ? '✅' : '❌'}</span>
-                    <span>Return</span>
-                  </div>
-                  <div style={styles.validationItem}>
-                    <span>{codeValidation.hasComments ? '✅' : '❌'}</span>
-                    <span>Comments</span>
-                  </div>
-                  {codeValidation.isPlaceholder && (
-                    <div style={styles.validationItem}>
-                      <span>⚠️</span>
-                      <span>Placeholder detected</span>
-                    </div>
-                  )}
-                </div>
-                <div style={{
-                  ...styles.validationScore,
-                  backgroundColor: getValidationScoreColor()
-                }}>
-                  ~{codeValidation.estimatedScore}%
+            {/* Test Cases */}
+            {challenge.challenge?.test_cases && (
+              <div style={styles.section}>
+                <h3 style={styles.sectionTitle}>🧪 Test Cases</h3>
+                <div style={styles.testCasesBox}>
+                  <pre style={{ margin: 0, fontSize: '13px', fontFamily: 'Monaco, Consolas, monospace' }}>
+                    {typeof challenge.challenge.test_cases === 'string' 
+                      ? challenge.challenge.test_cases 
+                      : JSON.stringify(challenge.challenge.test_cases, null, 2)
+                    }
+                  </pre>
                 </div>
               </div>
             )}
-            
-            <div style={styles.characterCount}>
-              Characters: {submittedCode.length} | Lines: {submittedCode.split('\n').length}
-            </div>
-          </div>
 
-          {/* Error Display */}
-          {error && (
-            <div style={styles.errorBox}>
-              <strong>⚠️ Error:</strong> {error}
-            </div>
-          )}
-
-          {/* Result Display (SAME AS WORKING VERSION) */}
-          {result && (
-            <div style={{
-              ...styles.resultBox,
-              backgroundColor: result.passed ? '#d4edda' : '#f8d7da',
-              borderColor: result.passed ? '#c3e6cb' : '#f5c6cb',
-              color: result.passed ? '#155724' : '#721c24'
-            }}>
-              <div style={styles.resultHeader}>
-                <span style={styles.resultTitle}>
-                  {result.passed ? '🎉 Challenge Passed!' : '❌ Challenge Not Passed'}
-                </span>
-                <span style={styles.resultScore}>
-                  {result.score}%
-                </span>
-              </div>
-              
-              {result.feedback && (
-                <p style={styles.resultFeedback}>{result.feedback}</p>
-              )}
-              
-              {result.projectJoined && (
-                <div style={styles.joinedNotice}>
-                  <p style={styles.joinedText}>
-                    🎉 Congratulations! You have been added to the project as a member.
-                    You can now access the project workspace and collaborate with the team.
-                  </p>
-                </div>
-              )}
-
-              {result.evaluation && result.evaluation.details && (
-                <div style={{
-                  marginTop: '16px',
-                  padding: '16px',
-                  backgroundColor: 'rgba(0,0,0,0.05)',
-                  borderRadius: '8px'
-                }}>
-                  <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
-                    📊 Evaluation Breakdown:
-                  </p>
-                  <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
-                      {result.evaluation.details.hasFunction ? '✅' : '❌'} 
-                      Function Definition (25 pts)
-                    </li>
-                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
-                      {result.evaluation.details.hasLogic ? '✅' : '❌'} 
-                      Control Structures & Logic (20 pts)
-                    </li>
-                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
-                      {result.evaluation.details.languageMatch ? '✅' : '❌'} 
-                      Language Syntax Match (20 pts)
-                    </li>
-                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
-                      {result.evaluation.details.properStructure ? '✅' : '❌'} 
-                      Code Structure (10 pts)
-                    </li>
-                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
-                      {result.evaluation.details.hasComments ? '✅' : '❌'} 
-                      Comments & Documentation (10 pts)
-                    </li>
-                    <li style={{ fontSize: '14px', margin: '6px 0' }}>
-                      📈 Complexity Score: {result.evaluation.details.complexity * 3}/15 pts
-                    </li>
+            {/* Hints */}
+            <div style={styles.hintSection}>
+              <button 
+                onClick={() => setShowHints(!showHints)}
+                style={styles.hintToggle}
+              >
+                💡 {showHints ? 'Hide' : 'Show'} Hints
+                <span>{showHints ? '▲' : '▼'}</span>
+              </button>
+              {showHints && (
+                <div style={styles.hintContent}>
+                  <ul>
+                    <li>Read the requirements carefully before starting</li>
+                    <li>Make sure your solution handles all test cases</li>
+                    <li>Include proper function definitions and logic</li>
+                    <li>Add comments to explain your approach</li>
+                    <li>Test your solution with the provided examples</li>
+                    <li>Use appropriate variable names and code structure</li>
                   </ul>
                 </div>
               )}
+            </div>
 
-              {!result.passed && (
-                <div style={{ marginTop: '16px', textAlign: 'center' }}>
-                  <button 
-                    onClick={() => {
-                      setResult(null);
-                      setError(null);
-                      // Reset timer if needed
-                      if (challenge?.challenge?.time_limit_minutes && !startedAt) {
-                        setTimeRemaining(challenge.challenge.time_limit_minutes);
-                      }
-                    }}
-                    style={{ ...styles.button, ...styles.retryButton }}
-                  >
-                    🔄 Try Again
-                  </button>
+            {/* Code Editor - UPDATED: Disabled until challenge starts with overlay */}
+            <div style={{ ...styles.section, position: 'relative' }}>
+              <h3 style={styles.sectionTitle}>💻 Your Solution</h3>
+              <div style={{ position: 'relative' }}>
+                <textarea
+                  value={submittedCode}
+                  onChange={handleCodeChange}
+                  style={{
+                    ...styles.codeEditor,
+                    ...((!startedAt || isSubmitting || (result && result.passed)) ? {
+                      backgroundColor: '#f8f9fa',
+                      cursor: 'not-allowed',
+                      color: '#6c757d'
+                    } : {})
+                  }}
+                  placeholder={!startedAt ? "Click 'Start Challenge' to begin coding..." : "Write your solution here..."}
+                  disabled={!startedAt || isSubmitting || (result && result.passed)}
+                />
+                
+                {/* Disabled overlay when challenge hasn't started */}
+                {!startedAt && (
+                  <div style={styles.disabledOverlay}>
+                    <div style={styles.disabledMessage}>
+                      <span style={{ fontSize: '24px', marginBottom: '8px' }}>🔒</span>
+                      <p>Start the challenge to begin coding</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Real-time Code Validation - Only show when challenge started */}
+              {startedAt && codeValidation && (
+                <div style={styles.validationPanel}>
+                  <div style={styles.validationLeft}>
+                    <div style={styles.validationItem}>
+                      <span>{codeValidation.hasFunction ? '✅' : '❌'}</span>
+                      <span>Function</span>
+                    </div>
+                    <div style={styles.validationItem}>
+                      <span>{codeValidation.hasLogic ? '✅' : '❌'}</span>
+                      <span>Logic</span>
+                    </div>
+                    <div style={styles.validationItem}>
+                      <span>{codeValidation.hasReturn ? '✅' : '❌'}</span>
+                      <span>Return</span>
+                    </div>
+                    <div style={styles.validationItem}>
+                      <span>{codeValidation.hasComments ? '✅' : '❌'}</span>
+                      <span>Comments</span>
+                    </div>
+                    {codeValidation.isPlaceholder && (
+                      <div style={styles.validationItem}>
+                        <span>⚠️</span>
+                        <span>Placeholder detected</span>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{
+                    ...styles.validationScore,
+                    backgroundColor: getValidationScoreColor()
+                  }}>
+                    ~{codeValidation.estimatedScore}%
+                  </div>
                 </div>
               )}
+              
+              <div style={styles.characterCount}>
+                Characters: {submittedCode.length} | Lines: {submittedCode.split('\n').length}
+              </div>
             </div>
-          )}
 
-          {/* Action Buttons (SAME AS WORKING VERSION) */}
-          <div style={styles.actionButtons}>
-            {!startedAt && !result && (
-              <>
-                <button 
-                  onClick={onClose}
-                  style={{ ...styles.button, ...styles.secondaryButton }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleStartChallenge}
-                  disabled={loading || isSubmitting}
-                  style={{
-                    ...styles.button,
-                    ...styles.primaryButton,
-                    ...(loading || isSubmitting ? styles.disabledButton : {})
-                  }}
-                >
-                  🚀 Start Challenge
-                </button>
-              </>
+            {/* Error Display */}
+            {error && (
+              <div style={styles.errorBox}>
+                <strong>⚠️ Error:</strong> {error}
+              </div>
             )}
 
-            {startedAt && !result && (
-              <>
-                <button 
-                  onClick={onClose}
-                  style={{ ...styles.button, ...styles.secondaryButton }}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || !submittedCode.trim() || submittedCode.trim().length < 10}
-                  style={{
-                    ...styles.button,
-                    ...styles.primaryButton,
-                    ...(isSubmitting || !submittedCode.trim() || submittedCode.trim().length < 10 ? styles.disabledButton : {})
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <span style={{
-                        display: 'inline-block',
-                        width: '16px',
-                        height: '16px',
-                        border: '2px solid transparent',
-                        borderTop: '2px solid white',
-                        borderRadius: '50%',
-                        animation: 'spin 1s linear infinite',
-                        marginRight: '8px'
-                      }}></span>
-                      Submitting...
-                    </>
-                  ) : (
-                    '📤 Submit Solution'
-                  )}
-                </button>
-              </>
-            )}
-
+            {/* Result Display (SAME AS WORKING VERSION) */}
             {result && (
-              <button 
-                onClick={onClose}
-                style={{ ...styles.button, ...styles.primaryButton }}
-              >
-                {result.projectJoined ? '🎉 Go to Project' : 'Close'}
-              </button>
+              <div style={{
+                ...styles.resultBox,
+                backgroundColor: result.passed ? '#d4edda' : '#f8d7da',
+                borderColor: result.passed ? '#c3e6cb' : '#f5c6cb',
+                color: result.passed ? '#155724' : '#721c24'
+              }}>
+                <div style={styles.resultHeader}>
+                  <span style={styles.resultTitle}>
+                    {result.passed ? '🎉 Challenge Passed!' : '❌ Challenge Not Passed'}
+                  </span>
+                  <span style={styles.resultScore}>
+                    {result.score}%
+                  </span>
+                </div>
+                
+                {result.feedback && (
+                  <p style={styles.resultFeedback}>{result.feedback}</p>
+                )}
+                
+                {result.projectJoined && (
+                  <div style={styles.joinedNotice}>
+                    <p style={styles.joinedText}>
+                      🎉 Congratulations! You have been added to the project as a member.
+                      You can now access the project workspace and collaborate with the team.
+                    </p>
+                  </div>
+                )}
+
+                {result.evaluation && result.evaluation.details && (
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '16px',
+                    backgroundColor: 'rgba(0,0,0,0.05)',
+                    borderRadius: '8px'
+                  }}>
+                    <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 12px 0' }}>
+                      📊 Evaluation Breakdown:
+                    </p>
+                    <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                      <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                        {result.evaluation.details.hasFunction ? '✅' : '❌'} 
+                        Function Definition (25 pts)
+                      </li>
+                      <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                        {result.evaluation.details.hasLogic ? '✅' : '❌'} 
+                        Control Structures & Logic (20 pts)
+                      </li>
+                      <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                        {result.evaluation.details.languageMatch ? '✅' : '❌'} 
+                        Language Syntax Match (20 pts)
+                      </li>
+                      <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                        {result.evaluation.details.properStructure ? '✅' : '❌'} 
+                        Code Structure (10 pts)
+                      </li>
+                      <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                        {result.evaluation.details.hasComments ? '✅' : '❌'} 
+                        Comments & Documentation (10 pts)
+                      </li>
+                      <li style={{ fontSize: '14px', margin: '6px 0' }}>
+                        📈 Complexity Score: {result.evaluation.details.complexity * 3}/15 pts
+                      </li>
+                    </ul>
+                  </div>
+                )}
+
+                {!result.passed && (
+                  <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                    <button 
+                      onClick={() => {
+                        setResult(null);
+                        setError(null);
+                        // Reset timer if needed
+                        if (challenge?.challenge?.time_limit_minutes && !startedAt) {
+                          setTimeRemaining(challenge.challenge.time_limit_minutes * 60);
+                        }
+                      }}
+                      style={{ ...styles.button, ...styles.retryButton }}
+                    >
+                      🔄 Try Again
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
+
+            {/* Action Buttons (SAME AS WORKING VERSION) */}
+            <div style={styles.actionButtons}>
+              {!startedAt && !result && (
+                <>
+                  <button 
+                    onClick={onClose}
+                    style={{ ...styles.button, ...styles.secondaryButton }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleStartChallenge}
+                    disabled={loading || isSubmitting}
+                    style={{
+                      ...styles.button,
+                      ...styles.primaryButton,
+                      ...(loading || isSubmitting ? styles.disabledButton : {})
+                    }}
+                  >
+                    🚀 Start Challenge
+                  </button>
+                </>
+              )}
+
+              {startedAt && !result && (
+                <>
+                  <button 
+                    onClick={onClose}
+                    style={{ ...styles.button, ...styles.secondaryButton }}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || !submittedCode.trim() || submittedCode.trim().length < 10}
+                    style={{
+                      ...styles.button,
+                      ...styles.primaryButton,
+                      ...(isSubmitting || !submittedCode.trim() || submittedCode.trim().length < 10 ? styles.disabledButton : {})
+                    }}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <span style={{
+                          display: 'inline-block',
+                          width: '16px',
+                          height: '16px',
+                          border: '2px solid transparent',
+                          borderTop: '2px solid white',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite',
+                          marginRight: '8px'
+                        }}></span>
+                        Submitting...
+                      </>
+                    ) : (
+                      '📤 Submit Solution'
+                    )}
+                  </button>
+                </>
+              )}
+
+              {result && (
+                <button 
+                  onClick={onClose}
+                  style={{ ...styles.button, ...styles.primaryButton }}
+                >
+                  {result.projectJoined ? '🎉 Go to Project' : 'Close'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* CSS Animations (SAME AS WORKING VERSION) */}
+        <style jsx>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          textarea:focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+          }
+          
+          button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+          
+          button:disabled {
+            cursor: not-allowed !important;
+            transform: none !important;
+          }
+          
+          .result-box {
+            animation: slideIn 0.3s ease-out;
+          }
+          
+          @keyframes slideIn {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
       </div>
 
-      {/* CSS Animations (SAME AS WORKING VERSION) */}
-      <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        
-        textarea:focus {
-          border-color: #667eea !important;
-          box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-        }
-        
-        button:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-        
-        button:disabled {
-          cursor: not-allowed !important;
-          transform: none !important;
-        }
-        
-        .result-box {
-          animation: slideIn 0.3s ease-out;
-        }
-        
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-    </div>
+      {/* NEW: Challenge Failure Alert */}
+      {showAlert && alertData && (
+        <ChallengeFailureAlert
+          alertData={alertData}
+          onClose={handleAlertClose}
+          onContinue={handleAlertContinue}
+          projectTitle={challenge?.project?.title || 'this project'}
+        />
+      )}
+    </>
   );
 };
 
