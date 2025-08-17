@@ -11,6 +11,7 @@ function ProjectMembers() {
   const [memberData, setMemberData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
 
   // Check if current user is the project owner
   const isOwner = project?.owner_id === user?.id;
@@ -42,6 +43,36 @@ function ProjectMembers() {
 
     fetchData();
   }, [projectId]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.member-menu')) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  // Toggle menu visibility
+  const toggleMenu = (memberId) => {
+    setOpenMenuId(openMenuId === memberId ? null : memberId);
+  };
+
+  // Handle add friend
+  const handleAddFriend = (userId, userName) => {
+    setOpenMenuId(null);
+    console.log('Add friend:', userId, userName);
+    alert(`Friend request sent to ${userName}`);
+  };
+
+  // Handle report user
+  const handleReportUser = (userId, userName) => {
+    setOpenMenuId(null);
+    console.log('Report user:', userId, userName);
+    alert(`Report submitted for ${userName}`);
+  };
 
   // Update member role
   const handleUpdateRole = async (memberId, newRole) => {
@@ -174,6 +205,33 @@ function ProjectMembers() {
                 </div>
                 <div style={styles.memberEmail}>{owner.email}</div>
               </div>
+              {/* Three dots menu for owner */}
+              {user?.id !== owner.id && (
+                <div className="member-menu" style={styles.menuContainer}>
+                  <button
+                    style={styles.menuButton}
+                    onClick={() => toggleMenu(`owner-${owner.id}`)}
+                  >
+                    ⋮
+                  </button>
+                  {openMenuId === `owner-${owner.id}` && (
+                    <div style={styles.menuDropdown}>
+                      <button
+                        style={styles.menuItem}
+                        onClick={() => handleAddFriend(owner.id, owner.full_name || owner.username)}
+                      >
+                        Add Friend
+                      </button>
+                      <button
+                        style={styles.menuItem}
+                        onClick={() => handleReportUser(owner.id, owner.full_name || owner.username)}
+                      >
+                        Report User
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div style={styles.memberMeta}>
               <div>GitHub: {owner.github_username || 'Not provided'}</div>
@@ -200,6 +258,33 @@ function ProjectMembers() {
                 </div>
                 <div style={styles.memberEmail}>{member.users?.email}</div>
               </div>
+              {/* Three dots menu for member */}
+              {user?.id !== member.user_id && (
+                <div className="member-menu" style={styles.menuContainer}>
+                  <button
+                    style={styles.menuButton}
+                    onClick={() => toggleMenu(member.id)}
+                  >
+                    ⋮
+                  </button>
+                  {openMenuId === member.id && (
+                    <div style={styles.menuDropdown}>
+                      <button
+                        style={styles.menuItem}
+                        onClick={() => handleAddFriend(member.user_id, member.users?.full_name || member.users?.username)}
+                      >
+                        Add Friend
+                      </button>
+                      <button
+                        style={styles.menuItem}
+                        onClick={() => handleReportUser(member.user_id, member.users?.full_name || member.users?.username)}
+                      >
+                        Report User
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div style={styles.memberMeta}>
               <div>GitHub: {member.users?.github_username || 'Not provided'}</div>
@@ -447,6 +532,43 @@ const styles = {
     padding: '10px 20px',
     borderRadius: '4px',
     fontSize: '14px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s'
+  },
+  menuContainer: {
+    position: 'relative',
+    marginLeft: 'auto'
+  },
+  menuButton: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    fontSize: '18px',
+    color: '#6c757d',
+    cursor: 'pointer',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    transition: 'background-color 0.2s'
+  },
+  menuDropdown: {
+    position: 'absolute',
+    top: '100%',
+    right: '0',
+    backgroundColor: 'white',
+    border: '1px solid #e9ecef',
+    borderRadius: '4px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    zIndex: 1000,
+    minWidth: '120px'
+  },
+  menuItem: {
+    display: 'block',
+    width: '100%',
+    padding: '8px 12px',
+    backgroundColor: 'transparent',
+    border: 'none',
+    textAlign: 'left',
+    fontSize: '12px',
+    color: '#343a40',
     cursor: 'pointer',
     transition: 'background-color 0.2s'
   }
