@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { projectService } from '../../services/projectService';
+import { friendsService } from '../../services/friendsService';
 
 function ProjectMembers() {
   const { projectId } = useParams();
@@ -61,11 +62,27 @@ function ProjectMembers() {
   };
 
   // Handle add friend
-  const handleAddFriend = (userId, userName) => {
-    setOpenMenuId(null);
-    console.log('Add friend:', userId, userName);
-    alert(`Friend request sent to ${userName}`);
-  };
+  const handleAddFriend = async (userId, userName) => {
+  setOpenMenuId(null);
+  
+  try {
+    console.log('Adding friend:', userId, userName);
+    
+    const response = await friendsService.sendFriendRequest(userId);
+    
+    if (response.success) {
+      // Show success message
+      alert(`Friend request sent to ${userName}!`);
+    } else {
+      alert(response.message || 'Failed to send friend request');
+    }
+  } catch (error) {
+    console.error('Error sending friend request:', error);
+    
+    const errorMessage = error.response?.data?.message || 'Failed to send friend request';
+    alert(errorMessage);
+  }
+};
 
   // Handle report user
   const handleReportUser = (userId, userName) => {

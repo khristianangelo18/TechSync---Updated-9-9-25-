@@ -24,6 +24,8 @@ const projectMemberRoutes = require('./routes/projectMembers');
 const commentsRoutes = require('./routes/comments');
 const notificationsRoutes = require('./routes/notifications');
 const githubRoutes = require('./routes/github');
+const friendsRoutes = require('./routes/friends');
+
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -139,6 +141,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/friends', friendsRoutes);
 
 // 2. Project-nested routes - FIXED: Mount under /api/projects
 // These routes handle: /api/projects/:projectId/tasks/* and /api/projects/:projectId/members/*

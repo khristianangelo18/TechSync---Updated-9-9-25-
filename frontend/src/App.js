@@ -26,7 +26,7 @@ import ProjectFiles from './pages/project/ProjectFiles';
 import ProjectMembers from './pages/project/ProjectMembers';
 
 // Placeholder components for missing pages
-const Friends = () => <div style={{ padding: '30px' }}>Friends feature coming soon...</div>;
+import Friends from './pages/Friends';
 const Learns = () => <div style={{ padding: '30px' }}>Learning resources coming soon...</div>;
 const Help = () => <div style={{ padding: '30px' }}>Help center coming soon...</div>;
 
