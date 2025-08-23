@@ -1,6 +1,8 @@
 // frontend/src/components/ProjectChallengeInterface.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ChallengeFailureAlert from './ChallengeFailureAlert';
+import TestResultsPanel from './TestResultsPanel';
+import ChallengeHints from './ChallengeHints';
 
 const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
   const [challenge, setChallenge] = useState(null);
@@ -41,17 +43,28 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
 
   // Helper function to handle API responses
   const handleApiResponse = useCallback(async (response, actionName) => {
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const textResponse = await response.text();
-      throw new Error(`Server returned non-JSON response for ${actionName}.`);
-    }
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || `${actionName} failed`);
-    }
-    return data;
-  }, []);
+  console.log(`${actionName} response status:`, response.status);
+  console.log(`${actionName} response headers:`, [...response.headers.entries()]);
+
+  const contentType = response.headers.get('content-type');
+  console.log(`${actionName} Content-Type:`, contentType);
+
+  if (!contentType || !contentType.includes('application/json')) {
+    // Inline preview; no unused variable
+    const preview = (await response.text()).slice(0, 500);
+    console.error(`${actionName} - Expected JSON, got: ${preview}`);
+    throw new Error(`Server returned HTML instead of JSON. Check if backend is running on port 5000.`);
+  }
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error(`${actionName} error:`, data);
+    throw new Error(data.message || `${actionName} failed`);
+  }
+
+  return data;
+}, []);
 
   // Real-time code validation
   const validateCodeRealTime = useCallback((code) => {
@@ -597,6 +610,11 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
               </div>
             </div>
 
+            <ChallengeHints
+              rawTestCases={challenge.challenge?.test_cases}
+              failedAttempts={canAttempt?.failedAttemptsCount || 0}
+            />
+
             {/* Test Cases */}
             {challenge.challenge?.test_cases && (
               <div style={styles.section}>
@@ -626,6 +644,7 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
                     <li>Add comments to explain your approach</li>
                     <li>Test your solution with the provided examples</li>
                     <li>Use appropriate variable names and code structure</li>
+                    <li>Print exactly one JSON object to STDOUT (no extra logs). Whitespace/key order are ignored.</li>
                   </ul>
                 </div>
               )}
@@ -760,6 +779,12 @@ const ProjectChallengeInterface = ({ projectId, onClose, onSuccess }) => {
                     </ul>
                   </div>
                 )}
+                 
+                 {result.evaluation &&
+                    Array.isArray(result.evaluation.testResults) &&
+                    result.evaluation.testResults.length > 0 && (
+                      <TestResultsPanel tests={result.evaluation.testResults} />
+                  )}
 
                 {!result.passed && (
                   <div style={{ marginTop: '16px', textAlign: 'center' }}>
