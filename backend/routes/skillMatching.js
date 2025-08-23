@@ -8,22 +8,28 @@ const skillMatching = require('../services/SkillMatchingService');
 const authModule = require('../middleware/auth');
 const authMiddleware = authModule.authMiddleware || authModule;
 
-// Helpers
-const ALLOWED_ACTIONS = new Set(['viewed', 'applied', 'joined', 'ignored']);
+const DEBUG = process.env.NODE_ENV !== 'production';
 
-function normalizeActionTaken(input) {
+// ----- helpers -----
+const ALLOWED_ACTIONS = new Set(['viewed', 'applied', 'joined', 'ignored']);
+const isUuid = (v) =>
+  typeof v === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+
+function normalizeAction(input) {
   const a = String(input || '').toLowerCase().trim();
   return ALLOWED_ACTIONS.has(a) ? a : 'viewed';
 }
-
 function normalizeScore(s) {
   if (s == null) return null;
   const n = parseInt(s, 10);
-  if (Number.isNaN(n)) return null;
-  return Math.min(5, Math.max(1, n));
+  return Number.isFinite(n) ? Math.min(5, Math.max(1, n)) : null;
+}
+function log(...args) {
+  if (DEBUG) console.log('[skill-matching]', ...args);
 }
 
-// Enhanced recommendations: GET /api/skill-matching/recommendations/:userId/enhanced?limit=10
+// ----- enhanced recommendations -----
 router.get('/recommendations/:userId/enhanced', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -32,7 +38,6 @@ router.get('/recommendations/:userId/enhanced', authMiddleware, async (req, res)
     if (String(req.user.id) !== String(userId)) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
-
     const recs = await skillMatching.recommendProjects(userId, { limit });
     return res.json({
       success: true,
@@ -51,7 +56,7 @@ router.get('/recommendations/:userId/enhanced', authMiddleware, async (req, res)
   }
 });
 
-// Legacy recommendations: GET /api/skill-matching/recommendations/:userId
+// ----- legacy (array) -----
 router.get('/recommendations/:userId', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -60,7 +65,6 @@ router.get('/recommendations/:userId', authMiddleware, async (req, res) => {
     if (String(req.user.id) !== String(userId)) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
-
     const recs = await skillMatching.recommendProjects(userId, { limit });
     return res.json(recs);
   } catch (e) {
@@ -69,14 +73,36 @@ router.get('/recommendations/:userId', authMiddleware, async (req, res) => {
   }
 });
 
-// One handler for both feedback endpoints
+// ----- feedback handler (tolerant) -----
+async function insertFeedbackSafe(row) {
+  // First try with given recommendation_id (may be null)
+  let { error } = await supabase.from('recommendation_feedback').insert([row]);
+  if (!error) return { ok: true };
+
+  // If FK violation, retry with recommendation_id = null
+  if (String(error.code) === '23503') {
+    const retry = { ...row, recommendation_id: null };
+    const { error: e2 } = await supabase.from('recommendation_feedback').insert([retry]);
+    if (!e2) return { ok: true };
+    return { ok: false, error: e2 };
+  }
+
+  // If table missing, treat as success (non-blocking UX)
+  if (String(error.code) === '42P01') {
+    log('recommendation_feedback table missing; returning success anyway');
+    return { ok: true, warn: error };
+  }
+
+  return { ok: false, error };
+}
+
 async function handleFeedback(req, res) {
   try {
     const userId = req.user.id;
 
-    // Accept both payload shapes:
-    // 1) { recommendation_id, action_taken, feedback_score, project_id? }
-    // 2) { projectId, action, score, reason? }  // "reason" is ignored (no column)
+    // Accept multiple shapes
+    // Shape A: { recommendation_id, action_taken, feedback_score, project_id? }
+    // Shape B: { recommendationId, action, score, projectId } (from UI)
     const {
       recommendation_id,
       action_taken,
@@ -84,39 +110,30 @@ async function handleFeedback(req, res) {
       project_id
     } = req.body;
 
-    const projectIdLegacy = req.body.projectId;
-    const actionLegacy = req.body.action;
-    const scoreLegacy = req.body.score;
+    const recIdAlt = req.body.recommendationId;
+    const actionAlt = req.body.action;
+    const scoreAlt = req.body.score;
+    const projIdAlt = req.body.projectId;
 
-    const payload = {
+    // Validate/normalize
+    const recIdRaw = recommendation_id || recIdAlt || null;
+    const recId = isUuid(recIdRaw) ? recIdRaw : null; // null if not a proper UUID
+    const projId = project_id || projIdAlt || null;
+    const action = normalizeAction(action_taken || actionAlt || 'viewed');
+    const score = normalizeScore(feedback_score ?? scoreAlt ?? null);
+
+    const row = {
       user_id: userId,
-      recommendation_id: recommendation_id || null,
-      project_id: project_id || projectIdLegacy || null,
-      action_taken: normalizeActionTaken(action_taken || actionLegacy || 'viewed'),
-      feedback_score: normalizeScore(feedback_score ?? scoreLegacy ?? null)
-      // created_at will use DEFAULT now() from DB
+      recommendation_id: recId,    // may be null
+      project_id: projId || null,  // may be null
+      action_taken: action,
+      feedback_score: score
+      // created_at: default now()
     };
 
-    // Only include allowed columns
-    const insertRow = {
-      user_id: payload.user_id,
-      recommendation_id: payload.recommendation_id,
-      project_id: payload.project_id,
-      action_taken: payload.action_taken,
-      feedback_score: payload.feedback_score
-    };
-
-    const { error } = await supabase
-      .from('recommendation_feedback')
-      .insert([insertRow]);
-
-    if (error) {
-      // Table missing? Don't break UX.
-      if (String(error.code) === '42P01') {
-        console.warn('recommendation_feedback table missing; returning success anyway');
-        return res.json({ success: true, message: 'Feedback received (not persisted)' });
-      }
-      console.error('Feedback insert error:', error);
+    const result = await insertFeedbackSafe(row);
+    if (!result.ok) {
+      console.error('Feedback insert error:', result.error);
       return res.status(500).json({ success: false, message: 'Failed to store feedback' });
     }
 
@@ -127,10 +144,10 @@ async function handleFeedback(req, res) {
   }
 }
 
-// Feedback endpoints
 // POST /api/skill-matching/feedback
 router.post('/feedback', authMiddleware, handleFeedback);
-// POST /api/skill-matching/recommendations/feedback
+
+// POST /api/skill-matching/recommendations/feedback (alias)
 router.post('/recommendations/feedback', authMiddleware, handleFeedback);
 
 module.exports = router;

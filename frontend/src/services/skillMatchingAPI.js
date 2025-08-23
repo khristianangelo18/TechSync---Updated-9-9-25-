@@ -180,19 +180,20 @@ class SkillMatchingAPI {
    * @param {number} feedbackScore - Rating from 1-5
    * @returns {Promise} - Updated feedback
    */
- static async updateRecommendationFeedback(recommendationId, action, feedbackScore = null) {
-    try {
-      const response = await api.post('/skill-matching/feedback', {
-        recommendation_id: recommendationId,
-        action_taken: action,          // matches DB column
-        feedback_score: feedbackScore  // matches DB column
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error updating recommendation feedback:', error);
-      throw error;
+    static async updateRecommendationFeedback(recommendationId, action, feedbackScore = null, projectId = null) {
+      try {
+        const response = await api.post('/skill-matching/feedback', {
+          recommendation_id: recommendationId,  // can be a non-uuid; backend will null it
+          action_taken: action,
+          feedback_score: feedbackScore,
+          project_id: projectId                  // helps analysis/reporting
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Error updating recommendation feedback:', error);
+        throw error;
+      }
     }
-  }
 
   /**
    * Get project challenge details

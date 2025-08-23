@@ -335,8 +335,10 @@ function Dashboard() {
     try {
       // Update recommendation feedback
       await SkillMatchingAPI.updateRecommendationFeedback(
-        project.recommendationId, 
-        'viewed'
+        project.recommendationId,
+        'viewed',
+        null,
+        project.projectId
       );
       
       // Navigate to project details or join page
@@ -357,8 +359,10 @@ function Dashboard() {
       // Update recommendation feedback for analytics
       try {
         await SkillMatchingAPI.updateRecommendationFeedback(
-          project.recommendationId, 
-          'applied'
+          project.recommendationId,
+          'applied',
+          null,
+          project.projectId
         );
         console.log('✅ Updated recommendation feedback');
       } catch (feedbackError) {
