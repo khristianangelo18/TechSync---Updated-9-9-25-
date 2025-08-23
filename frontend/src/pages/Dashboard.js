@@ -7,6 +7,172 @@ import CreateProject from './CreateProject';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 
+const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjectClick, handleJoinProject }) => {
+  const [showTooltip, setShowTooltip] = React.useState(false);
+  
+  return (
+    <div
+      style={styles.projectCard}
+      onClick={() => handleProjectClick(project)}
+      onMouseEnter={(e) => {
+        Object.assign(e.target.style, styles.projectCardHover);
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.transform = 'none';
+        e.target.style.boxShadow = 'none';
+        e.target.style.border = '1px solid #dee2e6';
+      }}
+    >
+      {/* Enhanced match score with tooltip */}
+      <div 
+        style={{
+          ...styles.matchScore,
+          cursor: 'help'
+        }}
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+        title="Click to see why this matches you"
+      >
+        {Math.round(project.score)}% match
+        
+        {/* Tooltip for match explanation */}
+        {showTooltip && project.matchFactors?.highlights && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            right: '0',
+            marginTop: '8px',
+            backgroundColor: '#333',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            zIndex: 10,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            maxWidth: '200px',
+            whiteSpace: 'normal'
+          }}>
+            {project.matchFactors.highlights.slice(0, 2).join(', ')}
+            <div style={{
+              position: 'absolute',
+              top: '-4px',
+              right: '8px',
+              width: '0',
+              height: '0',
+              borderLeft: '4px solid transparent',
+              borderRight: '4px solid transparent',
+              borderBottom: '4px solid #333'
+            }}></div>
+          </div>
+        )}
+      </div>
+      
+      {/* Existing title */}
+      <div style={styles.projectTitle}>
+        {project.title}
+      </div>
+      
+      {/* NEW: Highlight chips */}
+      {project.matchFactors?.highlights && project.matchFactors.highlights.length > 0 && (
+        <div style={{
+          marginBottom: '8px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '4px'
+        }}>
+          {project.matchFactors.highlights.slice(0, 2).map((highlight, idx) => (
+            <span key={idx} style={{
+              backgroundColor: '#e3f2fd',
+              color: '#1976d2',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: '500',
+              border: '1px solid #bbdefb'
+            }}>
+              ✨ {highlight}
+            </span>
+          ))}
+        </div>
+      )}
+      
+      {/* Existing description */}
+      <div style={styles.projectDescription}>
+        {project.description}
+      </div>
+      
+      {/* NEW: Improvement suggestions */}
+      {project.matchFactors?.suggestions && project.matchFactors.suggestions.length > 0 && (
+        <div style={{
+          marginBottom: '12px',
+          padding: '8px',
+          backgroundColor: '#fff3cd',
+          borderRadius: '4px',
+          border: '1px solid #ffeaa7'
+        }}>
+          <div style={{
+            fontSize: '11px',
+            fontWeight: 'bold',
+            color: '#856404',
+            marginBottom: '4px'
+          }}>
+            💡 To boost your match:
+          </div>
+          {project.matchFactors.suggestions.slice(0, 1).map((suggestion, idx) => (
+            <div key={idx} style={{
+              fontSize: '11px',
+              color: '#856404',
+              lineHeight: '1.3'
+            }}>
+              {suggestion}
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Existing project meta */}
+      <div style={styles.projectMeta}>
+        <span style={getDifficultyStyle(project.difficulty_level)}>
+          {project.difficulty_level?.toUpperCase() || 'MEDIUM'}
+        </span>
+        <span style={styles.memberCount}>
+          {project.current_members || 0}/{project.maximum_members || 10} members
+        </span>
+      </div>
+      
+      {/* Existing technologies */}
+      {project.technologies && project.technologies.length > 0 && (
+        <div style={styles.tagsContainer}>
+          {project.technologies.slice(0, 3).map((tech, techIndex) => (
+            <span key={techIndex} style={styles.tag}>
+              {tech}
+            </span>
+          ))}
+          {project.technologies.length > 3 && (
+            <span style={styles.tag}>
+              +{project.technologies.length - 3} more
+            </span>
+          )}
+        </div>
+      )}
+      
+      {/* Existing join button */}
+      <button
+        style={styles.joinButton}
+        onClick={(e) => handleJoinProject(project, e)}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = '#0056b3';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = '#007bff';
+        }}
+      >
+        Join Project
+      </button>
+    </div>
+  );
+};
+
 function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -758,71 +924,17 @@ function Dashboard() {
           <div style={styles.loadingSpinner}>
             <div>Loading recommendations...</div>
           </div>
-        ) : filteredProjects.length > 0 ? (
+         ) : filteredProjects.length > 0 ? (
           <div style={styles.recommendationsGrid}>
             {filteredProjects.map((project, index) => (
-              <div
-                key={index}
-                style={styles.projectCard}
-                onClick={() => handleProjectClick(project)}
-                onMouseEnter={(e) => {
-                  Object.assign(e.target.style, styles.projectCardHover);
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'none';
-                  e.target.style.boxShadow = 'none';
-                  e.target.style.border = '1px solid #dee2e6';
-                }}
-              >
-                <div style={styles.matchScore}>
-                  {Math.round(project.score)}% match
-                </div>
-                
-                <div style={styles.projectTitle}>
-                  {project.title}
-                </div>
-                
-                <div style={styles.projectDescription}>
-                  {project.description}
-                </div>
-                
-                <div style={styles.projectMeta}>
-                  <span style={getDifficultyStyle(project.difficulty_level)}>
-                    {project.difficulty_level?.toUpperCase() || 'MEDIUM'}
-                  </span>
-                  <span style={styles.memberCount}>
-                    {project.current_members || 0}/{project.maximum_members || 10} members
-                  </span>
-                </div>
-                
-                {project.technologies && project.technologies.length > 0 && (
-                  <div style={styles.tagsContainer}>
-                    {project.technologies.slice(0, 3).map((tech, techIndex) => (
-                      <span key={techIndex} style={styles.tag}>
-                        {tech}
-                      </span>
-                    ))}
-                    {project.technologies.length > 3 && (
-                      <span style={styles.tag}>
-                        +{project.technologies.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                )}
-                
-                <button
-                  style={styles.joinButton}
-                  onClick={(e) => handleJoinProject(project, e)}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = '#0056b3';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = '#007bff';
-                  }}
-                >
-                  Join Project
-                </button>
-              </div>
+              <EnhancedProjectCard
+                key={project.projectId || project.id || index}
+                project={project}
+                styles={styles}
+                getDifficultyStyle={getDifficultyStyle}
+                handleProjectClick={handleProjectClick}
+                handleJoinProject={handleJoinProject}
+              />
             ))}
           </div>
         ) : recommendedProjects.length > 0 ? (

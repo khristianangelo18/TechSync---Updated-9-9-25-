@@ -2,11 +2,67 @@
 import api from './api';
 
 class SkillMatchingAPI {
+  // PRESERVED: All your existing methods stay exactly the same
+  
   /**
-   * Get project recommendations for the current user
+   * Get enhanced recommendations with rich explanations
    * @param {string} userId - User ID
-   * @returns {Promise} - Array of recommended projects
+   * @param {Object} options - Options for recommendations
+   * @returns {Promise} - Enhanced recommendations with match factors
    */
+  static async getEnhancedRecommendations(userId, options = {}) {
+    try {
+      const { limit = 10, includeExplanations = true } = options;
+      const response = await api.get(`/skill-matching/recommendations/${userId}/enhanced`, {
+        params: { limit, includeExplanations }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching enhanced recommendations:', error);
+      // FALLBACK: Use regular recommendations if enhanced fails
+      try {
+        const fallbackResponse = await api.get(`/skill-matching/recommendations/${userId}`);
+        return {
+          success: true,
+          data: {
+            recommendations: fallbackResponse.data,
+            meta: {
+              total: fallbackResponse.data.length,
+              algorithm_version: '1.0',
+              generated_at: new Date().toISOString()
+            }
+          }
+        };
+      } catch (fallbackError) {
+        throw error; // Throw original error
+      }
+    }
+  }
+
+  /**
+   * Send feedback on recommendation quality
+   * @param {string} projectId - Project ID that was recommended
+   * @param {string} action - Action taken ('viewed', 'applied', 'joined', 'ignored')
+   * @param {string} reason - Optional reason for the action
+   * @param {number} score - Optional rating 1-5
+   * @returns {Promise} - Feedback response
+   */
+  static async sendRecommendationFeedback(projectId, action, reason = null, score = null) {
+    try {
+      const response = await api.post('/skill-matching/recommendations/feedback', {
+        projectId,
+        action,
+        reason,
+        score
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error sending recommendation feedback:', error);
+      throw error;
+    }
+  }
+
+  // PRESERVED: Keep all your existing methods unchanged
   static async getRecommendations(userId) {
     try {
       const response = await api.get(`/skill-matching/recommendations/${userId}`);

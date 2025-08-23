@@ -5,12 +5,71 @@ const SkillMatchingService = require('../services/SkillMatchingService');
 const AnalyticsService = require('../services/analyticsService');
 
 // Get project recommendations for user
-router.get('/recommendations/:userId', async (req, res) => {
+router.get('/recommendations/:userId/enhanced', async (req, res) => {
     try {
-        const recommendations = await SkillMatchingService.recommendProjects(req.params.userId);
-        res.json(recommendations);
+        const { userId } = req.params;
+        const { limit = 10, includeExplanations = true } = req.query;
+        
+        const recommendations = await SkillMatchingService.recommendProjects(userId, { 
+            limit: parseInt(limit),
+            includeExplanations: includeExplanations === 'true'
+        });
+        
+        // Enhanced response format
+        res.json({
+            success: true,
+            data: {
+                recommendations,
+                meta: {
+                    total: recommendations.length,
+                    algorithm_version: '2.0',
+                    generated_at: new Date().toISOString(),
+                    explanation: recommendations.length > 0 
+                        ? `Found ${recommendations.length} projects matching your skills in ${recommendations[0].matchFactors?.highlights?.join(', ') || 'various areas'}`
+                        : 'No projects found matching your current skill profile'
+                }
+            }
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Enhanced recommendations error:', error);
+        res.status(500).json({ 
+            success: false,
+            error: error.message,
+            message: 'Failed to generate enhanced recommendations'
+        });
+    }
+});
+
+router.post('/recommendations/feedback', async (req, res) => {
+    try {
+        const { projectId, action, reason, score } = req.body;
+        const userId = req.user?.id; // Assumes auth middleware
+        
+        // Store feedback for future algorithm improvements
+        const { error } = await supabase
+            .from('recommendation_feedback')
+            .insert({
+                user_id: userId,
+                project_id: projectId,
+                action_taken: action, // 'viewed', 'applied', 'joined', 'ignored'
+                feedback_score: score,
+                created_at: new Date().toISOString()
+            });
+            
+        if (error) {
+            throw error;
+        }
+        
+        res.json({
+            success: true,
+            message: 'Feedback recorded successfully'
+        });
+    } catch (error) {
+        console.error('Recommendation feedback error:', error);
+        res.status(500).json({ 
+            success: false,
+            error: error.message 
+        });
     }
 });
 
