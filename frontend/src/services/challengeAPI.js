@@ -166,6 +166,17 @@ class ChallengeAPI {
     }
   }
 
+   static async getNextChallenge(params = {}) {
+    try {
+      // params can include: programming_language_id, project_id
+      const response = await api.get('/challenges/next', { params });
+      return response.data;  // { success, data: { challenge, reason, diagnostics } }
+    } catch (error) {
+      console.error('Error fetching next challenge:', error);
+      throw error;
+    }
+  }
+
   /**
    * Get user's challenge attempts
    * @param {Object} params - Parameters (page, limit, etc.)

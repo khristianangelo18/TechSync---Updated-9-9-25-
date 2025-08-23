@@ -1,8 +1,15 @@
-// backend/controllers/projectRecruitmentController.js - COMPLETELY FIXED
-// Enhanced with alert system while preserving YOUR EXACT working structure
-const supabase = require('../config/supabase');
+// backend/controllers/projectRecruitmentController.js
+'use strict';
+// @ts-nocheck
 
-// NEW: Helper function to count user's failed attempts for a specific project
+const supabase = require('../config/supabase');
+const { runTests } = require('../utils/codeEvaluator');
+const { updateSkillRatings } = require('./challengeController');
+
+// Utility: safe regex factory (no literal /.../)
+const r = (s, f = '') => new RegExp(s, f);
+
+// Count user's failed attempts for a specific project
 const getFailedAttemptsCount = async (userId, projectId) => {
   try {
     const { data: failedAttempts, error } = await supabase
@@ -16,7 +23,6 @@ const getFailedAttemptsCount = async (userId, projectId) => {
       console.error('Error counting failed attempts:', error);
       return 0;
     }
-
     return failedAttempts ? failedAttempts.length : 0;
   } catch (error) {
     console.error('Error in getFailedAttemptsCount:', error);
@@ -24,278 +30,163 @@ const getFailedAttemptsCount = async (userId, projectId) => {
   }
 };
 
-// NEW: Helper function to generate comforting messages based on attempt count
+// Comforting message based on attempt count
 const generateComfortingMessage = (attemptCount, projectTitle) => {
   const messages = [
     {
-      threshold: 7,
-      message: `It seems like you're having a hard time entering the "${projectTitle}" project and answering the challenge. Don't worry, coding challenges can be tricky! Consider reviewing the requirements again, or perhaps this project might be more advanced than your current skill level. Keep practicing and you'll get there! 💪`
+      threshold: 15,
+      message: `You've made ${attemptCount} attempts at "${projectTitle}" - that shows incredible persistence! Sometimes it helps to step back and approach the problem from a different angle. Consider reaching out to the community for tips, or exploring similar but simpler projects to build your confidence. You've got this! 🚀`
     },
     {
       threshold: 10,
       message: `We notice you've been persistently trying to join "${projectTitle}". Your determination is admirable! However, you might want to take a short break, review some coding tutorials, or try some easier projects first. Remember, every expert was once a beginner! 🌟`
     },
     {
-      threshold: 15,
-      message: `You've made ${attemptCount} attempts at "${projectTitle}" - that shows incredible persistence! Sometimes it helps to step back and approach the problem from a different angle. Consider reaching out to the community for tips, or exploring similar but simpler projects to build your confidence. You've got this! 🚀`
+      threshold: 7,
+      message: `It seems like you're having a hard time entering the "${projectTitle}" project and answering the challenge. Don't worry, coding challenges can be tricky! Consider reviewing the requirements again, or perhaps this project might be more advanced than your current skill level. Keep practicing and you'll get there! 💪`
     }
   ];
 
-  // Find the appropriate message based on attempt count
-  for (let i = messages.length - 1; i >= 0; i--) {
-    if (attemptCount >= messages[i].threshold) {
-      return messages[i].message;
-    }
+  for (const m of messages) {
+    if (attemptCount >= m.threshold) return m.message;
   }
-
   return null;
 };
 
-// GET /api/challenges/project/:projectId/challenge - FOLLOWING YOUR WORKING APPROACH
+// GET /api/challenges/project/:projectId/challenge
 const getProjectChallenge = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const userId = req.user.id;
 
-    console.log(`\n=== GET PROJECT CHALLENGE ===`);
-    console.log(`Project ID: ${projectId}`);
-    console.log(`User ID: ${userId}`);
-
-    // Step 1: Get project with basic info (EXACTLY like your working version)
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
       .single();
 
-    if (projectError) {
-      console.error('Project query error:', projectError);
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found',
-        error: projectError.message
-      });
+    if (projectError || !project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found'
-      });
-    }
-
-    console.log(`Found project: ${project.title}`);
-
-    // Step 2: Get project languages (EXACTLY like your working version)
     const { data: projectLanguages, error: languageError } = await supabase
       .from('project_languages')
       .select(`
         language_id,
         is_primary,
-        programming_languages (
-          id,
-          name
-        )
+        programming_languages ( id, name )
       `)
       .eq('project_id', projectId);
 
     if (languageError) {
-      console.error('Project languages query error:', languageError);
       return res.status(500).json({
         success: false,
         message: 'Error fetching project languages',
-        error: languageError.message,
-        debug: {
-          projectId,
-          query: 'project_languages with programming_languages join'
-        }
+        error: languageError.message
       });
     }
 
-    console.log('Raw project languages:', JSON.stringify(projectLanguages, null, 2));
+    const projLangs = projectLanguages || [];
 
-    // Add languages to project object
-    project.project_languages = projectLanguages || [];
-
-    // Check if project has available spots
     if (project.current_members >= project.maximum_members) {
+      return res.status(400).json({ success: false, message: 'Project has reached maximum capacity' });
+    }
+
+    const validLangs = projLangs.filter(pl => pl.language_id && pl.programming_languages);
+    if (validLangs.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Project has reached maximum capacity'
+        message: 'This project has no programming languages configured. Please contact the project owner.'
       });
     }
 
-    // Step 3: Process project languages (EXACTLY like your working version)
-    const validLanguages = project.project_languages.filter(
-      pl => pl.language_id && pl.programming_languages
-    );
+    const projectLanguageIds = validLangs.map(pl => pl.language_id);
+    const projPrimaryLang =
+      validLangs.find(pl => pl.is_primary)?.programming_languages ||
+      validLangs[0]?.programming_languages;
 
-    if (validLanguages.length === 0) {
-      console.log('No valid programming languages found for project');
-      return res.status(400).json({
-        success: false,
-        message: 'This project has no programming languages configured. Please contact the project owner.',
-        debug: {
-          projectId,
-          rawLanguages: project.project_languages,
-          projectTitle: project.title
-        }
-      });
-    }
-
-    const projectLanguageIds = validLanguages.map(pl => pl.language_id);
-    const primaryLanguage = validLanguages.find(pl => pl.is_primary)?.programming_languages ||
-                            validLanguages[0]?.programming_languages;
-
-    console.log(`Project language IDs: [${projectLanguageIds.join(', ')}]`);
-    console.log(`Primary language: ${primaryLanguage?.name || 'None'}`);
-
-    // Step 4: Find matching challenges (EXACTLY like your working version)
     let selectedChallenge = null;
-    let availableChallenges = [];
+    let candidates = [];
 
-    try {
-      // First: Look for project-specific challenges
-      console.log('Searching for project-specific challenges...');
-      const { data: projectChallenges, error: projectChallengeError } = await supabase
+    // Project-specific challenges
+    const { data: projectChallenges } = await supabase
+      .from('coding_challenges')
+      .select(`
+        id, title, description, difficulty_level, time_limit_minutes,
+        starter_code, test_cases, programming_language_id,
+        programming_languages (id, name)
+      `)
+      .eq('project_id', projectId)
+      .in('programming_language_id', projectLanguageIds)
+      .eq('is_active', true);
+
+    if (projectChallenges?.length) candidates = projectChallenges;
+
+    // General fallback
+    if (candidates.length === 0) {
+      const { data: generalChallenges } = await supabase
         .from('coding_challenges')
         .select(`
           id, title, description, difficulty_level, time_limit_minutes,
           starter_code, test_cases, programming_language_id,
           programming_languages (id, name)
         `)
-        .eq('project_id', projectId)
+        .is('project_id', null)
         .in('programming_language_id', projectLanguageIds)
         .eq('is_active', true);
 
-      if (projectChallengeError) {
-        console.error('Project-specific challenges error:', projectChallengeError);
-      } else {
-        console.log(`Found ${projectChallenges?.length || 0} project-specific challenges`);
-        if (projectChallenges && projectChallenges.length > 0) {
-          availableChallenges = projectChallenges;
-        }
-      }
-
-      // Second: If no project-specific challenges, look for general challenges
-      if (availableChallenges.length === 0) {
-        console.log('Searching for general challenges...');
-        const { data: generalChallenges, error: generalChallengeError } = await supabase
-          .from('coding_challenges')
-          .select(`
-            id, title, description, difficulty_level, time_limit_minutes,
-            starter_code, test_cases, programming_language_id,
-            programming_languages (id, name)
-          `)
-          .is('project_id', null)
-          .in('programming_language_id', projectLanguageIds)
-          .eq('is_active', true);
-
-        if (generalChallengeError) {
-          console.error('General challenges error:', generalChallengeError);
-        } else {
-          console.log(`Found ${generalChallenges?.length || 0} general challenges`);
-          if (generalChallenges && generalChallenges.length > 0) {
-            availableChallenges = generalChallenges;
-          }
-        }
-      }
-
-      // Step 5: Select a challenge (EXACTLY like your working version)
-      if (availableChallenges.length > 0) {
-        // Prefer primary language challenges
-        const primaryLanguageChallenges = primaryLanguage 
-          ? availableChallenges.filter(c => c.programming_language_id === primaryLanguage.id)
-          : [];
-
-        if (primaryLanguageChallenges.length > 0) {
-          const randomIndex = Math.floor(Math.random() * primaryLanguageChallenges.length);
-          selectedChallenge = primaryLanguageChallenges[randomIndex];
-          console.log(`Selected primary language challenge: ${selectedChallenge.title}`);
-        } else {
-          const randomIndex = Math.floor(Math.random() * availableChallenges.length);
-          selectedChallenge = availableChallenges[randomIndex];
-          console.log(`Selected available challenge: ${selectedChallenge.title}`);
-        }
-      } else {
-        // No challenges found - create a basic temporary one (EXACTLY like your working version)
-        console.log('No challenges found, creating temporary challenge');
-        const languageForChallenge = primaryLanguage || validLanguages[0].programming_languages;
-        
-        selectedChallenge = {
-          id: `temp_${projectId}_${Date.now()}`,
-          title: `${languageForChallenge.name} Coding Challenge`,
-          description: `Welcome to "${project.title}"!\n\nThis project uses ${languageForChallenge.name}. Please complete this coding challenge to demonstrate your skills.\n\n**Task:** Write a function that demonstrates your ${languageForChallenge.name} programming skills.\n\n**Requirements:**\n1. Write clean, readable code\n2. Handle edge cases appropriately\n3. Add meaningful comments\n4. Follow best practices for ${languageForChallenge.name}\n\n**Example Challenge:**\nCreate a function that solves a common programming problem using ${languageForChallenge.name}.\n\nGood luck!`,
-          difficulty_level: 'medium',
-          time_limit_minutes: 60,
-          starter_code: getStarterCodeForLanguage(languageForChallenge.name),
-          test_cases: null,
-          programming_language_id: languageForChallenge.id,
-          programming_languages: languageForChallenge,
-          isTemporary: true
-        };
-        
-        console.log('Created temporary challenge for:', languageForChallenge.name);
-      }
-
-    } catch (challengeError) {
-      console.error('Error in challenge selection:', challengeError);
-      return res.status(500).json({
-        success: false,
-        message: 'Error retrieving coding challenges',
-        error: challengeError.message
-      });
+      if (generalChallenges?.length) candidates = generalChallenges;
     }
 
-    // Step 6: Return the response (EXACTLY like your working version)
-    if (!selectedChallenge) {
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to generate a coding challenge'
-      });
+    if (candidates.length > 0) {
+      const primaryLangChallenges = projPrimaryLang
+        ? candidates.filter(c => c.programming_language_id === projPrimaryLang.id)
+        : [];
+
+      if (primaryLangChallenges.length > 0) {
+        selectedChallenge = primaryLangChallenges[Math.floor(Math.random() * primaryLangChallenges.length)];
+      } else {
+        selectedChallenge = candidates[Math.floor(Math.random() * candidates.length)];
+      }
+    } else {
+      // Temporary challenge
+      const langForTemp = projPrimaryLang || validLangs[0].programming_languages;
+      selectedChallenge = {
+        id: `temp_${projectId}_${Date.now()}`,
+        title: `${langForTemp.name} Coding Challenge`,
+        description: `Welcome to "${project.title}"!\n\nThis project uses ${langForTemp.name}. Please complete this coding challenge to demonstrate your skills.\n\nTask: Write a function that demonstrates your ${langForTemp.name} programming skills.`,
+        difficulty_level: 'medium',
+        time_limit_minutes: 60,
+        starter_code: getStarterCodeForLanguage(langForTemp.name),
+        test_cases: null,
+        programming_language_id: langForTemp.id,
+        programming_languages: langForTemp,
+        isTemporary: true
+      };
     }
 
-    const response = {
+    return res.json({
       success: true,
       challenge: selectedChallenge,
       project: {
         id: project.id,
         title: project.title,
         description: project.description,
-        primaryLanguage: primaryLanguage?.name || 'Unknown',
+        primaryLanguage: projPrimaryLang?.name || 'Unknown',
         availableSpots: project.maximum_members - project.current_members
       }
-    };
-
-    console.log(`=== RESPONSE ===`);
-    console.log(`Challenge: ${selectedChallenge.title}`);
-    console.log(`Language: ${selectedChallenge.programming_languages?.name}`);
-    console.log(`Temporary: ${selectedChallenge.isTemporary || false}`);
-
-    return res.json(response);
-
+    });
   } catch (error) {
     console.error('Error in getProjectChallenge:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 };
 
-// GET /api/challenges/project/:projectId/can-attempt - ENHANCED with alert system
+// GET /api/challenges/project/:projectId/can-attempt
 const canAttemptChallenge = async (req, res) => {
   try {
     const { projectId } = req.params;
     const userId = req.user.id;
 
-    console.log(`\n=== CAN ATTEMPT CHECK ===`);
-    console.log(`Project ID: ${projectId}`);
-    console.log(`User ID: ${userId}`);
-
-    // Check if user is already a member (EXACTLY like your working version)
     const { data: membership, error: membershipError } = await supabase
       .from('project_members')
       .select('*')
@@ -304,46 +195,24 @@ const canAttemptChallenge = async (req, res) => {
       .single();
 
     if (membershipError && membershipError.code !== 'PGRST116') {
-      console.error('Membership check error:', membershipError);
-      return res.status(500).json({
-        success: false,
-        message: 'Error checking membership status'
-      });
+      return res.status(500).json({ success: false, message: 'Error checking membership status' });
     }
 
     if (membership) {
-      return res.json({
-        success: true,
-        canAttempt: false,
-        reason: 'You are already a member of this project'
-      });
+      return res.json({ success: true, canAttempt: false, reason: 'You are already a member of this project' });
     }
 
-    // NEW: Check failed attempts count for alert system
     const failedAttemptsCount = await getFailedAttemptsCount(userId, projectId);
-    console.log(`Failed attempts count: ${failedAttemptsCount}`);
 
-    // Get project details for comforting message
-    const { data: project, error: projectError } = await supabase
+    const { data: project } = await supabase
       .from('projects')
       .select('title, current_members, maximum_members')
       .eq('id', projectId)
       .single();
 
-    if (projectError) {
-      console.error('Project check error:', projectError);
-    }
-
     const projectTitle = project?.title || 'this project';
 
-    // Check if alert should be shown (7 or more failed attempts)
-    const shouldShowAlert = failedAttemptsCount >= 7;
-    const comfortingMessage = shouldShowAlert ? 
-      generateComfortingMessage(failedAttemptsCount, projectTitle) : null;
-
-    // Check recent attempts (EXACTLY like your working version)
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    
     const { data: recentAttempts, error: attemptError } = await supabase
       .from('challenge_attempts')
       .select('started_at')
@@ -354,43 +223,30 @@ const canAttemptChallenge = async (req, res) => {
       .limit(1);
 
     if (attemptError) {
-      console.error('Recent attempts check error:', attemptError);
-      return res.status(500).json({
-        success: false,
-        message: 'Error checking recent attempts'
-      });
+      return res.status(500).json({ success: false, message: 'Error checking recent attempts' });
     }
+
+    const shouldShowAlert = failedAttemptsCount >= 7;
+    const comfortingMessage = shouldShowAlert ? generateComfortingMessage(failedAttemptsCount, projectTitle) : null;
 
     if (recentAttempts && recentAttempts.length > 0) {
       const lastAttempt = new Date(recentAttempts[0].started_at);
       const nextAttemptTime = new Date(lastAttempt.getTime() + 60 * 60 * 1000);
-      
       return res.json({
         success: true,
         canAttempt: false,
         reason: 'You can only attempt once per hour',
         nextAttemptAt: nextAttemptTime.toISOString(),
-        // NEW: Include alert data even when rate limited
-        alertData: shouldShowAlert ? {
-          shouldShow: true,
-          attemptCount: failedAttemptsCount,
-          message: comfortingMessage
-        } : null
+        alertData: shouldShowAlert ? { shouldShow: true, attemptCount: failedAttemptsCount, message: comfortingMessage } : null
       });
     }
 
-    // Check if project has available spots (EXACTLY like your working version)
     if (project && project.current_members >= project.maximum_members) {
       return res.json({
         success: true,
         canAttempt: false,
         reason: 'Project has reached maximum capacity',
-        // NEW: Include alert data even when project is full
-        alertData: shouldShowAlert ? {
-          shouldShow: true,
-          attemptCount: failedAttemptsCount,
-          message: comfortingMessage
-        } : null
+        alertData: shouldShowAlert ? { shouldShow: true, attemptCount: failedAttemptsCount, message: comfortingMessage } : null
       });
     }
 
@@ -398,37 +254,21 @@ const canAttemptChallenge = async (req, res) => {
       success: true,
       canAttempt: true,
       reason: 'You can attempt this challenge',
-      // NEW: Include alert data when user can attempt
-      alertData: shouldShowAlert ? {
-        shouldShow: true,
-        attemptCount: failedAttemptsCount,
-        message: comfortingMessage
-      } : null
+      alertData: shouldShowAlert ? { shouldShow: true, attemptCount: failedAttemptsCount, message: comfortingMessage } : null
     });
-
   } catch (error) {
     console.error('Error in canAttemptChallenge:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: error.message
-    });
+    return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
   }
 };
 
-// POST /api/challenges/project/:projectId/attempt - ENHANCED with alert tracking
+// POST /api/challenges/project/:projectId/attempt
 const submitChallengeAttempt = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { submittedCode, startedAt, challengeId } = req.body;
     const userId = req.user.id;
 
-    console.log(`\n=== SUBMIT CHALLENGE ATTEMPT ===`);
-    console.log(`Project ID: ${projectId}`);
-    console.log(`User ID: ${userId}`);
-    console.log(`Challenge ID: ${challengeId || 'temporary'}`);
-
-    // Enhanced input validation (EXACTLY like your working version)
     if (!submittedCode || submittedCode.trim().length < 10) {
       return res.status(200).json({
         success: true,
@@ -437,13 +277,12 @@ const submitChallengeAttempt = async (req, res) => {
           score: 0,
           passed: false,
           projectJoined: false,
-          feedback: "Your solution is too short. Please provide a more complete solution.",
+          feedback: 'Your solution is too short. Please provide a more complete solution.',
           status: 'failed'
         }
       });
     }
 
-    // Check if user can attempt (EXACTLY like your working version)
     const { data: membership } = await supabase
       .from('project_members')
       .select('*')
@@ -459,13 +298,12 @@ const submitChallengeAttempt = async (req, res) => {
           score: 0,
           passed: false,
           projectJoined: false,
-          feedback: "You are already a member of this project.",
+          feedback: 'You are already a member of this project.',
           status: 'already_member'
         }
       });
     }
 
-    // Get project details for context-aware scoring (EXACTLY like your working version)
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select(`
@@ -473,41 +311,113 @@ const submitChallengeAttempt = async (req, res) => {
         project_languages (
           language_id,
           is_primary,
-          programming_languages (id, name)
+          programming_languages ( id, name )
         )
       `)
       .eq('id', projectId)
       .single();
 
     if (projectError || !project) {
-      return res.status(404).json({
-        success: false,
-        message: 'Project not found'
-      });
+      return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
-    // Enhanced scoring with stricter validation (EXACTLY like your working version)
-    const evaluationResult = evaluateCodeSubmission(submittedCode, project);
-    const score = evaluationResult.score;
-    const passed = score >= 70; // 70% threshold
+    // Load challenge if provided
+    let challenge = null;
+    if (challengeId && !String(challengeId).startsWith('temp_')) {
+      const { data: ch, error: chErr } = await supabase
+        .from('coding_challenges')
+        .select(`
+          id, title, description, difficulty_level, time_limit_minutes,
+          test_cases, programming_language_id,
+          programming_languages ( id, name )
+        `)
+        .eq('id', challengeId)
+        .single();
+      if (!chErr && ch) challenge = ch;
+    }
 
-    console.log(`Evaluation result: Score=${score}, Passed=${passed}`);
-    console.log(`Evaluation details:`, evaluationResult);
+    const primaryLanguageName =
+      project.project_languages.find(pl => pl.is_primary)?.programming_languages?.name ||
+      project.project_languages[0]?.programming_languages?.name ||
+      challenge?.programming_languages?.name ||
+      'JavaScript';
 
-    // Store the attempt (EXACTLY like your working version)
+    // Heuristic evaluation (baseline)
+    const heuristicEval = evaluateCodeSubmission(submittedCode, project);
+
+    // Defaults from heuristics
+    let finalScore = heuristicEval.score;
+    let passed = heuristicEval.score >= 70;
+    let evaluation = { ...heuristicEval, testSummary: null, testResults: null };
+
+    // If challenge has test cases, run Judge0
+    if (challenge?.test_cases) {
+      let tc = challenge.test_cases;
+      if (typeof tc === 'string') {
+        try { tc = JSON.parse(tc); } catch { tc = null; }
+      }
+      if (Array.isArray(tc)) tc = { mode: 'stdin', tests: tc };
+
+      if (tc && Array.isArray(tc.tests) && tc.tests.length > 0) {
+        try {
+          const perTestTime = (challenge.time_limit_minutes ? challenge.time_limit_minutes * 60000 : 120000) / (tc.tests.length || 1);
+          const rt = await runTests({
+            sourceCode: submittedCode,
+            languageName: primaryLanguageName,
+            testCases: tc,
+            timeLimitMs: Math.max(1500, Math.min(10000, perTestTime)),
+            memoryLimitMb: 256
+          });
+
+          const passRate = rt.totalCount ? rt.passedCount / rt.totalCount : 0;
+          const timeScore = Math.max(0, 1 - (rt.totalTimeMs / (tc.tests.length * Math.max(1, Math.min(10000, perTestTime)))));
+          const memScore = Math.max(0, 1 - ((rt.peakMemoryKb / 1024) / 256));
+
+          finalScore = Math.round(100 * (0.8 * passRate + 0.15 * timeScore + 0.05 * memScore));
+          passed = (rt.passedCount === rt.totalCount) || finalScore >= 70;
+
+          evaluation = {
+            ...heuristicEval,
+            testSummary: {
+              passed: rt.passedCount,
+              total: rt.totalCount,
+              totalTimeMs: rt.totalTimeMs,
+              peakMemoryMb: Math.round((rt.peakMemoryKb || 0) / 1024)
+            },
+            testResults: rt.tests
+          };
+        } catch (e) {
+          console.error('Judge0 evaluation failed, fallback to heuristics:', e.message);
+        }
+      }
+    }
+
+    let feedback = evaluation.feedback;
+    if (evaluation.testSummary) {
+      const p = evaluation.testSummary.passed;
+      const total = evaluation.testSummary.total;
+      feedback = `${p}/${total} tests passed. ${feedback}`;
+    }
+
     const attemptData = {
       user_id: userId,
       project_id: projectId,
       submitted_code: submittedCode,
-      score: score,
+      score: finalScore,
       status: passed ? 'passed' : 'failed',
       started_at: startedAt ? new Date(startedAt).toISOString() : new Date().toISOString(),
       submitted_at: new Date().toISOString(),
-      feedback: evaluationResult.feedback
+      feedback
     };
 
-    if (challengeId && !challengeId.startsWith('temp_')) {
-      attemptData.challenge_id = challengeId;
+    if (challengeId && !String(challengeId).startsWith('temp_')) attemptData.challenge_id = challengeId;
+    if (evaluation.testSummary) {
+      attemptData.test_cases_passed = evaluation.testSummary.passed;
+      attemptData.total_test_cases = evaluation.testSummary.total;
+      attemptData.execution_time_ms = evaluation.testSummary.totalTimeMs;
+      attemptData.memory_usage_mb = evaluation.testSummary.peakMemoryMb;
+      // If you added a JSONB 'results' column:
+      // attemptData.results = evaluation.testResults;
     }
 
     const { data: attempt, error: attemptError } = await supabase
@@ -522,22 +432,20 @@ const submitChallengeAttempt = async (req, res) => {
         success: true,
         data: {
           attempt: null,
-          score: score,
+          score: finalScore,
           passed: false,
           projectJoined: false,
-          feedback: "Your solution was evaluated but there was an issue saving the attempt. Please try again.",
+          feedback: 'Your solution was evaluated but there was an issue saving the attempt. Please try again.',
           status: 'failed'
         }
       });
     }
 
+    // Add to project on pass
     let projectJoined = false;
     let membershipData = null;
 
-    // If passed, add user to project (EXACTLY like your working version)
     if (passed) {
-      console.log('🎉 User passed! Adding to project...');
-      
       const { data: newMember, error: memberError } = await supabase
         .from('project_members')
         .insert({
@@ -550,88 +458,98 @@ const submitChallengeAttempt = async (req, res) => {
         .select()
         .single();
 
-      if (memberError) {
-        console.error('❌ Error adding member:', memberError);
-      } else {
+      if (!memberError) {
         projectJoined = true;
         membershipData = newMember;
-        console.log('✅ User added to project as member');
-
         try {
-          await supabase.rpc('increment_project_member_count', { 
-            project_uuid: projectId 
-          });
-          console.log('✅ Project member count updated');
+          await supabase.rpc('increment_project_member_count', { project_uuid: projectId });
         } catch (updateError) {
-          console.error('❌ Error updating member count:', updateError);
+          console.error('Error updating member count:', updateError);
         }
+      } else {
+        console.error('Error adding member:', memberError);
       }
     }
 
-    // NEW: If failed, check for alert system
+    // Update adaptive ratings (non-blocking) for real challenges
+    try {
+      if (challengeId && !String(challengeId).startsWith('temp_')) {
+        const plId =
+          project.project_languages.find(pl => pl.is_primary)?.language_id ||
+          project.project_languages[0]?.language_id ||
+          challenge?.programming_language_id ||
+          null;
+
+        if (plId) {
+          await updateSkillRatings({
+            userId,
+            challengeId,
+            programming_language_id: plId,
+            pass: passed
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Rating update failed (non-blocking):', e.message);
+    }
+
+    // Alert data on fail
     let alertData = null;
     if (!passed) {
       const failedAttemptsCount = await getFailedAttemptsCount(userId, projectId);
-      console.log(`Total failed attempts after this attempt: ${failedAttemptsCount}`);
-      
       if (failedAttemptsCount >= 7) {
-        const comfortingMessage = generateComfortingMessage(failedAttemptsCount, project.title);
+        const { data: proj } = await supabase
+          .from('projects')
+          .select('title')
+          .eq('id', projectId)
+          .single();
+        const title = proj?.title || project.title || 'this project';
         alertData = {
           shouldShow: true,
           attemptCount: failedAttemptsCount,
-          message: comfortingMessage
+          message: generateComfortingMessage(failedAttemptsCount, title)
         };
       }
     }
 
-    // Always return success with evaluation results (EXACTLY like your working version + alertData)
-    const response = {
+    return res.json({
       success: true,
       data: {
-        attempt: attempt,
-        score: score,
-        passed: passed,
-        projectJoined: projectJoined,
-        feedback: evaluationResult.feedback,
+        attempt,
+        score: finalScore,
+        passed,
+        projectJoined,
+        feedback,
         membership: membershipData,
         status: passed ? 'passed' : 'failed',
-        evaluation: evaluationResult,
-        alertData: alertData // NEW: Include alert data for failed attempts
+        evaluation,
+        alertData
       }
-    };
-
-    console.log('📤 Sending response:', {
-      passed,
-      projectJoined,
-      score,
-      alertData: alertData ? `Alert for ${alertData.attemptCount} attempts` : 'No alert',
-      feedback: evaluationResult.feedback.substring(0, 50) + '...'
     });
-
-    res.json(response);
-
   } catch (error) {
-    console.error('❌ Error in submitChallengeAttempt:', error);
-    
-    res.status(200).json({
+    console.error('Error in submitChallengeAttempt:', error);
+    return res.status(200).json({
       success: true,
       data: {
         attempt: null,
         score: 0,
         passed: false,
         projectJoined: false,
-        feedback: "There was an issue evaluating your solution. Please check your code and try again.",
+        feedback: 'There was an issue evaluating your solution. Please check your code and try again.',
         status: 'error'
       }
     });
   }
 };
 
-// ALL YOUR EXISTING EVALUATION FUNCTIONS - EXACTLY THE SAME
+// ===== Heuristic evaluators (regex-free, robust) =====
+
 function evaluateCodeSubmission(code, project) {
-  const trimmedCode = code.trim();
+  const src = String(code || '');
+  const trimmed = src.trim();
+
   let score = 0;
-  let feedback = "";
+  let feedback = '';
   const details = {
     hasFunction: false,
     hasLogic: false,
@@ -641,128 +559,98 @@ function evaluateCodeSubmission(code, project) {
     complexity: 0
   };
 
-  // Basic validation - code must be substantial
-  if (trimmedCode.length < 20) {
+  // Basic size check
+  if (trimmed.length < 20) {
     return {
       score: 0,
-      feedback: "Your solution is too short. Please provide a more complete implementation.",
+      feedback: 'Your solution is too short. Please provide a more complete implementation.',
       details
     };
   }
 
-  // Check for obvious test/placeholder content
-  const placeholderPatterns = [
-    /todo/i,
-    /placeholder/i,
-    /your code here/i,
-    /implement/i,
-    /test/i,
-    /hello world/i,
-    /console\.log\s*\(\s*["'][^"']*["']\s*\)/i // Simple console.log statements
-  ];
+  // Placeholder detection (loose)
+  const lower = trimmed.toLowerCase();
+  const isPlaceholder =
+    lower.includes('todo') ||
+    lower.includes('placeholder') ||
+    lower.includes('your code here') ||
+    lower.includes('implement') ||
+    lower.includes('hello world') ||
+    // trivial console.log
+    lower.includes('console.log(');
 
-  const isPlaceholder = placeholderPatterns.some(pattern => pattern.test(trimmedCode));
-  if (isPlaceholder && trimmedCode.length < 100) {
+  if (isPlaceholder && trimmed.length < 100) {
     return {
       score: 15,
-      feedback: "Your solution appears to contain placeholder code. Please implement a proper solution.",
+      feedback: 'Your solution appears to contain placeholder code. Please implement a proper solution.',
       details
     };
   }
 
-  // Language-specific validation
-  const projectLanguages = project.project_languages || [];
-  const primaryLanguage = projectLanguages.find(pl => pl.is_primary)?.programming_languages?.name?.toLowerCase();
-  
-  let languageScore = 0;
-  if (primaryLanguage) {
-    details.languageMatch = checkLanguageMatch(trimmedCode, primaryLanguage);
-    if (details.languageMatch) {
-      languageScore = 20;
-      score += 20;
-    }
-  } else {
-    // If no primary language specified, give partial credit for any recognized language
-    if (hasAnyProgrammingLanguageFeatures(trimmedCode)) {
-      languageScore = 15;
-      score += 15;
-    }
+  // Language context
+  const projLangs = project?.project_languages || [];
+  const primaryLangName = (projLangs.find(pl => pl.is_primary)?.programming_languages?.name || '').toLowerCase();
+
+  // Language match
+  if (primaryLangName) {
+    details.languageMatch = checkLanguageMatch(trimmed, primaryLangName);
+    if (details.languageMatch) score += 20;
+  } else if (hasAnyProgrammingLanguageFeatures(trimmed)) {
+    score += 15;
   }
 
-  // Function/method definition check (crucial for most challenges)
-  const functionPatterns = [
-    /function\s+\w+/i,           // JavaScript function
-    /def\s+\w+/i,                // Python function
-    /\w+\s*\([^)]*\)\s*{/,       // C/C++/Java/C# method
-    /=>\s*{?/,                   // Arrow function
-    /public\s+\w+\s+\w+/i,       // Java/C# public method
-    /fn\s+\w+/i                  // Rust function
-  ];
+  // Function/method clues
+  const hasFunctionClues = [
+    'function ',   // JS
+    'def ',        // Python
+    '=>',          // Arrow
+    'class ',      // OOP
+    'static void main', // Java/C#
+    'fn '          // Rust
+  ].some(t => lower.includes(t));
+  details.hasFunction = hasFunctionClues;
+  if (details.hasFunction) score += 25;
 
-  details.hasFunction = functionPatterns.some(pattern => pattern.test(trimmedCode));
-  if (details.hasFunction) {
-    score += 25;
-  }
+  // Logic structures
+  const hasLogicClues = [
+    'if(', 'for(', 'while(', 'switch(',
+    'elif:', 'else:',
+    'return '
+  ].some(t => lower.includes(t));
+  details.hasLogic = hasLogicClues;
+  if (details.hasLogic) score += 20;
 
-  // Logic and control structures
-  const logicPatterns = [
-    /if\s*\(/i,
-    /for\s*\(/i,
-    /while\s*\(/i,
-    /switch\s*\(/i,
-    /elif\s*:/i,
-    /else\s*:/i,
-    /return\s+\w/i
-  ];
+  // Comments
+  const hasComments =
+    src.includes('//') ||                                   // JS/C++
+    (src.includes('/*') && src.includes('*/')) ||           // block comments
+    src.includes('#') ||                                    // Python/Shell
+    (src.includes('"""') && src.split('"""').length >= 3) ||// Python docstring
+    (src.includes("'''") && src.split("'''").length >= 3);  // Python docstring
+  details.hasComments = hasComments;
+  if (details.hasComments) score += 10;
 
-  details.hasLogic = logicPatterns.some(pattern => pattern.test(trimmedCode));
-  if (details.hasLogic) {
-    score += 20;
-  }
+  // Complexity indicators (very rough)
+  let complexity = 0;
+  if (src.includes('{') && src.includes('}')) complexity++;
+  if (src.includes('[') && src.includes(']')) complexity++;
+  if (src.includes('.')) complexity++;
+  if (/[=+\-*/%]/.test(src)) complexity++; // simple operator test
+  if (src.includes('&&') || src.includes('||') || lower.includes(' and ') || lower.includes(' or ')) complexity++;
+  details.complexity = complexity;
+  score += Math.min(complexity * 3, 15);
 
-  // Comments and documentation
-  const commentPatterns = [
-    /\/\/[^\n]+/,                // Single line comments
-    /\/\*[\s\S]*?\*\//,          // Multi-line comments
-    /#[^\n]+/,                   // Python/Shell comments
-    /"""[\s\S]*?"""/,            // Python docstrings
-    /'''[\s\S]*?'''/             // Python docstrings
-  ];
+  // Code structure: lines/indent
+  const lines = src.split('\n');
+  const nonEmpty = lines.filter(l => l.trim().length > 0);
+  const indented = lines.filter(l => /^\s+/.test(l));
+  details.properStructure = nonEmpty.length >= 3 && (indented.length / Math.max(1, nonEmpty.length)) > 0.3;
+  if (details.properStructure) score += 10;
 
-  details.hasComments = commentPatterns.some(pattern => pattern.test(trimmedCode));
-  if (details.hasComments) {
-    score += 10;
-  }
+  // Cap for very short solutions
+  if (trimmed.length < 50 && score > 40) score = Math.min(score, 40);
 
-  // Code complexity and structure
-  const complexityIndicators = [
-    /\{[\s\S]*\}/,               // Blocks of code
-    /\[[\s\S]*\]/,               // Arrays/lists
-    /\w+\.\w+/,                  // Object/method access
-    /[=+\-*/%]/,                 // Mathematical operations
-    /&&|\|\||and|or/i            // Logical operators
-  ];
-
-  details.complexity = complexityIndicators.filter(pattern => pattern.test(trimmedCode)).length;
-  score += Math.min(details.complexity * 3, 15); // Up to 15 points for complexity
-
-  // Code structure (indentation, proper formatting)
-  const lines = trimmedCode.split('\n');
-  const nonEmptyLines = lines.filter(line => line.trim().length > 0);
-  const indentedLines = lines.filter(line => /^\s+/.test(line));
-  
-  details.properStructure = nonEmptyLines.length >= 3 && (indentedLines.length / nonEmptyLines.length) > 0.3;
-  if (details.properStructure) {
-    score += 10;
-  }
-
-  // Prevent extremely high scores for trivial code
-  if (trimmedCode.length < 50 && score > 40) {
-    score = Math.min(score, 40);
-  }
-
-  // Generate feedback based on evaluation
-  feedback = generateDetailedFeedback(score, details, primaryLanguage);
+  feedback = generateDetailedFeedback(score, details, primaryLangName || null);
 
   return {
     score: Math.max(0, Math.min(100, score)),
@@ -771,149 +659,80 @@ function evaluateCodeSubmission(code, project) {
   };
 }
 
-function checkLanguageMatch(code, language) {
-  const languagePatterns = {
-    'javascript': [
-      /function\s+\w+/i,
-      /=>\s*{?/,
-      /const\s+\w+/i,
-      /let\s+\w+/i,
-      /var\s+\w+/i,
-      /console\.log/i
-    ],
-    'python': [
-      /def\s+\w+/i,
-      /import\s+\w+/i,
-      /print\s*\(/i,
-      /if\s+.*:/,
-      /for\s+\w+\s+in/i,
-      /class\s+\w+/i
-    ],
-    'java': [
-      /public\s+class/i,
-      /public\s+static\s+void\s+main/i,
-      /System\.out\.println/i,
-      /public\s+\w+\s+\w+\s*\(/i
-    ],
-    'c++': [
-      /#include\s*</i,
-      /using\s+namespace/i,
-      /int\s+main\s*\(/i,
-      /cout\s*<</i,
-      /std::/i
-    ],
-    'c#': [
-      /using\s+System/i,
-      /public\s+class/i,
-      /Console\.WriteLine/i,
-      /static\s+void\s+Main/i
-    ]
-  };
+function checkLanguageMatch(code, langName) {
+  const s = code.toLowerCase();
+  const lang = (langName || '').toLowerCase();
 
-  const patterns = languagePatterns[language.toLowerCase()];
-  if (!patterns) return false;
-
-  return patterns.some(pattern => pattern.test(code));
+  switch (lang) {
+    case 'javascript':
+    case 'typescript':
+      return s.includes('function ') || s.includes('=>') || s.includes('console.log');
+    case 'python':
+      return s.includes('def ') || s.includes('import ') || s.includes('print(');
+    case 'java':
+      return s.includes('public class') || s.includes('static void main') || s.includes('system.out.println');
+    case 'c++':
+    case 'cpp':
+      return s.includes('#include') || s.includes('using namespace') || s.includes('int main(');
+    case 'c#':
+    case 'csharp':
+      return s.includes('using system') || s.includes('public class') || s.includes('console.writeline');
+    case 'go':
+      return s.includes('package main') || s.includes('func main(');
+    case 'rust':
+      return s.includes('fn main(');
+    default:
+      // generic check
+      return hasAnyProgrammingLanguageFeatures(s);
+  }
 }
 
 function hasAnyProgrammingLanguageFeatures(code) {
-  const generalPatterns = [
-    /function\s+\w+/i,
-    /def\s+\w+/i,
-    /public\s+class/i,
-    /if\s*\(/i,
-    /for\s*\(/i,
-    /while\s*\(/i,
-    /return\s+/i,
-    /=>\s*{?/,
-    /#include/i,
-    /import\s+/i
-  ];
-
-  return generalPatterns.some(pattern => pattern.test(code));
+  const s = code.toLowerCase();
+  return [
+    'function ', 'def ', 'class ', '=>',
+    'if(', 'for(', 'while(', 'switch(',
+    'return ', '#include', 'import '
+  ].some(t => s.includes(t));
 }
 
 function generateDetailedFeedback(score, details, primaryLanguage) {
-  let feedback = "";
-
+  let fb = '';
   if (score >= 80) {
-    feedback = "🎉 Excellent work! Your solution demonstrates strong programming skills with proper structure and logic.";
+    fb = '🎉 Excellent work! Your solution demonstrates strong programming skills with proper structure and logic.';
   } else if (score >= 70) {
-    feedback = "✅ Good job! Your solution meets the requirements and shows solid programming understanding.";
+    fb = '✅ Good job! Your solution meets the requirements and shows solid programming understanding.';
   } else if (score >= 50) {
-    feedback = "⚠️ Your solution shows some programming knowledge but needs improvement. ";
-    
+    fb = '⚠️ Your solution shows some programming knowledge but needs improvement. ';
     const suggestions = [];
-    if (!details.hasFunction) {
-      suggestions.push("Consider defining proper functions or methods");
-    }
-    if (!details.hasLogic) {
-      suggestions.push("Add conditional logic and control structures");
-    }
-    if (primaryLanguage && !details.languageMatch) {
-      suggestions.push(`Use ${primaryLanguage} syntax and features`);
-    }
-    if (!details.properStructure) {
-      suggestions.push("Improve code formatting and structure");
-    }
-    
-    if (suggestions.length > 0) {
-      feedback += "Try to: " + suggestions.slice(0, 2).join(", ") + ".";
-    }
+    if (!details.hasFunction) suggestions.push('define proper functions or methods');
+    if (!details.hasLogic) suggestions.push('add conditional logic and control structures');
+    if (primaryLanguage && !details.languageMatch) suggestions.push(`use ${primaryLanguage} syntax and features`);
+    if (!details.properStructure) suggestions.push('improve code formatting and structure');
+    if (suggestions.length > 0) fb += 'Try to: ' + suggestions.slice(0, 2).join(', ') + '.';
   } else if (score >= 25) {
-    feedback = "❌ Your solution needs significant improvement. Make sure to write a complete, functional solution that addresses the problem requirements.";
+    fb = '❌ Your solution needs significant improvement. Write a complete, functional solution that addresses the problem requirements.';
   } else {
-    feedback = "❌ Your solution appears to be incomplete or incorrect. Please review the challenge requirements and implement a proper solution with functions, logic, and appropriate syntax.";
+    fb = '❌ Your solution appears incomplete or incorrect. Review the challenge requirements and implement a proper solution.';
   }
-
-  return feedback;
+  return fb;
 }
 
-// Helper Functions (EXACTLY like your working version)
 function getStarterCodeForLanguage(languageName) {
   const starterCodes = {
-    'JavaScript': '// Your JavaScript solution here\nfunction solution() {\n    // TODO: Implement your solution\n    return null;\n}',
-    'Python': '# Your Python solution here\ndef solution():\n    # TODO: Implement your solution\n    pass',
-    'Java': '// Your Java solution here\npublic class Solution {\n    public static void main(String[] args) {\n        // TODO: Implement your solution\n    }\n}',
+    JavaScript: '// Your JavaScript solution here\nfunction solution() {\n    // TODO: Implement your solution\n    return null;\n}',
+    Python: '# Your Python solution here\ndef solution():\n    # TODO: Implement your solution\n    pass',
+    Java: '// Your Java solution here\npublic class Solution {\n    public static void main(String[] args) {\n        // TODO: Implement your solution\n    }\n}',
     'C++': '// Your C++ solution here\n#include <iostream>\nusing namespace std;\n\nint main() {\n    // TODO: Implement your solution\n    return 0;\n}',
     'C#': '// Your C# solution here\nusing System;\n\nclass Program {\n    static void Main() {\n        // TODO: Implement your solution\n    }\n}',
-    'Go': '// Your Go solution here\npackage main\n\nimport "fmt"\n\nfunc main() {\n    // TODO: Implement your solution\n}',
-    'Rust': '// Your Rust solution here\nfn main() {\n    // TODO: Implement your solution\n}',
-    'TypeScript': '// Your TypeScript solution here\nfunction solution(): any {\n    // TODO: Implement your solution\n    return null;\n}'
+    Go: '// Your Go solution here\npackage main\n\nimport "fmt"\n\nfunc main() {\n    // TODO: Implement your solution\n}',
+    Rust: '// Your Rust solution here\nfn main() {\n    // TODO: Implement your solution\n}',
+    TypeScript: '// Your TypeScript solution here\nfunction solution(): any {\n    // TODO: Implement your solution\n    return null;\n}'
   };
-
   return starterCodes[languageName] || `// Your ${languageName} solution here\n// TODO: Implement your solution`;
 }
 
-function calculateCodeScore(code) {
-  let score = 50; // Base score
-
-  // Simple heuristics for code quality
-  if (code.length > 100) score += 10;
-  if (code.includes('function') || code.includes('def') || code.includes('class')) score += 15;
-  if (code.includes('//') || code.includes('#') || code.includes('/*')) score += 10; // Comments
-  if (code.includes('if') || code.includes('for') || code.includes('while')) score += 10; // Control structures
-  if (code.includes('return')) score += 5;
-
-  // Bonus for proper structure
-  const lines = code.split('\n').filter(line => line.trim().length > 0);
-  if (lines.length > 5) score += 10;
-
-  return Math.min(100, Math.max(20, score)); // Clamp between 20-100
-}
-
-function generateFeedback(score, passed) {
-  if (passed) {
-    if (score >= 90) return "Excellent work! Your solution demonstrates strong programming skills.";
-    if (score >= 80) return "Great job! Your solution is solid and well-structured.";
-    return "Good work! Your solution meets the requirements.";
-  } else {
-    if (score >= 60) return "Close! Your solution shows promise but needs some improvements.";
-    if (score >= 40) return "Keep practicing! Your solution has some good elements but needs work.";
-    return "Don't give up! Consider reviewing the requirements and trying again.";
-  }
-}
-
+/* ============================== Exports ============================== */
 module.exports = {
   getProjectChallenge,
   canAttemptChallenge,
