@@ -1,13 +1,9 @@
-// backend/controllers/projectRecruitmentController.js
 'use strict';
 // @ts-nocheck
 
 const supabase = require('../config/supabase');
 const { runTests } = require('../utils/codeEvaluator');
 const { updateSkillRatings } = require('./challengeController');
-
-// Utility: safe regex factory (no literal /.../)
-const r = (s, f = '') => new RegExp(s, f);
 
 // Count user's failed attempts for a specific project
 const getFailedAttemptsCount = async (userId, projectId) => {
@@ -58,6 +54,7 @@ const getProjectChallenge = async (req, res) => {
   try {
     const { projectId } = req.params;
 
+    // Load project
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
@@ -68,6 +65,7 @@ const getProjectChallenge = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
 
+    // Load languages
     const { data: projectLanguages, error: languageError } = await supabase
       .from('project_languages')
       .select(`
@@ -87,10 +85,12 @@ const getProjectChallenge = async (req, res) => {
 
     const projLangs = projectLanguages || [];
 
+    // Capacity
     if (project.current_members >= project.maximum_members) {
       return res.status(400).json({ success: false, message: 'Project has reached maximum capacity' });
     }
 
+    // Validate languages
     const validLangs = projLangs.filter(pl => pl.language_id && pl.programming_languages);
     if (validLangs.length === 0) {
       return res.status(400).json({
@@ -104,7 +104,7 @@ const getProjectChallenge = async (req, res) => {
       validLangs.find(pl => pl.is_primary)?.programming_languages ||
       validLangs[0]?.programming_languages;
 
-    let selectedChallenge = null;
+    // Collect candidates
     let candidates = [];
 
     // Project-specific challenges
@@ -136,6 +136,9 @@ const getProjectChallenge = async (req, res) => {
 
       if (generalChallenges?.length) candidates = generalChallenges;
     }
+
+    // Select a challenge (prefer primary language)
+    let selectedChallenge = null;
 
     if (candidates.length > 0) {
       const primaryLangChallenges = projPrimaryLang
@@ -187,6 +190,7 @@ const canAttemptChallenge = async (req, res) => {
     const { projectId } = req.params;
     const userId = req.user.id;
 
+    // Already a member?
     const { data: membership, error: membershipError } = await supabase
       .from('project_members')
       .select('*')
@@ -202,8 +206,10 @@ const canAttemptChallenge = async (req, res) => {
       return res.json({ success: true, canAttempt: false, reason: 'You are already a member of this project' });
     }
 
+    // Failed attempts
     const failedAttemptsCount = await getFailedAttemptsCount(userId, projectId);
 
+    // Project info
     const { data: project } = await supabase
       .from('projects')
       .select('title, current_members, maximum_members')
@@ -212,6 +218,7 @@ const canAttemptChallenge = async (req, res) => {
 
     const projectTitle = project?.title || 'this project';
 
+    // Rate limit: 1/hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentAttempts, error: attemptError } = await supabase
       .from('challenge_attempts')
@@ -241,6 +248,7 @@ const canAttemptChallenge = async (req, res) => {
       });
     }
 
+    // Capacity
     if (project && project.current_members >= project.maximum_members) {
       return res.json({
         success: true,
@@ -269,6 +277,7 @@ const submitChallengeAttempt = async (req, res) => {
     const { submittedCode, startedAt, challengeId } = req.body;
     const userId = req.user.id;
 
+    // Validate submission
     if (!submittedCode || submittedCode.trim().length < 10) {
       return res.status(200).json({
         success: true,
@@ -283,6 +292,7 @@ const submitChallengeAttempt = async (req, res) => {
       });
     }
 
+    // Already a member?
     const { data: membership } = await supabase
       .from('project_members')
       .select('*')
@@ -304,22 +314,36 @@ const submitChallengeAttempt = async (req, res) => {
       });
     }
 
+    // Load project (2-step for robustness)
     const { data: project, error: projectError } = await supabase
       .from('projects')
-      .select(`
-        *,
-        project_languages (
-          language_id,
-          is_primary,
-          programming_languages ( id, name )
-        )
-      `)
+      .select('*')
       .eq('id', projectId)
       .single();
 
     if (projectError || !project) {
       return res.status(404).json({ success: false, message: 'Project not found' });
     }
+
+    const { data: projectLanguages, error: projectLangError } = await supabase
+      .from('project_languages')
+      .select(`
+        language_id,
+        is_primary,
+        programming_languages ( id, name )
+      `)
+      .eq('project_id', projectId);
+
+    if (projectLangError) {
+      console.error('Project languages query error:', projectLangError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching project languages',
+        error: projectLangError.message
+      });
+    }
+
+    project.project_languages = projectLanguages || [];
 
     // Load challenge if provided
     let challenge = null;
@@ -328,7 +352,7 @@ const submitChallengeAttempt = async (req, res) => {
         .from('coding_challenges')
         .select(`
           id, title, description, difficulty_level, time_limit_minutes,
-          test_cases, programming_language_id,
+          test_cases, expected_solution, programming_language_id,
           programming_languages ( id, name )
         `)
         .eq('id', challengeId)
@@ -336,6 +360,7 @@ const submitChallengeAttempt = async (req, res) => {
       if (!chErr && ch) challenge = ch;
     }
 
+    // Decide language name for Judge0
     const primaryLanguageName =
       project.project_languages.find(pl => pl.is_primary)?.programming_languages?.name ||
       project.project_languages[0]?.programming_languages?.name ||
@@ -348,50 +373,65 @@ const submitChallengeAttempt = async (req, res) => {
     // Defaults from heuristics
     let finalScore = heuristicEval.score;
     let passed = heuristicEval.score >= 70;
-    let evaluation = { ...heuristicEval, testSummary: null, testResults: null };
+    let evaluation = { ...heuristicEval, testSummary: null, testResults: null, judgeUsed: false };
 
-    // If challenge has test cases, run Judge0
-    if (challenge?.test_cases) {
-      let tc = challenge.test_cases;
-      if (typeof tc === 'string') {
-        try { tc = JSON.parse(tc); } catch { tc = null; }
-      }
-      if (Array.isArray(tc)) tc = { mode: 'stdin', tests: tc };
+    // If we have test cases, try Judge0
+    if (challenge?.test_cases || challengeId) {
+      try {
+        const totalTimeLimit = challenge?.time_limit_minutes ? challenge.time_limit_minutes * 60000 : 120000;
 
-      if (tc && Array.isArray(tc.tests) && tc.tests.length > 0) {
+        // Estimate number of tests (for per-test time budget)
+        let testCaseCount = 1;
         try {
-          const perTestTime = (challenge.time_limit_minutes ? challenge.time_limit_minutes * 60000 : 120000) / (tc.tests.length || 1);
-          const rt = await runTests({
-            sourceCode: submittedCode,
-            languageName: primaryLanguageName,
-            testCases: tc,
-            timeLimitMs: Math.max(1500, Math.min(10000, perTestTime)),
-            memoryLimitMb: 256
-          });
-
-          const passRate = rt.totalCount ? rt.passedCount / rt.totalCount : 0;
-          const timeScore = Math.max(0, 1 - (rt.totalTimeMs / (tc.tests.length * Math.max(1, Math.min(10000, perTestTime)))));
-          const memScore = Math.max(0, 1 - ((rt.peakMemoryKb / 1024) / 256));
-
-          finalScore = Math.round(100 * (0.8 * passRate + 0.15 * timeScore + 0.05 * memScore));
-          passed = (rt.passedCount === rt.totalCount) || finalScore >= 70;
-
-          evaluation = {
-            ...heuristicEval,
-            testSummary: {
-              passed: rt.passedCount,
-              total: rt.totalCount,
-              totalTimeMs: rt.totalTimeMs,
-              peakMemoryMb: Math.round((rt.peakMemoryKb || 0) / 1024)
-            },
-            testResults: rt.tests
-          };
-        } catch (e) {
-          console.error('Judge0 evaluation failed, fallback to heuristics:', e.message);
+          const raw = challenge?.test_cases;
+          if (typeof raw === 'string') {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) testCaseCount = parsed.length;
+            else if (parsed?.tests && Array.isArray(parsed.tests)) testCaseCount = parsed.tests.length;
+          } else if (Array.isArray(raw)) {
+            testCaseCount = raw.length;
+          } else if (raw?.tests && Array.isArray(raw.tests)) {
+            testCaseCount = raw.tests.length;
+          }
+        } catch {
+          // ignore parse errors
         }
+        const perTestTime = Math.max(1500, Math.min(10000, totalTimeLimit / Math.max(1, testCaseCount)));
+
+        // Run tests
+        const rt = await runTests({
+          sourceCode: submittedCode,
+          languageName: primaryLanguageName,
+          testCases: challenge?.test_cases || null,
+          challengeId: challengeId || null,
+          timeLimitMs: perTestTime,
+          memoryLimitMb: 256
+        });
+
+        const passRate = rt.totalCount ? rt.passedCount / rt.totalCount : 0;
+        const timeScore = Math.max(0, 1 - (rt.totalTimeMs / (rt.totalCount * perTestTime)));
+        const memScore = Math.max(0, 1 - ((rt.peakMemoryKb / 1024) / 256));
+
+        finalScore = Math.round(100 * (0.8 * passRate + 0.15 * timeScore + 0.05 * memScore));
+        passed = (rt.passedCount === rt.totalCount) || finalScore >= 70;
+
+        evaluation = {
+          ...heuristicEval,
+          testSummary: {
+            passed: rt.passedCount,
+            total: rt.totalCount,
+            totalTimeMs: rt.totalTimeMs,
+            peakMemoryMb: Math.round((rt.peakMemoryKb || 0) / 1024)
+          },
+          testResults: rt.tests,
+          judgeUsed: true
+        };
+      } catch (e) {
+        console.error('Judge0 evaluation failed; using heuristics:', e.message);
       }
     }
 
+    // Generate feedback
     let feedback = evaluation.feedback;
     if (evaluation.testSummary) {
       const p = evaluation.testSummary.passed;
@@ -399,6 +439,7 @@ const submitChallengeAttempt = async (req, res) => {
       feedback = `${p}/${total} tests passed. ${feedback}`;
     }
 
+    // Store attempt
     const attemptData = {
       user_id: userId,
       project_id: projectId,
@@ -410,14 +451,17 @@ const submitChallengeAttempt = async (req, res) => {
       feedback
     };
 
-    if (challengeId && !String(challengeId).startsWith('temp_')) attemptData.challenge_id = challengeId;
+    if (challengeId && !String(challengeId).startsWith('temp_')) {
+      attemptData.challenge_id = challengeId;
+    }
     if (evaluation.testSummary) {
       attemptData.test_cases_passed = evaluation.testSummary.passed;
       attemptData.total_test_cases = evaluation.testSummary.total;
       attemptData.execution_time_ms = evaluation.testSummary.totalTimeMs;
       attemptData.memory_usage_mb = evaluation.testSummary.peakMemoryMb;
-      // If you added a JSONB 'results' column:
-      // attemptData.results = evaluation.testResults;
+      if (evaluation.testResults) {
+        attemptData.results = evaluation.testResults; // requires JSONB column
+      }
     }
 
     const { data: attempt, error: attemptError } = await supabase
@@ -436,12 +480,12 @@ const submitChallengeAttempt = async (req, res) => {
           passed: false,
           projectJoined: false,
           feedback: 'Your solution was evaluated but there was an issue saving the attempt. Please try again.',
-          status: 'failed'
+          status: 'error'
         }
       });
     }
 
-    // Add to project on pass
+    // If passed, add to project
     let projectJoined = false;
     let membershipData = null;
 
@@ -559,7 +603,6 @@ function evaluateCodeSubmission(code, project) {
     complexity: 0
   };
 
-  // Basic size check
   if (trimmed.length < 20) {
     return {
       score: 0,
@@ -568,7 +611,6 @@ function evaluateCodeSubmission(code, project) {
     };
   }
 
-  // Placeholder detection (loose)
   const lower = trimmed.toLowerCase();
   const isPlaceholder =
     lower.includes('todo') ||
@@ -576,7 +618,6 @@ function evaluateCodeSubmission(code, project) {
     lower.includes('your code here') ||
     lower.includes('implement') ||
     lower.includes('hello world') ||
-    // trivial console.log
     lower.includes('console.log(');
 
   if (isPlaceholder && trimmed.length < 100) {
@@ -600,54 +641,44 @@ function evaluateCodeSubmission(code, project) {
   }
 
   // Function/method clues
-  const hasFunctionClues = [
-    'function ',   // JS
-    'def ',        // Python
-    '=>',          // Arrow
-    'class ',      // OOP
-    'static void main', // Java/C#
-    'fn '          // Rust
-  ].some(t => lower.includes(t));
-  details.hasFunction = hasFunctionClues;
+  const functionClues = ['function ', 'def ', '=>', 'class ', 'static void main', 'fn '];
+  details.hasFunction = functionClues.some(t => lower.includes(t));
   if (details.hasFunction) score += 25;
 
   // Logic structures
-  const hasLogicClues = [
-    'if(', 'for(', 'while(', 'switch(',
-    'elif:', 'else:',
-    'return '
-  ].some(t => lower.includes(t));
-  details.hasLogic = hasLogicClues;
+  const logicClues = ['if(', 'for(', 'while(', 'switch(', 'elif:', 'else:', 'return '];
+  details.hasLogic = logicClues.some(t => lower.includes(t));
   if (details.hasLogic) score += 20;
 
   // Comments
   const hasComments =
-    src.includes('//') ||                                   // JS/C++
-    (src.includes('/*') && src.includes('*/')) ||           // block comments
-    src.includes('#') ||                                    // Python/Shell
-    (src.includes('"""') && src.split('"""').length >= 3) ||// Python docstring
-    (src.includes("'''") && src.split("'''").length >= 3);  // Python docstring
+    src.includes('//') ||
+    (src.includes('/*') && src.includes('*/')) ||
+    src.includes('#') ||
+    (src.includes('"""') && src.split('"""').length >= 3) ||
+    (src.includes("'''") && src.split("'''").length >= 3);
   details.hasComments = hasComments;
   if (details.hasComments) score += 10;
 
-  // Complexity indicators (very rough)
+  // Complexity indicators (no regex)
   let complexity = 0;
   if (src.includes('{') && src.includes('}')) complexity++;
   if (src.includes('[') && src.includes(']')) complexity++;
   if (src.includes('.')) complexity++;
-  if (/[=+\-*/%]/.test(src)) complexity++; // simple operator test
+  const opChars = ['=', '+', '-', '*', '/', '%'];
+  if (opChars.some(ch => src.includes(ch))) complexity++;
   if (src.includes('&&') || src.includes('||') || lower.includes(' and ') || lower.includes(' or ')) complexity++;
   details.complexity = complexity;
-  score += Math.min(complexity * 3, 15);
+  score += Math.min(details.complexity * 3, 15);
 
-  // Code structure: lines/indent
+  // Structure: lines & indentation density
   const lines = src.split('\n');
   const nonEmpty = lines.filter(l => l.trim().length > 0);
   const indented = lines.filter(l => /^\s+/.test(l));
   details.properStructure = nonEmpty.length >= 3 && (indented.length / Math.max(1, nonEmpty.length)) > 0.3;
   if (details.properStructure) score += 10;
 
-  // Cap for very short solutions
+  // Cap for very short code
   if (trimmed.length < 50 && score > 40) score = Math.min(score, 40);
 
   feedback = generateDetailedFeedback(score, details, primaryLangName || null);
@@ -662,7 +693,6 @@ function evaluateCodeSubmission(code, project) {
 function checkLanguageMatch(code, langName) {
   const s = code.toLowerCase();
   const lang = (langName || '').toLowerCase();
-
   switch (lang) {
     case 'javascript':
     case 'typescript':
@@ -682,7 +712,6 @@ function checkLanguageMatch(code, langName) {
     case 'rust':
       return s.includes('fn main(');
     default:
-      // generic check
       return hasAnyProgrammingLanguageFeatures(s);
   }
 }
