@@ -198,25 +198,26 @@ function Dashboard() {
 
   // Fetch recommended projects when component mounts
   useEffect(() => {
-    const fetchRecommendations = async () => {
-      if (!user?.id) return;
-      
-      try {
-        setLoadingRecommendations(true);
-        const recommendations = await SkillMatchingAPI.getRecommendations(user.id);
-        setRecommendedProjects(recommendations.slice(0, 12)); // Show top 12 recommendations
-        setFilteredProjects(recommendations.slice(0, 12)); // Initialize filtered projects
-      } catch (error) {
-        console.error('Error fetching recommendations:', error);
-        setRecommendedProjects([]);
-        setFilteredProjects([]);
-      } finally {
-        setLoadingRecommendations(false);
-      }
-    };
+  const fetchRecommendations = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoadingRecommendations(true);
+      const response = await SkillMatchingAPI.getEnhancedRecommendations(user.id);
+      const recommendations = response.data.recommendations;
+      setRecommendedProjects(recommendations.slice(0, 12));
+      setFilteredProjects(recommendations.slice(0, 12));
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      setRecommendedProjects([]);
+      setFilteredProjects([]);
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
 
-    fetchRecommendations();
-  }, [user?.id]);
+  fetchRecommendations();
+}, [user?.id]);
 
   // NEW: Filter and Sort Effect
   useEffect(() => {

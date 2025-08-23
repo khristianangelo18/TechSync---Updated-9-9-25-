@@ -1,259 +1,136 @@
-// backend/routes/skillMatching.js - Complete with all missing endpoints
+// backend/routes/skillMatching.js
 const express = require('express');
 const router = express.Router();
-const SkillMatchingService = require('../services/SkillMatchingService');
-const AnalyticsService = require('../services/analyticsService');
+const supabase = require('../config/supabase');
+const skillMatching = require('../services/SkillMatchingService');
 
-// Get project recommendations for user
-router.get('/recommendations/:userId/enhanced', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { limit = 10, includeExplanations = true } = req.query;
-        
-        const recommendations = await SkillMatchingService.recommendProjects(userId, { 
-            limit: parseInt(limit),
-            includeExplanations: includeExplanations === 'true'
-        });
-        
-        // Enhanced response format
-        res.json({
-            success: true,
-            data: {
-                recommendations,
-                meta: {
-                    total: recommendations.length,
-                    algorithm_version: '2.0',
-                    generated_at: new Date().toISOString(),
-                    explanation: recommendations.length > 0 
-                        ? `Found ${recommendations.length} projects matching your skills in ${recommendations[0].matchFactors?.highlights?.join(', ') || 'various areas'}`
-                        : 'No projects found matching your current skill profile'
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Enhanced recommendations error:', error);
-        res.status(500).json({ 
-            success: false,
-            error: error.message,
-            message: 'Failed to generate enhanced recommendations'
-        });
+// Support both default and named export for auth middleware
+const authModule = require('../middleware/auth');
+const authMiddleware = authModule.authMiddleware || authModule;
+
+// Helpers
+const ALLOWED_ACTIONS = new Set(['viewed', 'applied', 'joined', 'ignored']);
+
+function normalizeActionTaken(input) {
+  const a = String(input || '').toLowerCase().trim();
+  return ALLOWED_ACTIONS.has(a) ? a : 'viewed';
+}
+
+function normalizeScore(s) {
+  if (s == null) return null;
+  const n = parseInt(s, 10);
+  if (Number.isNaN(n)) return null;
+  return Math.min(5, Math.max(1, n));
+}
+
+// Enhanced recommendations: GET /api/skill-matching/recommendations/:userId/enhanced?limit=10
+router.get('/recommendations/:userId/enhanced', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit || '10', 10);
+
+    if (String(req.user.id) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
     }
-});
 
-router.post('/recommendations/feedback', async (req, res) => {
-    try {
-        const { projectId, action, reason, score } = req.body;
-        const userId = req.user?.id; // Assumes auth middleware
-        
-        // Store feedback for future algorithm improvements
-        const { error } = await supabase
-            .from('recommendation_feedback')
-            .insert({
-                user_id: userId,
-                project_id: projectId,
-                action_taken: action, // 'viewed', 'applied', 'joined', 'ignored'
-                feedback_score: score,
-                created_at: new Date().toISOString()
-            });
-            
-        if (error) {
-            throw error;
+    const recs = await skillMatching.recommendProjects(userId, { limit });
+    return res.json({
+      success: true,
+      data: {
+        recommendations: recs,
+        meta: {
+          total: recs.length,
+          algorithm_version: '2.0-enhanced',
+          generated_at: new Date().toISOString()
         }
-        
-        res.json({
-            success: true,
-            message: 'Feedback recorded successfully'
-        });
-    } catch (error) {
-        console.error('Recommendation feedback error:', error);
-        res.status(500).json({ 
-            success: false,
-            error: error.message 
-        });
-    }
+      }
+    });
+  } catch (e) {
+    console.error('Enhanced recs error:', e);
+    res.status(500).json({ success: false, message: 'Failed to generate recommendations' });
+  }
 });
 
-// Submit coding challenge attempt
-router.post('/assess', async (req, res) => {
-    try {
-        const { userId, projectId, challengeId, submittedCode } = req.body;
-        const result = await SkillMatchingService.assessCodingSkill(
-            userId, projectId, submittedCode, challengeId
-        );
-        res.json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+// Legacy recommendations: GET /api/skill-matching/recommendations/:userId
+router.get('/recommendations/:userId', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const limit = parseInt(req.query.limit || '10', 10);
+
+    if (String(req.user.id) !== String(userId)) {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
     }
+
+    const recs = await skillMatching.recommendProjects(userId, { limit });
+    return res.json(recs);
+  } catch (e) {
+    console.error('Legacy recs error:', e);
+    res.status(500).json({ success: false, message: 'Failed to generate recommendations' });
+  }
 });
 
-// Get analytics and confusion matrices
-router.get('/analytics/confusion-matrix', async (req, res) => {
-    try {
-        const { type, timeframe } = req.query;
-        let matrix;
-        
-        if (type === 'recommendation') {
-            matrix = await AnalyticsService.generateRecommendationConfusionMatrix(timeframe);
-        } else {
-            matrix = await AnalyticsService.generateAssessmentConfusionMatrix(timeframe);
-        }
-        
-        res.json(matrix);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+// One handler for both feedback endpoints
+async function handleFeedback(req, res) {
+  try {
+    const userId = req.user.id;
 
-router.get('/analytics/effectiveness', async (req, res) => {
-    try {
-        const metrics = await AnalyticsService.calculateEffectivenessMetrics();
-        res.json(metrics);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+    // Accept both payload shapes:
+    // 1) { recommendation_id, action_taken, feedback_score, project_id? }
+    // 2) { projectId, action, score, reason? }  // "reason" is ignored (no column)
+    const {
+      recommendation_id,
+      action_taken,
+      feedback_score,
+      project_id
+    } = req.body;
 
-// POST /api/skill-matching/feedback - Handle recommendation feedback
-router.post('/feedback', async (req, res) => {
-    try {
-        const { recommendation_id, action_taken, feedback_score } = req.body;
-        
-        console.log('Received feedback:', { recommendation_id, action_taken, feedback_score });
-        
-        // Simple response for now - you can implement database storage later
-        res.json({ 
-            success: true, 
-            message: 'Feedback recorded successfully',
-            data: {
-                recommendation_id,
-                action_taken,
-                feedback_score,
-                recorded_at: new Date().toISOString()
-            }
-        });
-    } catch (error) {
-        console.error('Error in feedback endpoint:', error);
-        res.status(500).json({ 
-            success: false,
-            error: error.message 
-        });
-    }
-});
+    const projectIdLegacy = req.body.projectId;
+    const actionLegacy = req.body.action;
+    const scoreLegacy = req.body.score;
 
-// GET /api/skill-matching/attempts/:userId/:projectId
-router.get('/attempts/:userId/:projectId', async (req, res) => {
-    try {
-        const { userId, projectId } = req.params;
-        
-        // Return empty array for now - implement actual database query later
-        res.json([]);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+    const payload = {
+      user_id: userId,
+      recommendation_id: recommendation_id || null,
+      project_id: project_id || projectIdLegacy || null,
+      action_taken: normalizeActionTaken(action_taken || actionLegacy || 'viewed'),
+      feedback_score: normalizeScore(feedback_score ?? scoreLegacy ?? null)
+      // created_at will use DEFAULT now() from DB
+    };
 
-// GET /api/skill-matching/learning-recommendations/:userId
-router.get('/learning-recommendations/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        
-        // Return empty recommendations for now
-        res.json({ 
-            success: true,
-            data: { recommendations: [] } 
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+    // Only include allowed columns
+    const insertRow = {
+      user_id: payload.user_id,
+      recommendation_id: payload.recommendation_id,
+      project_id: payload.project_id,
+      action_taken: payload.action_taken,
+      feedback_score: payload.feedback_score
+    };
 
-// PUT /api/skill-matching/learning-recommendations/:recommendationId/complete
-router.put('/learning-recommendations/:recommendationId/complete', async (req, res) => {
-    try {
-        const { recommendationId } = req.params;
-        const { effectiveness_score } = req.body;
-        
-        res.json({
-            success: true,
-            message: 'Learning recommendation marked as completed',
-            data: { 
-                recommendation_id: recommendationId, 
-                effectiveness_score 
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+    const { error } = await supabase
+      .from('recommendation_feedback')
+      .insert([insertRow]);
 
-// GET /api/skill-matching/challenges/:projectId
-router.get('/challenges/:projectId', async (req, res) => {
-    try {
-        const { projectId } = req.params;
-        
-        // Redirect to new challenge system
-        res.json({
-            success: true,
-            message: 'Please use the new challenge endpoint',
-            redirectTo: `/api/challenges/project/${projectId}/challenge`
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+    if (error) {
+      // Table missing? Don't break UX.
+      if (String(error.code) === '42P01') {
+        console.warn('recommendation_feedback table missing; returning success anyway');
+        return res.json({ success: true, message: 'Feedback received (not persisted)' });
+      }
+      console.error('Feedback insert error:', error);
+      return res.status(500).json({ success: false, message: 'Failed to store feedback' });
     }
-});
 
-// GET /api/skill-matching/assessment-summary/:userId
-router.get('/assessment-summary/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        
-        res.json({
-            success: true,
-            data: {
-                summary: {
-                    totalAttempts: 0,
-                    passedAttempts: 0,
-                    failedAttempts: 0,
-                    averageScore: 0,
-                    lastAttempt: null
-                }
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+    return res.json({ success: true, message: 'Feedback stored' });
+  } catch (e) {
+    console.error('Feedback error:', e);
+    return res.status(500).json({ success: false, message: 'Failed to store feedback' });
+  }
+}
 
-// PUT /api/skill-matching/config
-router.put('/config', async (req, res) => {
-    try {
-        const { weights, thresholds } = req.body;
-        
-        res.json({
-            success: true,
-            message: 'Algorithm configuration updated',
-            data: { config: { weights, thresholds } }
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// GET /api/skill-matching/config
-router.get('/config', async (req, res) => {
-    try {
-        res.json({
-            success: true,
-            data: {
-                config: {
-                    weights: { topic: 0.4, experience: 0.3, language: 0.3 },
-                    thresholds: { min_score: 70 }
-                }
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+// Feedback endpoints
+// POST /api/skill-matching/feedback
+router.post('/feedback', authMiddleware, handleFeedback);
+// POST /api/skill-matching/recommendations/feedback
+router.post('/recommendations/feedback', authMiddleware, handleFeedback);
 
 module.exports = router;

@@ -47,13 +47,13 @@ class SkillMatchingAPI {
    * @param {number} score - Optional rating 1-5
    * @returns {Promise} - Feedback response
    */
-  static async sendRecommendationFeedback(projectId, action, reason = null, score = null) {
+   static async sendRecommendationFeedback(projectId, action, reason = null, score = null) {
+    // Backend ignores "reason" (no column), but we can still send it; route will drop it.
     try {
       const response = await api.post('/skill-matching/recommendations/feedback', {
         projectId,
-        action,
-        reason,
-        score
+        action,               // backend normalizes to action_taken
+        score                 // backend normalizes to feedback_score
       });
       return response.data;
     } catch (error) {
@@ -180,12 +180,12 @@ class SkillMatchingAPI {
    * @param {number} feedbackScore - Rating from 1-5
    * @returns {Promise} - Updated feedback
    */
-  static async updateRecommendationFeedback(recommendationId, action, feedbackScore = null) {
+ static async updateRecommendationFeedback(recommendationId, action, feedbackScore = null) {
     try {
       const response = await api.post('/skill-matching/feedback', {
         recommendation_id: recommendationId,
-        action_taken: action,
-        feedback_score: feedbackScore
+        action_taken: action,          // matches DB column
+        feedback_score: feedbackScore  // matches DB column
       });
       return response.data;
     } catch (error) {
