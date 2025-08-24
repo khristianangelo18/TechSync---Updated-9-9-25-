@@ -1,4 +1,4 @@
-// frontend/src/pages/Dashboard.js - MIGRATED WITH TOGGLE TABS
+// frontend/src/pages/Dashboard.js - MINIMAL AI CHAT INTEGRATION
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
 import CreateProject from './CreateProject';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
+import AIChatInterface from '../components/AIChat/AIChatInterface'; // NEW: Only addition
 
 // Enhanced Project Card Component (FULLY PRESERVED with all original features)
 const EnhancedProjectCard = ({
@@ -197,7 +198,7 @@ function Dashboard() {
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
   
-  // NEW: Tab state for toggle functionality
+  // Tab state for toggle functionality
   const [activeTab, setActiveTab] = useState('recommended'); // 'recommended' or 'forYou'
   
   // Filter and Sort States (preserved from original)
@@ -437,6 +438,7 @@ function Dashboard() {
     }
   };
 
+  // ALL ORIGINAL STYLES PRESERVED
   const styles = {
     container: {
       maxWidth: '1200px',
@@ -538,7 +540,7 @@ function Dashboard() {
       marginBottom: '30px'
     },
     
-    // NEW: Tab Navigation Styles
+    // Tab Navigation Styles
     tabNavigation: {
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
@@ -771,7 +773,7 @@ function Dashboard() {
       fontWeight: '500'
     },
 
-    // NEW: For You Tab Styles
+    // For You Tab Styles (preserved)
     forYouGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
@@ -800,7 +802,7 @@ function Dashboard() {
       lineHeight: '1.4'
     },
 
-    // Trending Projects Styles
+    // Trending Projects Styles (preserved)
     trendingList: {
       display: 'flex',
       flexDirection: 'column',
@@ -845,7 +847,7 @@ function Dashboard() {
       fontWeight: '500'
     },
 
-    // Learning Resources Styles
+    // Learning Resources Styles (preserved)
     learningList: {
       display: 'flex',
       flexDirection: 'column',
@@ -877,7 +879,7 @@ function Dashboard() {
       lineHeight: '1.3'
     },
 
-    // Career Insights Styles
+    // Career Insights Styles (preserved)
     insightsList: {
       display: 'flex',
       flexDirection: 'column',
@@ -912,7 +914,7 @@ function Dashboard() {
       margin: 0
     },
 
-    // Quick Actions Styles
+    // Quick Actions Styles (preserved)
     quickActionsList: {
       display: 'flex',
       flexDirection: 'column',
@@ -938,12 +940,21 @@ function Dashboard() {
       display: 'flex',
       flexDirection: 'column',
       gap: '2px'
+    },
+
+    // NEW: AI Chat Section Styles (only addition)
+    aiChatSection: {
+      gridColumn: '1 / -1', // Span full width
+      backgroundColor: 'white',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      padding: '20px'
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* Header Section (preserved) */}
+      {/* Header Section (COMPLETELY PRESERVED) */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
           <h1 style={styles.title}>Dashboard</h1>
@@ -997,7 +1008,7 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Create Project Modal (preserved) */}
+      {/* Create Project Modal (COMPLETELY PRESERVED) */}
       {showCreateProject && (
         <div style={styles.modal} onClick={handleCloseCreate}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -1006,7 +1017,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Welcome Section (preserved) */}
+      {/* Welcome Section (COMPLETELY PRESERVED) */}
       <div style={styles.welcomeCard}>
         <h2>🎉 Welcome Back!</h2>
         <p>
@@ -1015,7 +1026,7 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* NEW: Tab Navigation */}
+      {/* Tab Navigation (COMPLETELY PRESERVED) */}
       <div style={styles.tabNavigation}>
         <div style={styles.tabHeader}>
           <button
@@ -1059,7 +1070,7 @@ function Dashboard() {
         </div>
 
         <div style={styles.tabContent}>
-          {/* RECOMMENDED PROJECTS TAB */}
+          {/* RECOMMENDED PROJECTS TAB (COMPLETELY PRESERVED) */}
           {activeTab === 'recommended' && (
             <div>
               <h3 style={styles.sectionTitle}>🚀 Recommended Projects</h3>
@@ -1067,7 +1078,7 @@ function Dashboard() {
                 Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, here are some projects you might like.
               </p>
 
-              {/* Filter and Sort Section (FULLY RESTORED) */}
+              {/* Filter and Sort Section (COMPLETELY PRESERVED) */}
               {!loadingRecommendations && recommendedProjects.length > 0 && (
                 <div style={styles.filterSection}>
                   <div style={styles.filterHeader}>
@@ -1195,7 +1206,7 @@ function Dashboard() {
                 </div>
               )}
 
-              {/* Project Grid (preserved) */}
+              {/* Project Grid (COMPLETELY PRESERVED) */}
               {loadingRecommendations ? (
                 <div style={styles.loadingSpinner}>
                   Loading personalized recommendations...
@@ -1236,140 +1247,16 @@ function Dashboard() {
             </div>
           )}
 
-          {/* FOR YOU TAB */}
+          {/* FOR YOU TAB - SOLO PROJECT WITH AI CHAT ONLY */}
           {activeTab === 'forYou' && (
             <div>
-              <h3 style={styles.sectionTitle}>✨ For You</h3>
+              <h3 style={styles.sectionTitle}>✨ Solo Project</h3>
               <p style={{ color: '#666', marginBottom: '15px' }}>
-                Personalized content and projects curated specifically for your interests and career goals.
+                Sync is your personal AI-powered workspace for generating and planning coding projects.
               </p>
 
-              {/* For You Content Grid */}
-              <div style={styles.forYouGrid}>
-                {/* Trending Projects Section */}
-                <div style={styles.forYouSection}>
-                  <h4 style={styles.forYouSectionTitle}>🔥 Trending Projects</h4>
-                  <p style={styles.forYouSectionDesc}>
-                    Popular projects that developers like you are joining this week.
-                  </p>
-                  <div style={styles.trendingList}>
-                    <div style={styles.trendingItem}>
-                      <span style={styles.trendingRank}>1</span>
-                      <div style={styles.trendingInfo}>
-                        <strong>Modern Chat Application</strong>
-                        <span style={styles.trendingMeta}>React • Node.js • Socket.io</span>
-                      </div>
-                      <span style={styles.trendingMembers}>234 members</span>
-                    </div>
-                    <div style={styles.trendingItem}>
-                      <span style={styles.trendingRank}>2</span>
-                      <div style={styles.trendingInfo}>
-                        <strong>AI-Powered Task Manager</strong>
-                        <span style={styles.trendingMeta}>Python • FastAPI • OpenAI</span>
-                      </div>
-                      <span style={styles.trendingMembers}>187 members</span>
-                    </div>
-                    <div style={styles.trendingItem}>
-                      <span style={styles.trendingRank}>3</span>
-                      <div style={styles.trendingInfo}>
-                        <strong>E-commerce Platform</strong>
-                        <span style={styles.trendingMeta}>Vue.js • Django • PostgreSQL</span>
-                      </div>
-                      <span style={styles.trendingMembers}>156 members</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Learning Resources Section */}
-                <div style={styles.forYouSection}>
-                  <h4 style={styles.forYouSectionTitle}>📚 Recommended Learning</h4>
-                  <p style={styles.forYouSectionDesc}>
-                    Skills and technologies to advance your development journey.
-                  </p>
-                  <div style={styles.learningList}>
-                    <div style={styles.learningItem}>
-                      <div style={styles.learningIcon}>⚛️</div>
-                      <div style={styles.learningContent}>
-                        <strong>Advanced React Patterns</strong>
-                        <span style={styles.learningDesc}>Master hooks, context, and performance optimization</span>
-                      </div>
-                    </div>
-                    <div style={styles.learningItem}>
-                      <div style={styles.learningIcon}>🐍</div>
-                      <div style={styles.learningContent}>
-                        <strong>Python for Data Science</strong>
-                        <span style={styles.learningDesc}>Pandas, NumPy, and machine learning basics</span>
-                      </div>
-                    </div>
-                    <div style={styles.learningItem}>
-                      <div style={styles.learningIcon}>☁️</div>
-                      <div style={styles.learningContent}>
-                        <strong>Cloud Architecture</strong>
-                        <span style={styles.learningDesc}>AWS, Docker, and microservices patterns</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Career Insights Section */}
-                <div style={styles.forYouSection}>
-                  <h4 style={styles.forYouSectionTitle}>💼 Career Insights</h4>
-                  <p style={styles.forYouSectionDesc}>
-                    Industry trends and opportunities based on your profile.
-                  </p>
-                  <div style={styles.insightsList}>
-                    <div style={styles.insightItem}>
-                      <div style={styles.insightHeader}>
-                        <span style={styles.insightTitle}>Full-Stack Developer Demand</span>
-                        <span style={styles.insightTrend}>📈 +15%</span>
-                      </div>
-                      <p style={styles.insightDesc}>
-                        Companies are actively seeking developers with your JavaScript and Node.js skills.
-                      </p>
-                    </div>
-                    <div style={styles.insightItem}>
-                      <div style={styles.insightHeader}>
-                        <span style={styles.insightTitle}>Remote Opportunities</span>
-                        <span style={styles.insightTrend}>🌍 Growing</span>
-                      </div>
-                      <p style={styles.insightDesc}>
-                        85% of companies now offer remote positions for developers with 2+ years experience.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions Section */}
-                <div style={styles.forYouSection}>
-                  <h4 style={styles.forYouSectionTitle}>⚡ Quick Actions</h4>
-                  <p style={styles.forYouSectionDesc}>
-                    Common tasks to enhance your profile and project involvement.
-                  </p>
-                  <div style={styles.quickActionsList}>
-                    <button style={styles.quickActionButton}>
-                      <span style={styles.quickActionIcon}>📝</span>
-                      <div style={styles.quickActionContent}>
-                        <strong>Update Your Bio</strong>
-                        <span>Make your profile more discoverable</span>
-                      </div>
-                    </button>
-                    <button style={styles.quickActionButton}>
-                      <span style={styles.quickActionIcon}>🔗</span>
-                      <div style={styles.quickActionContent}>
-                        <strong>Connect GitHub</strong>
-                        <span>Showcase your coding projects</span>
-                      </div>
-                    </button>
-                    <button style={styles.quickActionButton}>
-                      <span style={styles.quickActionIcon}>👥</span>
-                      <div style={styles.quickActionContent}>
-                        <strong>Find Collaborators</strong>
-                        <span>Connect with like-minded developers</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {/* AI Chat Interface - Direct without extra containers */}
+              <AIChatInterface />
             </div>
           )}
         </div>

@@ -20,6 +20,7 @@ const skillMatchingRoutes = require('./routes/skillMatching');
 const challengeRoutes = require('./routes/challenges');
 const adminRoutes = require('./routes/admin');
 const chatRoutes = require('./routes/chat');
+const aiChatRoutes = require('./routes/aiChat');
 const projectMemberRoutes = require('./routes/projectMembers');
 const commentsRoutes = require('./routes/comments');
 const notificationsRoutes = require('./routes/notifications');
@@ -138,6 +139,7 @@ app.use('/api/skill-matching', skillMatchingRoutes);
 app.use('/api/challenges', challengeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/ai-chat', aiChatRoutes);
 app.use('/api/comments', commentsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/github', githubRoutes);
@@ -173,6 +175,7 @@ app.get('/', (req, res) => {
       projects: '/api/projects',
       tasks: '/api/projects/:projectId/tasks',     // ✅ Correct path
       members: '/api/projects/:projectId/members', // ✅ Correct path
+      'aichat': '/api/ai-chat',
       challenges: '/api/challenges',
       github: '/api/github'
     }
