@@ -1,29 +1,44 @@
-// frontend/src/pages/Dashboard.js - SIMPLIFIED VERSION - Only Welcome & Recommendations
+// frontend/src/pages/Dashboard.js - MIGRATED WITH TOGGLE TABS
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationContext';
-import CreateProject from './CreateProject';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
+import CreateProject from './CreateProject';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 
-const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjectClick, handleJoinProject }) => {
-  const [showTooltip, setShowTooltip] = React.useState(false);
-  
+// Enhanced Project Card Component (FULLY PRESERVED with all original features)
+const EnhancedProjectCard = ({
+  project,
+  styles,
+  getDifficultyStyle,
+  handleProjectClick,
+  handleJoinProject
+}) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  // DEBUG: Log project data to see what we're getting
+  React.useEffect(() => {
+    if (project) {
+      console.log('🎯 Project Card - Project data:', project.title);
+      console.log('🎯 Project Card - Match factors:', project.matchFactors);
+      console.log('🎯 Project Card - Highlights:', project.matchFactors?.highlights);
+      console.log('🎯 Project Card - Suggestions:', project.matchFactors?.suggestions);
+    }
+  }, [project]);
+
   return (
     <div
-      style={styles.projectCard}
+      style={{
+        ...styles.projectCard,
+        ...(isHovered ? styles.projectCardHover : {})
+      }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={() => handleProjectClick(project)}
-      onMouseEnter={(e) => {
-        Object.assign(e.target.style, styles.projectCardHover);
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.transform = 'none';
-        e.target.style.boxShadow = 'none';
-        e.target.style.border = '1px solid #dee2e6';
-      }}
     >
-      {/* Enhanced match score with tooltip */}
+      {/* Enhanced match score with tooltip - RESTORED */}
       <div 
         style={{
           ...styles.matchScore,
@@ -33,10 +48,10 @@ const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjec
         onMouseLeave={() => setShowTooltip(false)}
         title="Click to see why this matches you"
       >
-        {Math.round(project.score)}% match
+        {Math.round(project.score || 0)}% match
         
-        {/* Tooltip for match explanation */}
-        {showTooltip && project.matchFactors?.highlights && (
+        {/* Tooltip for match explanation - RESTORED */}
+        {showTooltip && (project.matchFactors?.highlights?.length > 0 || project.matchFactors?.suggestions?.length > 0) && (
           <div style={{
             position: 'absolute',
             top: '100%',
@@ -52,7 +67,11 @@ const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjec
             maxWidth: '200px',
             whiteSpace: 'normal'
           }}>
-            {project.matchFactors.highlights.slice(0, 2).join(', ')}
+            {/* Show highlights if available */}
+            {project.matchFactors?.highlights?.length > 0 ? 
+              project.matchFactors.highlights.slice(0, 2).join(', ') :
+              'Match details loading...'
+            }
             <div style={{
               position: 'absolute',
               top: '-4px',
@@ -62,17 +81,12 @@ const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjec
               borderLeft: '4px solid transparent',
               borderRight: '4px solid transparent',
               borderBottom: '4px solid #333'
-            }}></div>
+            }} />
           </div>
         )}
       </div>
       
-      {/* Existing title */}
-      <div style={styles.projectTitle}>
-        {project.title}
-      </div>
-      
-      {/* NEW: Highlight chips */}
+      {/* Highlight chips - RESTORED */}
       {project.matchFactors?.highlights && project.matchFactors.highlights.length > 0 && (
         <div style={{
           marginBottom: '8px',
@@ -96,12 +110,13 @@ const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjec
         </div>
       )}
       
-      {/* Existing description */}
-      <div style={styles.projectDescription}>
+      {/* Project title and description (preserved) */}
+      <h4 style={styles.projectTitle}>{project.title}</h4>
+      <p style={styles.projectDescription}>
         {project.description}
-      </div>
+      </p>
       
-      {/* NEW: Improvement suggestions */}
+      {/* Improvement suggestions - RESTORED */}
       {project.matchFactors?.suggestions && project.matchFactors.suggestions.length > 0 && (
         <div style={{
           marginBottom: '12px',
@@ -130,7 +145,7 @@ const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjec
         </div>
       )}
       
-      {/* Existing project meta */}
+      {/* Project metadata (preserved) */}
       <div style={styles.projectMeta}>
         <span style={getDifficultyStyle(project.difficulty_level)}>
           {project.difficulty_level?.toUpperCase() || 'MEDIUM'}
@@ -140,7 +155,7 @@ const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjec
         </span>
       </div>
       
-      {/* Existing technologies */}
+      {/* Technologies (preserved) */}
       {project.technologies && project.technologies.length > 0 && (
         <div style={styles.tagsContainer}>
           {project.technologies.slice(0, 3).map((tech, techIndex) => (
@@ -156,7 +171,7 @@ const EnhancedProjectCard = ({ project, styles, getDifficultyStyle, handleProjec
         </div>
       )}
       
-      {/* Existing join button */}
+      {/* Join button (preserved) */}
       <button
         style={styles.joinButton}
         onClick={(e) => handleJoinProject(project, e)}
@@ -182,44 +197,56 @@ function Dashboard() {
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
   
-  // NEW: Filter and Sort States
-  const [sortBy, setSortBy] = useState('match'); // 'match', 'difficulty', 'members', 'title'
-  const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
+  // NEW: Tab state for toggle functionality
+  const [activeTab, setActiveTab] = useState('recommended'); // 'recommended' or 'forYou'
+  
+  // Filter and Sort States (preserved from original)
+  const [sortBy, setSortBy] = useState('match');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [filterLanguage, setFilterLanguage] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Real notifications from context
+  // Real notifications from context (preserved)
   const { 
     unreadCount, 
     notifications, 
     fetchNotifications 
   } = useNotifications();
 
-  // Fetch recommended projects when component mounts
+  // Fetch recommended projects when component mounts (with debugging)
   useEffect(() => {
-  const fetchRecommendations = async () => {
-    if (!user?.id) return;
-    
-    try {
-      setLoadingRecommendations(true);
-      const response = await SkillMatchingAPI.getEnhancedRecommendations(user.id);
-      const recommendations = response.data.recommendations;
-      setRecommendedProjects(recommendations.slice(0, 12));
-      setFilteredProjects(recommendations.slice(0, 12));
-    } catch (error) {
-      console.error('Error fetching recommendations:', error);
-      setRecommendedProjects([]);
-      setFilteredProjects([]);
-    } finally {
-      setLoadingRecommendations(false);
-    }
-  };
+    const fetchRecommendations = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setLoadingRecommendations(true);
+        const response = await SkillMatchingAPI.getEnhancedRecommendations(user.id);
+        const recommendations = response.data.recommendations;
+        
+        // DEBUG: Log the first project to see if matchFactors exist
+        if (recommendations?.length > 0) {
+          console.log('🔍 First project data:', recommendations[0]);
+          console.log('🔍 Match factors:', recommendations[0].matchFactors);
+          console.log('🔍 Highlights:', recommendations[0].matchFactors?.highlights);
+          console.log('🔍 Suggestions:', recommendations[0].matchFactors?.suggestions);
+        }
+        
+        setRecommendedProjects(recommendations.slice(0, 12));
+        setFilteredProjects(recommendations.slice(0, 12));
+      } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        setRecommendedProjects([]);
+        setFilteredProjects([]);
+      } finally {
+        setLoadingRecommendations(false);
+      }
+    };
 
-  fetchRecommendations();
-}, [user?.id]);
+    fetchRecommendations();
+  }, [user?.id]);
 
-  // NEW: Filter and Sort Effect
+  // Filter and Sort Effect (preserved)
   useEffect(() => {
     let filtered = [...recommendedProjects];
 
@@ -275,7 +302,7 @@ function Dashboard() {
     setFilteredProjects(filtered);
   }, [recommendedProjects, sortBy, sortOrder, filterLanguage, filterDifficulty]);
 
-  // NEW: Get unique languages from projects
+  // Get unique languages from projects (preserved)
   const getAvailableLanguages = () => {
     const languages = new Set();
     recommendedProjects.forEach(project => {
@@ -284,7 +311,7 @@ function Dashboard() {
     return Array.from(languages).sort();
   };
 
-  // NEW: Handle sort change
+  // Handle sort change (preserved)
   const handleSortChange = (newSortBy) => {
     if (sortBy === newSortBy) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -294,7 +321,7 @@ function Dashboard() {
     }
   };
 
-  // NEW: Reset filters
+  // Reset filters (preserved)
   const resetFilters = () => {
     setSortBy('match');
     setSortOrder('desc');
@@ -302,6 +329,36 @@ function Dashboard() {
     setFilterDifficulty('all');
   };
 
+  const getDifficultyStyle = (difficulty) => {
+    const colors = {
+      easy: '#28a745',
+      medium: '#ffc107', 
+      hard: '#dc3545'
+    };
+    
+    return {
+      backgroundColor: colors[difficulty?.toLowerCase()] || colors.medium,
+      color: 'white',
+      padding: '2px 8px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: 'bold'
+    };
+  };
+
+  // Close dropdowns when clicking outside (preserved)
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowNotifications(false);
+    };
+
+    if (showNotifications) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showNotifications]);
+
+  // Event handlers (preserved)
   const handleCreateClick = () => {
     setShowCreateProject(true);
   };
@@ -371,7 +428,6 @@ function Dashboard() {
       }
       
       // Navigate directly to the challenge/join page
-      // This will show the coding challenge interface
       console.log('🎯 Navigating to:', `/projects/${project.projectId}/join`);
       navigate(`/projects/${project.projectId}/join`);
       
@@ -380,35 +436,6 @@ function Dashboard() {
       // Show user feedback about the error if needed
     }
   };
-
-  const getDifficultyStyle = (difficulty) => {
-    const colors = {
-      easy: '#28a745',
-      medium: '#ffc107', 
-      hard: '#dc3545'
-    };
-    
-    return {
-      backgroundColor: colors[difficulty?.toLowerCase()] || colors.medium,
-      color: 'white',
-      padding: '2px 8px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: 'bold'
-    };
-  };
-
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setShowNotifications(false);
-    };
-
-    if (showNotifications) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [showNotifications]);
 
   const styles = {
     container: {
@@ -510,6 +537,42 @@ function Dashboard() {
       padding: '20px',
       marginBottom: '30px'
     },
+    
+    // NEW: Tab Navigation Styles
+    tabNavigation: {
+      backgroundColor: 'white',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      marginBottom: '20px',
+      overflow: 'hidden'
+    },
+    tabHeader: {
+      display: 'flex',
+      borderBottom: '1px solid #dee2e6'
+    },
+    tabButton: {
+      flex: 1,
+      padding: '15px 20px',
+      border: 'none',
+      backgroundColor: 'transparent',
+      cursor: 'pointer',
+      fontSize: '16px',
+      fontWeight: '500',
+      color: '#666',
+      transition: 'all 0.2s ease',
+      borderBottom: '3px solid transparent',
+      position: 'relative'
+    },
+    activeTabButton: {
+      color: '#007bff',
+      backgroundColor: '#f8f9fa',
+      borderBottom: '3px solid #007bff'
+    },
+    tabContent: {
+      padding: '20px'
+    },
+    
+    // Preserved Profile Section Styles
     profileSection: {
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
@@ -621,7 +684,8 @@ function Dashboard() {
       fontSize: '14px',
       padding: '40px 20px'
     },
-    // NEW: Filter and Sort Styles
+    
+    // Filter and Sort Styles (preserved)
     filterSection: {
       backgroundColor: '#f8f9fa',
       border: '1px solid #dee2e6',
@@ -655,22 +719,19 @@ function Dashboard() {
     filterGroup: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '6px'
+      gap: '4px'
     },
     filterLabel: {
       fontSize: '12px',
       fontWeight: '500',
-      color: '#333',
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px'
+      color: '#333'
     },
     filterSelect: {
-      padding: '8px 12px',
+      padding: '6px 8px',
       border: '1px solid #dee2e6',
       borderRadius: '4px',
-      fontSize: '14px',
-      backgroundColor: 'white',
-      cursor: 'pointer'
+      fontSize: '13px',
+      backgroundColor: 'white'
     },
     sortButtons: {
       display: 'flex',
@@ -678,22 +739,26 @@ function Dashboard() {
       flexWrap: 'wrap'
     },
     sortButton: {
-      padding: '6px 12px',
+      padding: '4px 8px',
       border: '1px solid #dee2e6',
       borderRadius: '4px',
-      backgroundColor: 'white',
-      cursor: 'pointer',
       fontSize: '12px',
-      fontWeight: '500',
+      cursor: 'pointer',
       transition: 'all 0.2s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px'
+      backgroundColor: 'white'
     },
     sortButtonActive: {
       backgroundColor: '#007bff',
       color: 'white',
       borderColor: '#007bff'
+    },
+    resultsCount: {
+      fontSize: '14px',
+      color: '#666',
+      textAlign: 'center',
+      marginTop: '10px',
+      paddingTop: '10px',
+      borderTop: '1px solid #e9ecef'
     },
     resetButton: {
       padding: '6px 12px',
@@ -701,26 +766,188 @@ function Dashboard() {
       color: 'white',
       border: 'none',
       borderRadius: '4px',
-      cursor: 'pointer',
       fontSize: '12px',
+      cursor: 'pointer',
       fontWeight: '500'
     },
-    resultsCount: {
-      fontSize: '14px',
+
+    // NEW: For You Tab Styles
+    forYouGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+      gap: '20px',
+      marginTop: '20px'
+    },
+    forYouSection: {
+      backgroundColor: '#f8f9fa',
+      border: '1px solid #dee2e6',
+      borderRadius: '8px',
+      padding: '20px'
+    },
+    forYouSectionTitle: {
+      fontSize: '16px',
+      fontWeight: 'bold',
+      color: '#333',
+      marginBottom: '8px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    forYouSectionDesc: {
       color: '#666',
-      marginBottom: '16px',
-      textAlign: 'center'
+      fontSize: '14px',
+      marginBottom: '15px',
+      lineHeight: '1.4'
+    },
+
+    // Trending Projects Styles
+    trendingList: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    },
+    trendingItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      padding: '12px',
+      backgroundColor: 'white',
+      borderRadius: '6px',
+      border: '1px solid #e9ecef',
+      transition: 'all 0.2s ease',
+      cursor: 'pointer'
+    },
+    trendingRank: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '24px',
+      height: '24px',
+      backgroundColor: '#007bff',
+      color: 'white',
+      borderRadius: '50%',
+      fontSize: '12px',
+      fontWeight: 'bold'
+    },
+    trendingInfo: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px'
+    },
+    trendingMeta: {
+      fontSize: '12px',
+      color: '#666'
+    },
+    trendingMembers: {
+      fontSize: '12px',
+      color: '#28a745',
+      fontWeight: '500'
+    },
+
+    // Learning Resources Styles
+    learningList: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    },
+    learningItem: {
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '12px',
+      padding: '12px',
+      backgroundColor: 'white',
+      borderRadius: '6px',
+      border: '1px solid #e9ecef',
+      transition: 'all 0.2s ease',
+      cursor: 'pointer'
+    },
+    learningIcon: {
+      fontSize: '24px',
+      minWidth: '24px'
+    },
+    learningContent: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '4px'
+    },
+    learningDesc: {
+      fontSize: '12px',
+      color: '#666',
+      lineHeight: '1.3'
+    },
+
+    // Career Insights Styles
+    insightsList: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '15px'
+    },
+    insightItem: {
+      padding: '15px',
+      backgroundColor: 'white',
+      borderRadius: '6px',
+      border: '1px solid #e9ecef'
+    },
+    insightHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '8px'
+    },
+    insightTitle: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#333'
+    },
+    insightTrend: {
+      fontSize: '12px',
+      fontWeight: '500',
+      color: '#28a745'
+    },
+    insightDesc: {
+      fontSize: '13px',
+      color: '#666',
+      lineHeight: '1.4',
+      margin: 0
+    },
+
+    // Quick Actions Styles
+    quickActionsList: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '10px'
+    },
+    quickActionButton: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      padding: '12px',
+      backgroundColor: 'white',
+      border: '1px solid #e9ecef',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      textAlign: 'left'
+    },
+    quickActionIcon: {
+      fontSize: '20px',
+      minWidth: '20px'
+    },
+    quickActionContent: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px'
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* Header */}
+      {/* Header Section (preserved) */}
       <header style={styles.header}>
         <div style={styles.headerLeft}>
-          <h1 style={styles.title}>Home</h1>
+          <h1 style={styles.title}>Dashboard</h1>
         </div>
-
         <div style={styles.headerActions}>
           <button
             style={styles.createButton}
@@ -735,12 +962,11 @@ function Dashboard() {
             + Create Project
           </button>
           
-          {/* Notification Bell */}
           <div style={styles.notificationContainer}>
             <button 
               style={{
                 ...styles.notificationButton,
-                color: unreadCount > 0 ? '#3498db' : '#6c757d' // Change color when has notifications
+                color: unreadCount > 0 ? '#3498db' : '#6c757d'
               }} 
               onClick={handleNotificationClick}
             >
@@ -752,7 +978,6 @@ function Dashboard() {
               )}
             </button>
             
-            {/* UPDATED: Use real NotificationDropdown component */}
             {showNotifications && (
               <div 
                 className="notification-dropdown"
@@ -772,7 +997,7 @@ function Dashboard() {
         </div>
       </header>
 
-      {/* Create Project Modal */}
+      {/* Create Project Modal (preserved) */}
       {showCreateProject && (
         <div style={styles.modal} onClick={handleCloseCreate}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -781,7 +1006,7 @@ function Dashboard() {
         </div>
       )}
 
-      {/* Welcome Section */}
+      {/* Welcome Section (preserved) */}
       <div style={styles.welcomeCard}>
         <h2>🎉 Welcome Back!</h2>
         <p>
@@ -790,178 +1015,364 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* Recommended Projects Section */}
-      <div style={styles.profileSection}>
-        <h3 style={styles.sectionTitle}>🚀 Recommended Projects</h3>
-        <p style={{ color: '#666', marginBottom: '15px' }}>
-          Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, here are some projects you might like.
-        </p>
+      {/* NEW: Tab Navigation */}
+      <div style={styles.tabNavigation}>
+        <div style={styles.tabHeader}>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'recommended' ? styles.activeTabButton : {})
+            }}
+            onClick={() => setActiveTab('recommended')}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'recommended') {
+                e.target.style.backgroundColor = '#f8f9fa';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'recommended') {
+                e.target.style.backgroundColor = 'transparent';
+              }
+            }}
+          >
+            🚀 Recommended Projects
+          </button>
+          <button
+            style={{
+              ...styles.tabButton,
+              ...(activeTab === 'forYou' ? styles.activeTabButton : {})
+            }}
+            onClick={() => setActiveTab('forYou')}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'forYou') {
+                e.target.style.backgroundColor = '#f8f9fa';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'forYou') {
+                e.target.style.backgroundColor = 'transparent';
+              }
+            }}
+          >
+            ✨ Solo Project
+          </button>
+        </div>
 
-        {/* NEW: Filter and Sort Section */}
-        {!loadingRecommendations && recommendedProjects.length > 0 && (
-          <div style={styles.filterSection}>
-            <div style={styles.filterHeader}>
-              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
-                Filter & Sort Projects
-              </h4>
-              <button
-                style={styles.filterToggle}
-                onClick={() => setShowFilters(!showFilters)}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = '#007bff';
-                  e.target.style.color = 'white';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'transparent';
-                  e.target.style.color = '#007bff';
-                }}
-              >
-                {showFilters ? 'Hide Filters' : 'Show Filters'}
-              </button>
-            </div>
+        <div style={styles.tabContent}>
+          {/* RECOMMENDED PROJECTS TAB */}
+          {activeTab === 'recommended' && (
+            <div>
+              <h3 style={styles.sectionTitle}>🚀 Recommended Projects</h3>
+              <p style={{ color: '#666', marginBottom: '15px' }}>
+                Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, here are some projects you might like.
+              </p>
 
-            {showFilters && (
-              <>
-                <div style={styles.filterControls}>
-                  {/* Language Filter */}
-                  <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Filter by Language</label>
-                    <select
-                      style={styles.filterSelect}
-                      value={filterLanguage}
-                      onChange={(e) => setFilterLanguage(e.target.value)}
+              {/* Filter and Sort Section (FULLY RESTORED) */}
+              {!loadingRecommendations && recommendedProjects.length > 0 && (
+                <div style={styles.filterSection}>
+                  <div style={styles.filterHeader}>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+                      Filter & Sort Projects
+                    </h4>
+                    <button
+                      style={styles.filterToggle}
+                      onClick={() => setShowFilters(!showFilters)}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = '#007bff';
+                        e.target.style.color = 'white';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = 'transparent';
+                        e.target.style.color = '#007bff';
+                      }}
                     >
-                      <option value="all">All Languages</option>
-                      {getAvailableLanguages().map(lang => (
-                        <option key={lang} value={lang}>{lang}</option>
-                      ))}
-                    </select>
+                      {showFilters ? 'Hide Filters' : 'Show Filters'}
+                    </button>
                   </div>
 
-                  {/* Difficulty Filter */}
-                  <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Filter by Difficulty</label>
-                    <select
-                      style={styles.filterSelect}
-                      value={filterDifficulty}
-                      onChange={(e) => setFilterDifficulty(e.target.value)}
-                    >
-                      <option value="all">All Difficulties</option>
-                      <option value="easy">Easy</option>
-                      <option value="medium">Medium</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </div>
+                  {showFilters && (
+                    <>
+                      <div style={styles.filterControls}>
+                        {/* Language Filter */}
+                        <div style={styles.filterGroup}>
+                          <label style={styles.filterLabel}>Filter by Language</label>
+                          <select
+                            style={styles.filterSelect}
+                            value={filterLanguage}
+                            onChange={(e) => setFilterLanguage(e.target.value)}
+                          >
+                            <option value="all">All Languages</option>
+                            {getAvailableLanguages().map(lang => (
+                              <option key={lang} value={lang}>{lang}</option>
+                            ))}
+                          </select>
+                        </div>
 
-                  {/* Sort Options */}
-                  <div style={styles.filterGroup}>
-                    <label style={styles.filterLabel}>Sort by</label>
-                    <div style={styles.sortButtons}>
-                      <button
-                        style={{
-                          ...styles.sortButton,
-                          ...(sortBy === 'match' ? styles.sortButtonActive : {})
-                        }}
-                        onClick={() => handleSortChange('match')}
-                      >
-                        Match Rate {sortBy === 'match' && (sortOrder === 'desc' ? '↓' : '↑')}
-                      </button>
-                      <button
-                        style={{
-                          ...styles.sortButton,
-                          ...(sortBy === 'difficulty' ? styles.sortButtonActive : {})
-                        }}
-                        onClick={() => handleSortChange('difficulty')}
-                      >
-                        Difficulty {sortBy === 'difficulty' && (sortOrder === 'desc' ? '↓' : '↑')}
-                      </button>
-                      <button
-                        style={{
-                          ...styles.sortButton,
-                          ...(sortBy === 'members' ? styles.sortButtonActive : {})
-                        }}
-                        onClick={() => handleSortChange('members')}
-                      >
-                        Team Size {sortBy === 'members' && (sortOrder === 'desc' ? '↓' : '↑')}
-                      </button>
-                      <button
-                        style={{
-                          ...styles.sortButton,
-                          ...(sortBy === 'title' ? styles.sortButtonActive : {})
-                        }}
-                        onClick={() => handleSortChange('title')}
-                      >
-                        Title {sortBy === 'title' && (sortOrder === 'desc' ? '↓' : '↑')}
-                      </button>
-                    </div>
+                        {/* Difficulty Filter */}
+                        <div style={styles.filterGroup}>
+                          <label style={styles.filterLabel}>Filter by Difficulty</label>
+                          <select
+                            style={styles.filterSelect}
+                            value={filterDifficulty}
+                            onChange={(e) => setFilterDifficulty(e.target.value)}
+                          >
+                            <option value="all">All Difficulties</option>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                          </select>
+                        </div>
+
+                        {/* Sort Options */}
+                        <div style={styles.filterGroup}>
+                          <label style={styles.filterLabel}>Sort by</label>
+                          <div style={styles.sortButtons}>
+                            <button
+                              style={{
+                                ...styles.sortButton,
+                                ...(sortBy === 'match' ? styles.sortButtonActive : {})
+                              }}
+                              onClick={() => handleSortChange('match')}
+                            >
+                              Match Rate {sortBy === 'match' && (sortOrder === 'desc' ? '↓' : '↑')}
+                            </button>
+                            <button
+                              style={{
+                                ...styles.sortButton,
+                                ...(sortBy === 'difficulty' ? styles.sortButtonActive : {})
+                              }}
+                              onClick={() => handleSortChange('difficulty')}
+                            >
+                              Difficulty {sortBy === 'difficulty' && (sortOrder === 'desc' ? '↓' : '↑')}
+                            </button>
+                            <button
+                              style={{
+                                ...styles.sortButton,
+                                ...(sortBy === 'members' ? styles.sortButtonActive : {})
+                              }}
+                              onClick={() => handleSortChange('members')}
+                            >
+                              Team Size {sortBy === 'members' && (sortOrder === 'desc' ? '↓' : '↑')}
+                            </button>
+                            <button
+                              style={{
+                                ...styles.sortButton,
+                                ...(sortBy === 'title' ? styles.sortButtonActive : {})
+                              }}
+                              onClick={() => handleSortChange('title')}
+                            >
+                              Title {sortBy === 'title' && (sortOrder === 'desc' ? '↓' : '↑')}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Reset Button */}
+                      <div style={{ textAlign: 'right' }}>
+                        <button
+                          style={styles.resetButton}
+                          onClick={resetFilters}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#5a6268';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#6c757d';
+                          }}
+                        >
+                          Reset Filters
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Results Count */}
+                  <div style={styles.resultsCount}>
+                    Showing {filteredProjects.length} of {recommendedProjects.length} projects
+                    {(filterLanguage !== 'all' || filterDifficulty !== 'all') && (
+                      <span style={{ color: '#007bff', fontWeight: '500' }}> (filtered)</span>
+                    )}
                   </div>
                 </div>
+              )}
 
-                {/* Reset Button */}
-                <div style={{ textAlign: 'right' }}>
+              {/* Project Grid (preserved) */}
+              {loadingRecommendations ? (
+                <div style={styles.loadingSpinner}>
+                  Loading personalized recommendations...
+                </div>
+              ) : filteredProjects.length > 0 ? (
+                <div style={styles.recommendationsGrid}>
+                  {filteredProjects.map((project, index) => (
+                    <EnhancedProjectCard
+                      key={project.projectId || project.id || index}
+                      project={project}
+                      styles={styles}
+                      getDifficultyStyle={getDifficultyStyle}
+                      handleProjectClick={handleProjectClick}
+                      handleJoinProject={handleJoinProject}
+                    />
+                  ))}
+                </div>
+              ) : recommendedProjects.length > 0 ? (
+                <div style={styles.emptyState}>
+                  No projects match your current filters.
+                  <br />
                   <button
-                    style={styles.resetButton}
+                    style={{
+                      ...styles.resetButton,
+                      marginTop: '10px'
+                    }}
                     onClick={resetFilters}
-                    onMouseEnter={(e) => {
-                      e.target.style.backgroundColor = '#5a6268';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.backgroundColor = '#6c757d';
-                    }}
                   >
                     Reset Filters
                   </button>
                 </div>
-              </>
-            )}
-
-            {/* Results Count */}
-            <div style={styles.resultsCount}>
-              Showing {filteredProjects.length} of {recommendedProjects.length} projects
-              {(filterLanguage !== 'all' || filterDifficulty !== 'all') && (
-                <span style={{ color: '#007bff', fontWeight: '500' }}> (filtered)</span>
+              ) : (
+                <div style={styles.emptyState}>
+                  No project recommendations available yet.
+                  Complete more of your profile to get personalized recommendations!
+                </div>
               )}
             </div>
-          </div>
-        )}
-        
-        {loadingRecommendations ? (
-          <div style={styles.loadingSpinner}>
-            <div>Loading recommendations...</div>
-          </div>
-         ) : filteredProjects.length > 0 ? (
-          <div style={styles.recommendationsGrid}>
-            {filteredProjects.map((project, index) => (
-              <EnhancedProjectCard
-                key={project.projectId || project.id || index}
-                project={project}
-                styles={styles}
-                getDifficultyStyle={getDifficultyStyle}
-                handleProjectClick={handleProjectClick}
-                handleJoinProject={handleJoinProject}
-              />
-            ))}
-          </div>
-        ) : recommendedProjects.length > 0 ? (
-          <div style={styles.emptyState}>
-            No projects match your current filters.
-            <br />
-            <button
-              style={{
-                ...styles.resetButton,
-                marginTop: '10px'
-              }}
-              onClick={resetFilters}
-            >
-              Reset Filters
-            </button>
-          </div>
-        ) : (
-          <div style={styles.emptyState}>
-            No project recommendations available yet.
-            Complete more of your profile to get personalized recommendations!
-          </div>
-        )}
+          )}
+
+          {/* FOR YOU TAB */}
+          {activeTab === 'forYou' && (
+            <div>
+              <h3 style={styles.sectionTitle}>✨ For You</h3>
+              <p style={{ color: '#666', marginBottom: '15px' }}>
+                Personalized content and projects curated specifically for your interests and career goals.
+              </p>
+
+              {/* For You Content Grid */}
+              <div style={styles.forYouGrid}>
+                {/* Trending Projects Section */}
+                <div style={styles.forYouSection}>
+                  <h4 style={styles.forYouSectionTitle}>🔥 Trending Projects</h4>
+                  <p style={styles.forYouSectionDesc}>
+                    Popular projects that developers like you are joining this week.
+                  </p>
+                  <div style={styles.trendingList}>
+                    <div style={styles.trendingItem}>
+                      <span style={styles.trendingRank}>1</span>
+                      <div style={styles.trendingInfo}>
+                        <strong>Modern Chat Application</strong>
+                        <span style={styles.trendingMeta}>React • Node.js • Socket.io</span>
+                      </div>
+                      <span style={styles.trendingMembers}>234 members</span>
+                    </div>
+                    <div style={styles.trendingItem}>
+                      <span style={styles.trendingRank}>2</span>
+                      <div style={styles.trendingInfo}>
+                        <strong>AI-Powered Task Manager</strong>
+                        <span style={styles.trendingMeta}>Python • FastAPI • OpenAI</span>
+                      </div>
+                      <span style={styles.trendingMembers}>187 members</span>
+                    </div>
+                    <div style={styles.trendingItem}>
+                      <span style={styles.trendingRank}>3</span>
+                      <div style={styles.trendingInfo}>
+                        <strong>E-commerce Platform</strong>
+                        <span style={styles.trendingMeta}>Vue.js • Django • PostgreSQL</span>
+                      </div>
+                      <span style={styles.trendingMembers}>156 members</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Learning Resources Section */}
+                <div style={styles.forYouSection}>
+                  <h4 style={styles.forYouSectionTitle}>📚 Recommended Learning</h4>
+                  <p style={styles.forYouSectionDesc}>
+                    Skills and technologies to advance your development journey.
+                  </p>
+                  <div style={styles.learningList}>
+                    <div style={styles.learningItem}>
+                      <div style={styles.learningIcon}>⚛️</div>
+                      <div style={styles.learningContent}>
+                        <strong>Advanced React Patterns</strong>
+                        <span style={styles.learningDesc}>Master hooks, context, and performance optimization</span>
+                      </div>
+                    </div>
+                    <div style={styles.learningItem}>
+                      <div style={styles.learningIcon}>🐍</div>
+                      <div style={styles.learningContent}>
+                        <strong>Python for Data Science</strong>
+                        <span style={styles.learningDesc}>Pandas, NumPy, and machine learning basics</span>
+                      </div>
+                    </div>
+                    <div style={styles.learningItem}>
+                      <div style={styles.learningIcon}>☁️</div>
+                      <div style={styles.learningContent}>
+                        <strong>Cloud Architecture</strong>
+                        <span style={styles.learningDesc}>AWS, Docker, and microservices patterns</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Career Insights Section */}
+                <div style={styles.forYouSection}>
+                  <h4 style={styles.forYouSectionTitle}>💼 Career Insights</h4>
+                  <p style={styles.forYouSectionDesc}>
+                    Industry trends and opportunities based on your profile.
+                  </p>
+                  <div style={styles.insightsList}>
+                    <div style={styles.insightItem}>
+                      <div style={styles.insightHeader}>
+                        <span style={styles.insightTitle}>Full-Stack Developer Demand</span>
+                        <span style={styles.insightTrend}>📈 +15%</span>
+                      </div>
+                      <p style={styles.insightDesc}>
+                        Companies are actively seeking developers with your JavaScript and Node.js skills.
+                      </p>
+                    </div>
+                    <div style={styles.insightItem}>
+                      <div style={styles.insightHeader}>
+                        <span style={styles.insightTitle}>Remote Opportunities</span>
+                        <span style={styles.insightTrend}>🌍 Growing</span>
+                      </div>
+                      <p style={styles.insightDesc}>
+                        85% of companies now offer remote positions for developers with 2+ years experience.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Actions Section */}
+                <div style={styles.forYouSection}>
+                  <h4 style={styles.forYouSectionTitle}>⚡ Quick Actions</h4>
+                  <p style={styles.forYouSectionDesc}>
+                    Common tasks to enhance your profile and project involvement.
+                  </p>
+                  <div style={styles.quickActionsList}>
+                    <button style={styles.quickActionButton}>
+                      <span style={styles.quickActionIcon}>📝</span>
+                      <div style={styles.quickActionContent}>
+                        <strong>Update Your Bio</strong>
+                        <span>Make your profile more discoverable</span>
+                      </div>
+                    </button>
+                    <button style={styles.quickActionButton}>
+                      <span style={styles.quickActionIcon}>🔗</span>
+                      <div style={styles.quickActionContent}>
+                        <strong>Connect GitHub</strong>
+                        <span>Showcase your coding projects</span>
+                      </div>
+                    </button>
+                    <button style={styles.quickActionButton}>
+                      <span style={styles.quickActionIcon}>👥</span>
+                      <div style={styles.quickActionContent}>
+                        <strong>Find Collaborators</strong>
+                        <span>Connect with like-minded developers</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
