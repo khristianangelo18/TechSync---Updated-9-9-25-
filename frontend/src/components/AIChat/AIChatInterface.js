@@ -395,7 +395,7 @@ What would you like to work on today?`,
               borderRadius: '50%', 
               animation: 'spin 1s linear infinite' 
             }}></div>
-            {showProjectGenerator ? 'Generating project ideas...' : 'AI is thinking...'}
+            {showProjectGenerator ? 'Generating project ideas...' : 'Sync is thinking...'}
           </div>
         )}
         
