@@ -9,6 +9,7 @@ import NotificationDropdown from '../components/Notifications/NotificationDropdo
 import AIChatInterface from '../components/AIChat/AIChatInterface'; // NEW: Only addition
 
 // Enhanced Project Card Component (FULLY PRESERVED with all original features)
+// Enhanced Project Card Component (FULLY PRESERVED with all original features)
 const EnhancedProjectCard = ({
   project,
   styles,
@@ -19,6 +20,17 @@ const EnhancedProjectCard = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
+  // Define when a project is "locked" (needs a boost to match)
+  // You can tweak the threshold or use a backend flag if available.
+  const LOCK_THRESHOLD = 70; // Adjust as needed
+  const isLocked = Boolean(
+    project?.matchFactors?.needsBoost ??
+    (
+      (project?.matchFactors?.suggestions?.length || 0) > 0 &&
+      (project?.score || 0) < LOCK_THRESHOLD
+    )
+  );
+
   // DEBUG: Log project data to see what we're getting
   React.useEffect(() => {
     if (project) {
@@ -26,19 +38,33 @@ const EnhancedProjectCard = ({
       console.log('🎯 Project Card - Match factors:', project.matchFactors);
       console.log('🎯 Project Card - Highlights:', project.matchFactors?.highlights);
       console.log('🎯 Project Card - Suggestions:', project.matchFactors?.suggestions);
+      console.log('🔒 Locked:', isLocked);
     }
-  }, [project]);
+  }, [project, isLocked]);
 
   return (
     <div
       style={{
         ...styles.projectCard,
-        ...(isHovered ? styles.projectCardHover : {})
+        ...(isHovered ? styles.projectCardHover : {}),
+        cursor: isLocked ? 'not-allowed' : 'pointer',
+        opacity: isLocked ? 0.98 : 1
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={() => handleProjectClick(project)}
+      onClick={() => {
+        if (isLocked) return; // prevent navigation if locked
+        handleProjectClick(project);
+      }}
+      aria-disabled={isLocked}
     >
+      {/* Big blue lock overlay on hover if locked */}
+      {isHovered && isLocked && (
+        <div style={styles.lockOverlay}>
+          <span style={styles.lockIcon}>🔒</span>
+        </div>
+      )}
+
       {/* Enhanced match score with tooltip - RESTORED */}
       <div 
         style={{
@@ -172,18 +198,30 @@ const EnhancedProjectCard = ({
         </div>
       )}
       
-      {/* Join button (preserved) */}
+      {/* Join button (disabled if locked) */}
       <button
-        style={styles.joinButton}
-        onClick={(e) => handleJoinProject(project, e)}
+        style={{
+          ...styles.joinButton,
+          ...(isLocked ? styles.joinButtonDisabled : {})
+        }}
+        disabled={isLocked}
+        onClick={(e) => {
+          if (isLocked) {
+            e.stopPropagation();
+            return;
+          }
+          handleJoinProject(project, e);
+        }}
         onMouseEnter={(e) => {
+          if (isLocked) return;
           e.target.style.backgroundColor = '#0056b3';
         }}
         onMouseLeave={(e) => {
+          if (isLocked) return;
           e.target.style.backgroundColor = '#007bff';
         }}
       >
-        Join Project
+        {isLocked ? 'Locked' : 'Join Project'}
       </button>
     </div>
   );
@@ -948,6 +986,28 @@ function Dashboard() {
       border: '1px solid #dee2e6',
       borderRadius: '8px',
       padding: '20px'
+    },
+
+    lockOverlay: {
+      position: 'absolute',
+      inset: 0,
+      backgroundColor: 'rgba(255,255,255,0.85)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: '8px',
+      zIndex: 5,
+      pointerEvents: 'none' // purely visual; clicks are blocked via logic
+    },
+    lockIcon: {
+      fontSize: '56px',
+      color: '#007bff',
+      lineHeight: 1
+    },
+    joinButtonDisabled: {
+      backgroundColor: '#cfd8e3',
+      color: '#6c757d',
+      cursor: 'not-allowed'
     }
   };
 
