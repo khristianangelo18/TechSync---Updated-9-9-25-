@@ -543,7 +543,7 @@ function Dashboard() {
     // Tab Navigation Styles
     tabNavigation: {
       backgroundColor: 'white',
-      border: '1px solid #dee2e6',
+      border: 'none',
       borderRadius: '8px',
       marginBottom: '20px',
       overflow: 'hidden'
@@ -567,7 +567,6 @@ function Dashboard() {
     },
     activeTabButton: {
       color: '#007bff',
-      backgroundColor: '#f8f9fa',
       borderBottom: '3px solid #007bff'
     },
     tabContent: {
@@ -1035,16 +1034,7 @@ function Dashboard() {
               ...(activeTab === 'recommended' ? styles.activeTabButton : {})
             }}
             onClick={() => setActiveTab('recommended')}
-            onMouseEnter={(e) => {
-              if (activeTab !== 'recommended') {
-                e.target.style.backgroundColor = '#f8f9fa';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeTab !== 'recommended') {
-                e.target.style.backgroundColor = 'transparent';
-              }
-            }}
+           
           >
             🚀 Recommended Projects
           </button>
@@ -1054,16 +1044,7 @@ function Dashboard() {
               ...(activeTab === 'forYou' ? styles.activeTabButton : {})
             }}
             onClick={() => setActiveTab('forYou')}
-            onMouseEnter={(e) => {
-              if (activeTab !== 'forYou') {
-                e.target.style.backgroundColor = '#f8f9fa';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (activeTab !== 'forYou') {
-                e.target.style.backgroundColor = 'transparent';
-              }
-            }}
+            
           >
             ✨ Solo Project
           </button>
