@@ -1,5 +1,6 @@
 // frontend/src/pages/Dashboard.js - MINIMAL AI CHAT INTEGRATION
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useNotifications } from '../contexts/NotificationContext';
@@ -8,6 +9,8 @@ import CreateProject from './CreateProject';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 import AIChatInterface from '../components/AIChat/AIChatInterface'; // NEW: Only addition
 
+// Enhanced Project Card Component (FULLY PRESERVED with all original features)
+// Enhanced Project Card Component (FULLY PRESERVED with all original features)
 // Enhanced Project Card Component (FULLY PRESERVED with all original features)
 // Enhanced Project Card Component (FULLY PRESERVED with all original features)
 const EnhancedProjectCard = ({
@@ -19,9 +22,9 @@ const EnhancedProjectCard = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showScoreModal, setShowScoreModal] = useState(false);
 
   // Define when a project is "locked" (needs a boost to match)
-  // You can tweak the threshold or use a backend flag if available.
   const LOCK_THRESHOLD = 70; // Adjust as needed
   const isLocked = Boolean(
     project?.matchFactors?.needsBoost ??
@@ -31,8 +34,27 @@ const EnhancedProjectCard = ({
     )
   );
 
-  // DEBUG: Log project data to see what we're getting
-  React.useEffect(() => {
+  // Close score modal on ESC
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setShowScoreModal(false);
+    };
+    if (showScoreModal) {
+      window.addEventListener('keydown', onKeyDown);
+      return () => window.removeEventListener('keydown', onKeyDown);
+    }
+  }, [showScoreModal]);
+
+  // Optional: prevent background scroll while modal is open
+  useEffect(() => {
+    if (!showScoreModal) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [showScoreModal]);
+
+  // DEBUG
+  useEffect(() => {
     if (project) {
       console.log('🎯 Project Card - Project data:', project.title);
       console.log('🎯 Project Card - Match factors:', project.matchFactors);
@@ -42,16 +64,26 @@ const EnhancedProjectCard = ({
     }
   }, [project, isLocked]);
 
+  const mf = project.matchFactors || {};
+  const factors = [
+    { key: 'languageFit', label: 'Language fit', score: mf.languageFit?.score ?? null, note: mf.languageFit ? `Coverage ${mf.languageFit.coverage || 0}%` : null },
+    { key: 'topicCoverage', label: 'Topic coverage', score: mf.topicCoverage?.score ?? null, note: mf.topicCoverage?.matches ? `${mf.topicCoverage.matches.length} match(es)` : null },
+    { key: 'difficultyAlignment', label: 'Difficulty alignment', score: mf.difficultyAlignment?.score ?? null, note: mf.difficultyAlignment ? `${mf.difficultyAlignment.userExperience || 'N/A'} vs ${mf.difficultyAlignment.requiredExperience || 'N/A'}` : null }
+  ];
+
+  const modalTitleId = `score-modal-title-${project.projectId || project.id || 'proj'}`;
+
   return (
     <div
       style={{
         ...styles.projectCard,
-        ...(isHovered ? styles.projectCardHover : {}),
+        // Don’t apply hover transform while modal is open
+        ...((isHovered && !showScoreModal) ? styles.projectCardHover : {}),
         cursor: isLocked ? 'not-allowed' : 'pointer',
         opacity: isLocked ? 0.98 : 1
       }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => { if (!showScoreModal) setIsHovered(true); }}
+      onMouseLeave={() => { if (!showScoreModal) setIsHovered(false); }}
       onClick={() => {
         if (isLocked) return; // prevent navigation if locked
         handleProjectClick(project);
@@ -59,52 +91,62 @@ const EnhancedProjectCard = ({
       aria-disabled={isLocked}
     >
       {/* Big blue lock overlay on hover if locked */}
-      {isHovered && isLocked && (
+      {isHovered && isLocked && !showScoreModal && (
         <div style={styles.lockOverlay}>
           <span style={styles.lockIcon}>🔒</span>
         </div>
       )}
 
-      {/* Enhanced match score with tooltip - RESTORED */}
+      {/* Match score pill - clickable to open modal */}
       <div 
-        style={{
-          ...styles.matchScore,
-          cursor: 'help'
-        }}
-        onMouseEnter={() => setShowTooltip(true)}
+        style={{ ...styles.matchScore, cursor: 'pointer' }}
+        onMouseEnter={() => { if (!showScoreModal) setShowTooltip(true); }}
         onMouseLeave={() => setShowTooltip(false)}
         title="Click to see why this matches you"
+        onClick={(e) => {
+          e.stopPropagation(); // don't trigger card click
+          setShowScoreModal(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowScoreModal(true);
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Open match details"
       >
         {Math.round(project.score || 0)}% match
         
-        {/* Tooltip for match explanation - RESTORED */}
-        {showTooltip && (project.matchFactors?.highlights?.length > 0 || project.matchFactors?.suggestions?.length > 0) && (
+        {/* Tooltip on hover */}
+        {showTooltip && (mf?.highlights?.length > 0 || mf?.suggestions?.length > 0) && (
           <div style={{
             position: 'absolute',
             top: '100%',
-            right: '0',
-            marginTop: '8px',
+            right: 0,
+            marginTop: 8,
             backgroundColor: '#333',
             color: 'white',
             padding: '8px 12px',
-            borderRadius: '6px',
-            fontSize: '12px',
+            borderRadius: 6,
+            fontSize: 12,
             zIndex: 10,
             boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            maxWidth: '200px',
+            maxWidth: 220,
             whiteSpace: 'normal'
           }}>
-            {/* Show highlights if available */}
-            {project.matchFactors?.highlights?.length > 0 ? 
-              project.matchFactors.highlights.slice(0, 2).join(', ') :
+            {mf?.highlights?.length > 0 ? 
+              mf.highlights.slice(0, 2).join(', ') :
               'Match details loading...'
             }
             <div style={{
               position: 'absolute',
-              top: '-4px',
-              right: '8px',
-              width: '0',
-              height: '0',
+              top: -4,
+              right: 8,
+              width: 0,
+              height: 0,
               borderLeft: '4px solid transparent',
               borderRight: '4px solid transparent',
               borderBottom: '4px solid #333'
@@ -113,15 +155,15 @@ const EnhancedProjectCard = ({
         )}
       </div>
       
-      {/* Highlight chips - RESTORED */}
-      {project.matchFactors?.highlights && project.matchFactors.highlights.length > 0 && (
+      {/* Highlight chips */}
+      {mf?.highlights && mf.highlights.length > 0 && (
         <div style={{
           marginBottom: '8px',
           display: 'flex',
           flexWrap: 'wrap',
           gap: '4px'
         }}>
-          {project.matchFactors.highlights.slice(0, 2).map((highlight, idx) => (
+          {mf.highlights.slice(0, 2).map((highlight, idx) => (
             <span key={idx} style={{
               backgroundColor: '#e3f2fd',
               color: '#1976d2',
@@ -137,14 +179,14 @@ const EnhancedProjectCard = ({
         </div>
       )}
       
-      {/* Project title and description (preserved) */}
+      {/* Project title and description */}
       <h4 style={styles.projectTitle}>{project.title}</h4>
       <p style={styles.projectDescription}>
         {project.description}
       </p>
       
-      {/* Improvement suggestions - RESTORED */}
-      {project.matchFactors?.suggestions && project.matchFactors.suggestions.length > 0 && (
+      {/* Improvement suggestions */}
+      {mf?.suggestions && mf.suggestions.length > 0 && (
         <div style={{
           marginBottom: '12px',
           padding: '8px',
@@ -160,7 +202,7 @@ const EnhancedProjectCard = ({
           }}>
             💡 To boost your match:
           </div>
-          {project.matchFactors.suggestions.slice(0, 1).map((suggestion, idx) => (
+          {mf.suggestions.slice(0, 1).map((suggestion, idx) => (
             <div key={idx} style={{
               fontSize: '11px',
               color: '#856404',
@@ -172,7 +214,7 @@ const EnhancedProjectCard = ({
         </div>
       )}
       
-      {/* Project metadata (preserved) */}
+      {/* Project metadata */}
       <div style={styles.projectMeta}>
         <span style={getDifficultyStyle(project.difficulty_level)}>
           {project.difficulty_level?.toUpperCase() || 'MEDIUM'}
@@ -182,7 +224,7 @@ const EnhancedProjectCard = ({
         </span>
       </div>
       
-      {/* Technologies (preserved) */}
+      {/* Technologies */}
       {project.technologies && project.technologies.length > 0 && (
         <div style={styles.tagsContainer}>
           {project.technologies.slice(0, 3).map((tech, techIndex) => (
@@ -223,6 +265,163 @@ const EnhancedProjectCard = ({
       >
         {isLocked ? 'Locked' : 'Join Project'}
       </button>
+
+      {/* Match Details Modal via Portal */}
+      {showScoreModal && createPortal(
+        <div style={styles.modal} onClick={() => setShowScoreModal(false)}>
+          <div
+            style={{ ...styles.modalContent, ...styles.scoreModalContent }}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={modalTitleId}
+          >
+            {/* Header */}
+            <div style={styles.scoreModalHeader}>
+              <div>
+                <div id={modalTitleId} style={styles.scoreModalTitle}>
+                  Match details
+                </div>
+                <div style={{ color: '#666', fontSize: '13px' }}>{project.title}</div>
+              </div>
+              <div style={styles.scorePill}>{Math.round(project.score || 0)}%</div>
+            </div>
+
+            {/* Highlights */}
+            <div style={styles.scoreModalSection}>
+              <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+                Why this matches you
+              </div>
+              {mf?.highlights?.length ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {mf.highlights.slice(0, 6).map((h, i) => (
+                    <span key={i} style={styles.chip}>✨ {h}</span>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ fontSize: '12px', color: '#888' }}>Match details loading...</div>
+              )}
+            </div>
+
+            {/* Suggestions */}
+            {!!mf?.suggestions?.length && (
+              <div style={styles.scoreModalSection}>
+                <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+                  To boost your match
+                </div>
+                <ul style={styles.list}>
+                  {mf.suggestions.slice(0, 5).map((s, i) => (
+                    <li key={i} style={styles.listItem}>💡 {s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Factor breakdown */}
+            <div style={styles.scoreModalSection}>
+              <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+                Breakdown
+              </div>
+              {factors.map((f) => (
+                <div key={f.key} style={styles.factorRow}>
+                  <div style={styles.factorLabel}>
+                    <span>{f.label}</span>
+                    <span style={styles.factorScore}>{f.score != null ? `${Math.round(f.score)}%` : '—'}</span>
+                  </div>
+                  <div style={styles.progressTrack}>
+                    <div
+                      style={{
+                        ...styles.progressFill,
+                        width: `${Math.max(0, Math.min(100, Number(f.score) || 0))}%`
+                      }}
+                    />
+                  </div>
+                  {f.note && (
+                    <div style={{ fontSize: '11px', color: '#777', marginTop: 4 }}>{f.note}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Languages */}
+            {(mf.languageFit?.topMatches?.length || mf.languageFit?.gaps?.length) ? (
+              <div style={styles.scoreModalSection}>
+                <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+                  Languages
+                </div>
+                {!!mf.languageFit?.topMatches?.length && (
+                  <>
+                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Matched</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                      {mf.languageFit.topMatches.map((m, i) => (
+                        <span key={i} style={styles.chip}>
+                          ✅ {m.name}{m.is_primary ? ' ⭐' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {!!mf.languageFit?.gaps?.length && (
+                  <>
+                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Gaps</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {mf.languageFit.gaps.map((g, i) => (
+                        <span key={i} style={styles.chipWarning}>
+                          ⚠️ {g.name} {g.status === 'missing' ? '(missing)' : '(below)'}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {/* Topics */}
+            {(mf.topicCoverage?.matches?.length || mf.topicCoverage?.missing?.length) ? (
+              <div style={styles.scoreModalSection}>
+                <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+                  Topics
+                </div>
+                {!!mf.topicCoverage?.matches?.length && (
+                  <>
+                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Covered</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                      {mf.topicCoverage.matches.map((t, i) => (
+                        <span key={i} style={styles.chip}>
+                          ✅ {t.name}{t.is_primary ? ' ⭐' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {!!mf.topicCoverage?.missing?.length && (
+                  <>
+                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Missing</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {mf.topicCoverage.missing.map((t, i) => (
+                        <span key={i} style={styles.chipWarning}>
+                          ⚠️ {t.name}{t.is_primary ? ' (primary)' : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {/* Footer */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+              <button
+                style={styles.closeButtonPrimary}
+                onClick={() => setShowScoreModal(false)}
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
@@ -560,7 +759,7 @@ function Dashboard() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
+      zIndex: 2000
     },
     modalContent: {
       backgroundColor: 'white',
@@ -1008,6 +1207,101 @@ function Dashboard() {
       backgroundColor: '#cfd8e3',
       color: '#6c757d',
       cursor: 'not-allowed'
+    },
+    scoreModalContent: {
+      maxWidth: '680px',
+      width: '92%',
+      padding: '20px',
+      borderRadius: '8px'
+    },
+    scoreModalHeader: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottom: '1px solid #e9ecef',
+      paddingBottom: '10px',
+      marginBottom: '12px'
+    },
+    scoreModalTitle: {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: '#333'
+    },
+    scorePill: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      borderRadius: '999px',
+      padding: '8px 12px',
+      fontWeight: 'bold',
+      minWidth: '64px',
+      textAlign: 'center'
+    },
+    scoreModalSection: {
+      margin: '14px 0'
+    },
+    chip: {
+      backgroundColor: '#e3f2fd',
+      color: '#1976d2',
+      padding: '4px 10px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      border: '1px solid #bbdefb'
+    },
+    chipWarning: {
+      backgroundColor: '#fff3cd',
+      color: '#856404',
+      padding: '4px 10px',
+      borderRadius: '12px',
+      fontSize: '12px',
+      border: '1px solid #ffeaa7'
+    },
+    list: {
+      margin: 0,
+      paddingLeft: '16px'
+    },
+    listItem: {
+      fontSize: '13px',
+      color: '#444',
+      marginBottom: '6px'
+    },
+    factorRow: {
+      marginBottom: '10px'
+    },
+    factorLabel: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      fontSize: '12px',
+      color: '#333',
+      marginBottom: '6px'
+    },
+    factorScore: {
+      fontWeight: 600
+    },
+    progressTrack: {
+      position: 'relative',
+      width: '100%',
+      height: '8px',
+      backgroundColor: '#f1f3f5',
+      borderRadius: '6px',
+      overflow: 'hidden'
+    },
+    progressFill: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      backgroundColor: '#007bff'
+    },
+    closeButtonPrimary: {
+      backgroundColor: '#007bff',
+      color: 'white',
+      border: 'none',
+      padding: '8px 14px',
+      borderRadius: '6px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
     }
   };
 
