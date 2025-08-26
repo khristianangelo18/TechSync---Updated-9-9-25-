@@ -23,6 +23,24 @@ function Projects() {
     fetchStarredProjects();
   }, []);
 
+   useEffect(() => {
+    const handleProjectCreated = (event) => {
+      console.log('Project created from AI chat:', event.detail.project);
+      
+      if (event.detail.project) {
+        setUserProjects(prev => [event.detail.project, ...prev]);
+        console.log('Project added to My Projects list');
+        setError(null);
+      }
+    };
+
+    window.addEventListener('projectCreated', handleProjectCreated);
+    
+    return () => {
+      window.removeEventListener('projectCreated', handleProjectCreated);
+    };
+  }, []);
+
   const fetchUserProjects = async () => {
     try {
       setLoading(true);

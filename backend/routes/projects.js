@@ -39,8 +39,8 @@ const createProjectValidation = [
   
   body('maximum_members')
     .optional()
-    .isInt({ min: 2, max: 50 })
-    .withMessage('Maximum members must be between 2 and 50'),
+    .isInt({ min: 1, max: 50 })
+    .withMessage('Maximum members must be between 1 and 50'),
   
   body('estimated_duration_weeks')
     .optional()
@@ -144,8 +144,8 @@ const updateProjectValidation = [
   
   body('maximum_members')
     .optional()
-    .isInt({ min: 2, max: 50 })
-    .withMessage('Maximum members must be between 2 and 50')
+    .isInt({ min: 1, max: 50 })
+    .withMessage('Maximum members must be between 1 and 50')
 ];
 
 // Routes

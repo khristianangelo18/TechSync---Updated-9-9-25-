@@ -1,5 +1,5 @@
 import React from 'react';
-import LanguageTips from './LanguageTips';
+import LanguageTips from './ChallengeHints';
 
 function normalizeTestCases(raw) {
   let t = raw;
