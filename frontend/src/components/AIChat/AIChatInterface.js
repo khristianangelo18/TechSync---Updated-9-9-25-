@@ -68,7 +68,7 @@ What would you like to work on today?`,
         const successMessage = {
           id: Date.now(),
           role: 'assistant',
-          content: `Great! I've successfully created the project "${projectData.title}" for you! You can now find it in your "My Projects" section. The project is ready for you to start working on and invite collaborators.`,
+          content: `Great! I've successfully created the project "${projectData.title}" for you! You can now find it in your "My Projects" section. The project is ready for you to start working on and invite collaborators. Let that sync in!`,
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, successMessage]);
