@@ -1,6 +1,6 @@
-// frontend/src/App.js - COMPLETE FIXED VERSION WITH PROJECT JOIN ROUTES
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+// frontend/src/App.js - COMPLETE VERSION WITH SOLO PROJECT WORKSPACE
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -17,18 +17,77 @@ import ManageUsers from './pages/ManageUsers';
 import ProjectJoinPage from './pages/ProjectJoinPage';
 import TaskDetail from './pages/project/TaskDetail';
 import GitHubOAuthCallback from './components/GitHubOAuthCallback';
+import { projectService } from './services/projectService';
 
-// Project workspace components
+// Regular Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
 import ProjectTasks from './pages/project/ProjectTasks';
 import ProjectChats from './pages/project/ProjectChats';
 import ProjectFiles from './pages/project/ProjectFiles';
 import ProjectMembers from './pages/project/ProjectMembers';
 
+// Solo Project workspace components
+import SoloProjectLayout from './pages/soloproject/SoloProjectLayout';
+import SoloProjectDashboard from './pages/soloproject/SoloProjectDashboard';
+import SoloProjectGoals from './pages/soloproject/SoloProjectGoals';
+import SoloProjectInfo from './pages/soloproject/SoloProjectInfo';
+import SoloWeeklyChallenge from './pages/soloproject/SoloWeeklyChallenge';
+import SoloProjectNotes from './pages/soloproject/SoloProjectNotes';
+
 // Placeholder components for missing pages
 import Friends from './pages/Friends';
 const Learns = () => <div style={{ padding: '30px' }}>Learning resources coming soon...</div>;
 const Help = () => <div style={{ padding: '30px' }}>Help center coming soon...</div>;
+
+// Project Router Component - determines if project should use solo or team workspace
+const ProjectRouter = () => {
+  const { projectId } = useParams();
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        const response = await projectService.getProjectById(projectId);
+        if (response.success) {
+          setProject(response.data.project);
+        }
+      } catch (error) {
+        console.error('Error fetching project:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (projectId) {
+      fetchProject();
+    }
+  }, [projectId]);
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        <h2>Loading project...</h2>
+      </div>
+    );
+  }
+
+  // Check if this is a solo project (1/1 members)
+  const isSoloProject = project && project.maximum_members === 1 && project.current_members === 1;
+
+  if (isSoloProject) {
+    // Redirect to solo project dashboard
+    return <Navigate to={`/soloproject/${projectId}/dashboard`} replace />;
+  } else {
+    // Redirect to regular project dashboard
+    return <Navigate to={`/project/${projectId}/dashboard`} replace />;
+  }
+};
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -116,7 +175,7 @@ function App() {
                   } 
                 />
 
-                {/* Project Join Routes - FIXED: Added missing routes */}
+                {/* Project Join Routes */}
                 <Route 
                   path="/join/:inviteCode" 
                   element={
@@ -164,7 +223,84 @@ function App() {
                   } 
                 />
 
-                {/* Project Workspace Routes with ProjectLayout */}
+                {/* Project Router - determines if project should use solo or team workspace */}
+                <Route 
+                  path="/project/:projectId" 
+                  element={
+                    <ProtectedRoute>
+                      <ProjectRouter />
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Solo Project Workspace Routes with SoloProjectLayout */}
+                <Route 
+                  path="/soloproject/:projectId/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectDashboard />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/goals" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectGoals />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/info" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectInfo />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/challenge" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloWeeklyChallenge />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/notes" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectNotes />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/help" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <Help />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Regular Project Workspace Routes with ProjectLayout */}
                 <Route 
                   path="/project/:projectId/dashboard" 
                   element={
@@ -187,7 +323,6 @@ function App() {
                   } 
                 />
 
-                {/* ✅ FIXED: Added the missing Task Detail Route */}
                 <Route 
                   path="/project/:projectId/tasks/:taskId" 
                   element={
@@ -241,12 +376,6 @@ function App() {
                       </ProjectLayout>
                     </ProtectedRoute>
                   } 
-                />
-                              
-                {/* Redirect /project/:id to /project/:id/dashboard */}
-                <Route 
-                  path="/project/:projectId" 
-                  element={<Navigate to="dashboard" replace />} 
                 />
                 
                 {/* Main App Routes with Regular Layout */}

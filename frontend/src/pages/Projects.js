@@ -1,5 +1,4 @@
-// Fixed Projects.js component with proper project filtering
-
+// frontend/src/pages/Projects.js - COMPLETE WITH SOLO PROJECT INTEGRATION
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,85 +6,71 @@ import { projectService } from '../services/projectService';
 import CreateProject from './CreateProject';
 
 function Projects() {
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [userProjects, setUserProjects] = useState([]);
-  const [starredProjects, setStarredProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('my');
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('my'); // 'my', 'joined', 'starred'
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, project: null });
   const [deleting, setDeleting] = useState(false);
 
+  // Fetch user projects
   useEffect(() => {
     fetchUserProjects();
-    fetchStarredProjects();
-  }, []);
-
-   useEffect(() => {
-    const handleProjectCreated = (event) => {
-      console.log('Project created from AI chat:', event.detail.project);
-      
-      if (event.detail.project) {
-        setUserProjects(prev => [event.detail.project, ...prev]);
-        console.log('Project added to My Projects list');
-        setError(null);
-      }
-    };
-
-    window.addEventListener('projectCreated', handleProjectCreated);
-    
-    return () => {
-      window.removeEventListener('projectCreated', handleProjectCreated);
-    };
   }, []);
 
   const fetchUserProjects = async () => {
     try {
       setLoading(true);
+      setError('');
       const response = await projectService.getUserProjects();
-      console.log('User projects response:', response.data.projects); // Debug log
-      setUserProjects(response.data.projects || []);
-    } catch (err) {
-      setError('Failed to fetch your projects');
-      console.error('Error fetching user projects:', err);
+      
+      if (response.success) {
+        setUserProjects(response.data.projects || []);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      setError('Failed to load projects');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchStarredProjects = async () => {
-    try {
-      setStarredProjects([]);
-    } catch (err) {
-      console.error('Error fetching starred projects:', err);
+  // Updated handleViewProject with solo project detection
+  const handleViewProject = (project) => {
+    // Check if this is a solo project (1/1 members)
+    const isSoloProject = project.maximum_members === 1 && project.current_members === 1;
+    
+    if (isSoloProject) {
+      // Route to solo project workspace
+      navigate(`/soloproject/${project.id}/dashboard`);
+    } else {
+      // Route to regular project workspace  
+      navigate(`/project/${project.id}/dashboard`);
     }
   };
 
-  const handleDeleteProject = async (project) => {
+  const handleDeleteProject = (project) => {
     setDeleteConfirm({ show: true, project });
   };
 
   const confirmDelete = async () => {
     if (!deleteConfirm.project) return;
 
-    setDeleting(true);
     try {
-      await projectService.deleteProject(deleteConfirm.project.id);
+      setDeleting(true);
+      const response = await projectService.deleteProject(deleteConfirm.project.id);
       
-      // Remove the project from the local state
-      setUserProjects(prev => prev.filter(p => p.id !== deleteConfirm.project.id));
-      
-      // Close the confirmation dialog
-      setDeleteConfirm({ show: false, project: null });
-      
-      // Show success message (you could add a toast notification here)
-      alert(`Project "${deleteConfirm.project.title}" has been deleted successfully.`);
-      
+      if (response.success) {
+        // Remove project from local state
+        setUserProjects(prev => prev.filter(p => p.id !== deleteConfirm.project.id));
+        setDeleteConfirm({ show: false, project: null });
+      }
     } catch (error) {
       console.error('Error deleting project:', error);
-      alert('Failed to delete project. Please try again.');
+      setError('Failed to delete project');
     } finally {
       setDeleting(false);
     }
@@ -95,84 +80,102 @@ function Projects() {
     setDeleteConfirm({ show: false, project: null });
   };
 
-  const getDisplayProjects = () => {
+  const handleCreateProject = () => {
+    setShowCreateProject(true);
+  };
+
+  const handleCloseCreateProject = () => {
+    setShowCreateProject(false);
+    fetchUserProjects(); // Refresh projects after creating
+  };
+
+  // Filter projects by tab
+  const getFilteredProjects = () => {
     switch (activeTab) {
       case 'my':
-        // FIXED: Check both owner_id and membership.role for owned projects
         return userProjects.filter(p => 
           p.owner_id === user?.id || 
           (p.membership && p.membership.role === 'owner')
         );
       case 'joined':
-        // FIXED: Check for projects where user is a member but not owner
         return userProjects.filter(p => 
           p.owner_id !== user?.id && 
           p.membership && 
           p.membership.role !== 'owner'
         );
       case 'starred':
-        return starredProjects;
+        return userProjects.filter(p => p.is_starred);
       default:
-        return [];
+        return userProjects;
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      recruiting: '#28a745',
-      active: '#007bff',
-      completed: '#6c757d',
-      paused: '#ffc107',
-      cancelled: '#dc3545'
-    };
-    return colors[status] || '#6c757d';
-  };
+  const filteredProjects = getFilteredProjects();
 
-  const getDifficultyColor = (difficulty) => {
-    const colors = {
-      easy: '#28a745',
-      medium: '#ffc107',
-      hard: '#fd7e14',
-      expert: '#dc3545'
-    };
-    return colors[difficulty] || '#6c757d';
-  };
+  // FIXED: Better calculation of project counts
+  const myProjectsCount = userProjects.filter(p => 
+    p.owner_id === user?.id || 
+    (p.membership && p.membership.role === 'owner')
+  ).length;
 
+  const joinedProjectsCount = userProjects.filter(p => 
+    p.owner_id !== user?.id && 
+    p.membership && 
+    p.membership.role !== 'owner'
+  ).length;
+
+  const starredProjectsCount = userProjects.filter(p => p.is_starred).length;
+
+  // Enhanced project card rendering with solo project indicator
   const renderProjectCard = (project) => {
-    // FIXED: Better logic to determine if user is the owner
     const isOwner = project.owner_id === user?.id || 
-                   (project.membership && project.membership.role === 'owner');
+                    (project.membership && project.membership.role === 'owner');
+    // const isMember = !!project.membership; // Removed unused variable
+    const isSoloProject = project.maximum_members === 1 && project.current_members === 1;
 
     return (
       <div key={project.id} style={styles.projectCard}>
         <div style={styles.cardHeader}>
-          <div style={styles.cardTitle}>{project.title}</div>
+          <h3 style={styles.cardTitle}>{project.title}</h3>
           <div style={styles.cardMeta}>
-            <span 
-              style={{
-                ...styles.statusBadge,
-                backgroundColor: getStatusColor(project.status)
-              }}
-            >
-              {project.status?.toUpperCase()}
+            <span style={{
+              ...styles.statusBadge,
+              backgroundColor: project.status === 'active' ? '#28a745' : 
+                             project.status === 'completed' ? '#007bff' : '#6c757d'
+            }}>
+              {project.status}
             </span>
-            <span 
-              style={{
-                ...styles.difficultyBadge,
-                backgroundColor: getDifficultyColor(project.difficulty_level)
-              }}
-            >
-              {project.difficulty_level?.toUpperCase()}
+            
+            {/* Solo Project Indicator */}
+            {isSoloProject && (
+              <span style={{
+                ...styles.statusBadge,
+                backgroundColor: '#6f42c1'
+              }}>
+                👤 Solo
+              </span>
+            )}
+            
+            <span style={{
+              ...styles.difficultyBadge,
+              backgroundColor: project.difficulty_level === 'easy' ? '#28a745' :
+                             project.difficulty_level === 'medium' ? '#ffc107' :
+                             project.difficulty_level === 'hard' ? '#fd7e14' : '#6c757d'
+            }}>
+              {project.difficulty_level || 'Medium'}
             </span>
           </div>
         </div>
-
+        
         <div style={styles.cardContent}>
-          <p style={styles.cardDescription}>{project.description}</p>
+          <p style={styles.cardDescription}>
+            {project.description?.substring(0, 120)}
+            {project.description?.length > 120 && '...'}
+          </p>
           
           <div style={styles.cardDetails}>
             <div style={styles.memberCount}>
-              {project.current_members || 0}/{project.maximum_members || 0} members
+              {isSoloProject ? '👤 Solo Project' : `${project.current_members || 0}/${project.maximum_members || 0} members`}
             </div>
             
             {project.project_languages && project.project_languages.length > 0 && (
@@ -202,7 +205,7 @@ function Projects() {
                 {project.users?.full_name || project.users?.username || 'Anonymous'}
               </span>
             )}
-            {/* FIXED: Show membership info for joined projects */}
+            {/* Show membership info for joined projects */}
             {!isOwner && project.membership && (
               <span style={styles.membershipInfo}>
                 (Joined as {project.membership.role})
@@ -212,17 +215,23 @@ function Projects() {
           
           <div style={styles.cardActions}>
             <button 
-              style={styles.viewButton}
-              onClick={() => handleViewProject(project.id)}
+              style={{
+                ...styles.viewButton,
+                ...(isSoloProject ? styles.soloViewButton : {})
+              }}
+              onClick={() => handleViewProject(project)}
             >
-              {isOwner ? 'Manage Project' : 'Enter Workspace'}
+              {isSoloProject ? 'Open Solo Workspace' : (isOwner ? 'Manage Project' : 'Enter Workspace')}
             </button>
             
             {/* Add delete button for project owners */}
             {isOwner && (
               <button 
                 style={styles.deleteButton}
-                onClick={() => handleDeleteProject(project)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteProject(project);
+                }}
                 title="Delete Project"
               >
                 Delete
@@ -233,31 +242,6 @@ function Projects() {
       </div>
     );
   };
-
-  const handleViewProject = (projectId) => {
-    navigate(`/project/${projectId}/dashboard`);
-  };
-
-  const handleCreateProject = () => {
-    setShowCreateProject(true);
-  };
-
-  const handleCloseCreateProject = () => {
-    setShowCreateProject(false);
-    fetchUserProjects(); // Refresh projects after creating
-  };
-
-  // FIXED: Better calculation of project counts
-  const myProjectsCount = userProjects.filter(p => 
-    p.owner_id === user?.id || 
-    (p.membership && p.membership.role === 'owner')
-  ).length;
-
-  const joinedProjectsCount = userProjects.filter(p => 
-    p.owner_id !== user?.id && 
-    p.membership && 
-    p.membership.role !== 'owner'
-  ).length;
 
   const styles = {
     container: {
@@ -302,68 +286,84 @@ function Projects() {
       padding: '12px 24px',
       backgroundColor: 'transparent',
       border: 'none',
-      borderBottom: '3px solid transparent',
-      cursor: 'pointer',
       fontSize: '16px',
       fontWeight: '500',
+      cursor: 'pointer',
       color: '#6c757d',
+      borderBottom: '3px solid transparent',
       transition: 'all 0.2s ease'
     },
     activeTab: {
       color: '#007bff',
       borderBottomColor: '#007bff'
     },
+    tabCount: {
+      marginLeft: '8px',
+      padding: '2px 6px',
+      backgroundColor: '#e9ecef',
+      color: '#6c757d',
+      borderRadius: '10px',
+      fontSize: '12px',
+      fontWeight: 'bold'
+    },
+    activeTabCount: {
+      backgroundColor: '#007bff',
+      color: 'white'
+    },
     projectsGrid: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
       gap: '25px',
-      marginBottom: '30px'
+      marginTop: '20px'
     },
     projectCard: {
       backgroundColor: 'white',
       border: '1px solid #dee2e6',
-      borderRadius: '10px',
-      overflow: 'hidden',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-      transition: 'all 0.2s ease',
+      borderRadius: '12px',
+      padding: '20px',
+      transition: 'all 0.3s ease',
       cursor: 'pointer'
     },
     cardHeader: {
-      padding: '20px 20px 15px',
-      borderBottom: '1px solid #f8f9fa'
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: '15px'
     },
     cardTitle: {
-      fontSize: '20px',
+      fontSize: '18px',
       fontWeight: 'bold',
       color: '#333',
-      marginBottom: '10px'
+      margin: '0 0 8px 0',
+      flex: 1
     },
     cardMeta: {
       display: 'flex',
-      gap: '10px'
+      gap: '8px',
+      flexWrap: 'wrap'
     },
     statusBadge: {
-      display: 'inline-block',
-      padding: '4px 12px',
-      color: 'white',
+      padding: '4px 8px',
       borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: 'bold'
+      fontSize: '11px',
+      fontWeight: '500',
+      color: 'white',
+      textTransform: 'uppercase'
     },
     difficultyBadge: {
-      display: 'inline-block',
-      padding: '4px 12px',
-      color: 'white',
+      padding: '4px 8px',
       borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: 'bold'
+      fontSize: '11px',
+      fontWeight: '500',
+      color: 'white',
+      textTransform: 'capitalize'
     },
     cardContent: {
-      padding: '20px'
+      marginBottom: '15px'
     },
     cardDescription: {
-      color: '#666',
       fontSize: '14px',
+      color: '#6c757d',
       lineHeight: '1.5',
       marginBottom: '15px'
     },
@@ -372,25 +372,29 @@ function Projects() {
     },
     memberCount: {
       fontSize: '14px',
-      color: '#6c757d',
-      marginBottom: '10px'
+      color: '#495057',
+      fontWeight: '500',
+      marginBottom: '8px'
     },
     languages: {
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '8px'
+      gap: '6px'
     },
     languageTag: {
-      backgroundColor: '#f8f9fa',
-      color: '#495057',
-      padding: '3px 8px',
-      borderRadius: '12px',
-      fontSize: '12px',
+      padding: '2px 6px',
+      backgroundColor: '#e3f2fd',
+      color: '#1976d2',
+      fontSize: '11px',
+      borderRadius: '10px',
       fontWeight: '500'
     },
     moreLanguages: {
-      color: '#6c757d',
-      fontSize: '12px',
+      padding: '2px 6px',
+      backgroundColor: '#f5f5f5',
+      color: '#666',
+      fontSize: '11px',
+      borderRadius: '10px',
       fontStyle: 'italic'
     },
     cardFooter: {
@@ -428,6 +432,10 @@ function Projects() {
       cursor: 'pointer',
       transition: 'background-color 0.2s ease'
     },
+    soloViewButton: {
+      backgroundColor: '#6f42c1',
+      borderColor: '#6f42c1'
+    },
     deleteButton: {
       padding: '10px 15px',
       backgroundColor: '#dc3545',
@@ -460,6 +468,19 @@ function Projects() {
       padding: '60px 20px',
       color: '#6c757d'
     },
+    emptyStateIcon: {
+      fontSize: '64px',
+      marginBottom: '20px',
+      opacity: 0.5
+    },
+    emptyStateText: {
+      fontSize: '18px',
+      marginBottom: '10px',
+      fontWeight: '500'
+    },
+    emptyStateSubtext: {
+      fontSize: '14px'
+    },
     // Modal styles for delete confirmation
     modalOverlay: {
       position: 'fixed',
@@ -488,42 +509,39 @@ function Projects() {
       fontSize: '20px',
       fontWeight: 'bold',
       color: '#333',
-      margin: '0 0 10px 0'
+      marginBottom: '10px'
     },
     modalMessage: {
-      fontSize: '16px',
-      color: '#666',
+      fontSize: '14px',
+      color: '#6c757d',
       lineHeight: '1.5'
     },
     projectTitle: {
       fontWeight: 'bold',
-      color: '#dc3545'
+      color: '#333'
     },
     modalActions: {
       display: 'flex',
-      justifyContent: 'flex-end',
-      gap: '15px',
-      marginTop: '30px'
+      gap: '10px',
+      justifyContent: 'flex-end'
     },
     cancelButton: {
       padding: '10px 20px',
       backgroundColor: '#6c757d',
       color: 'white',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '6px',
       fontSize: '14px',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s ease'
+      cursor: 'pointer'
     },
     confirmButton: {
       padding: '10px 20px',
       backgroundColor: '#dc3545',
       color: 'white',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '6px',
       fontSize: '14px',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s ease'
+      cursor: 'pointer'
     },
     disabledButton: {
       opacity: 0.6,
@@ -532,18 +550,27 @@ function Projects() {
   };
 
   if (loading) {
-    return <div style={styles.loading}>Loading your projects...</div>;
+    return (
+      <div style={styles.container}>
+        <div style={styles.loading}>Loading projects...</div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div style={styles.error}>{error}</div>;
+    return (
+      <div style={styles.container}>
+        <div style={styles.error}>{error}</div>
+      </div>
+    );
   }
 
   return (
     <div style={styles.container}>
+      {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>My Projects</h1>
-        <button 
+        <button
           style={styles.createButton}
           onClick={handleCreateProject}
           onMouseEnter={(e) => {
@@ -557,36 +584,76 @@ function Projects() {
         </button>
       </div>
 
+      {/* Tabs */}
       <div style={styles.tabsContainer}>
-        {[
-          { key: 'my', label: `My Projects (${myProjectsCount})` },
-          { key: 'joined', label: `Joined Projects (${joinedProjectsCount})` },
-          { key: 'starred', label: `Starred (${starredProjects.length})` }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            style={{
-              ...styles.tab,
-              ...(activeTab === tab.key ? styles.activeTab : {})
-            }}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
+        <button
+          style={{
+            ...styles.tab,
+            ...(activeTab === 'my' ? styles.activeTab : {})
+          }}
+          onClick={() => setActiveTab('my')}
+        >
+          My Projects
+          <span style={{
+            ...styles.tabCount,
+            ...(activeTab === 'my' ? styles.activeTabCount : {})
+          }}>
+            {myProjectsCount}
+          </span>
+        </button>
+        
+        <button
+          style={{
+            ...styles.tab,
+            ...(activeTab === 'joined' ? styles.activeTab : {})
+          }}
+          onClick={() => setActiveTab('joined')}
+        >
+          Joined Projects
+          <span style={{
+            ...styles.tabCount,
+            ...(activeTab === 'joined' ? styles.activeTabCount : {})
+          }}>
+            {joinedProjectsCount}
+          </span>
+        </button>
+        
+        <button
+          style={{
+            ...styles.tab,
+            ...(activeTab === 'starred' ? styles.activeTab : {})
+          }}
+          onClick={() => setActiveTab('starred')}
+        >
+          Starred
+          <span style={{
+            ...styles.tabCount,
+            ...(activeTab === 'starred' ? styles.activeTabCount : {})
+          }}>
+            {starredProjectsCount}
+          </span>
+        </button>
       </div>
 
-      <div style={styles.projectsGrid}>
-        {getDisplayProjects().map(renderProjectCard)}
-      </div>
-
-      {getDisplayProjects().length === 0 && (
+      {/* Projects Grid */}
+      {filteredProjects.length > 0 ? (
+        <div style={styles.projectsGrid}>
+          {filteredProjects.map(renderProjectCard)}
+        </div>
+      ) : (
         <div style={styles.emptyState}>
-          <h3>No projects found</h3>
-          <p>
-            {activeTab === 'my' && "You haven't created any projects yet. Click 'Create Project' to get started!"}
-            {activeTab === 'joined' && "You haven't joined any projects yet. Browse available projects to find one that interests you."}
-            {activeTab === 'starred' && "You haven't starred any projects yet."}
+          <div style={styles.emptyStateIcon}>
+            {activeTab === 'my' ? '📁' : activeTab === 'joined' ? '👥' : '⭐'}
+          </div>
+          <div style={styles.emptyStateText}>
+            {activeTab === 'my' && "You haven't created any projects yet"}
+            {activeTab === 'joined' && "You haven't joined any projects yet"}
+            {activeTab === 'starred' && "You haven't starred any projects yet"}
+          </div>
+          <p style={styles.emptyStateSubtext}>
+            {activeTab === 'my' && "Click 'Create Project' to get started!"}
+            {activeTab === 'joined' && "Browse available projects to find one that interests you."}
+            {activeTab === 'starred' && "Star projects to save them for later."}
           </p>
         </div>
       )}
