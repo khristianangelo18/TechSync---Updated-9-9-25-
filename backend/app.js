@@ -1,4 +1,4 @@
-// backend/app.js - FINAL FIXED VERSION
+// backend/app.js - FINAL FIXED VERSION WITH SOLO PROJECT ROUTES
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -27,6 +27,8 @@ const notificationsRoutes = require('./routes/notifications');
 const githubRoutes = require('./routes/github');
 const friendsRoutes = require('./routes/friends');
 
+// ✅ NEW: Import solo project routes
+const soloProjectRoutes = require('./routes/soloProjectRoutes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -145,6 +147,9 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/github', githubRoutes);
 app.use('/api/friends', friendsRoutes);
 
+// ✅ NEW: Solo project routes (add this line)
+app.use('/api/solo-projects', soloProjectRoutes);
+
 // 2. Project-nested routes - FIXED: Mount under /api/projects
 // These routes handle: /api/projects/:projectId/tasks/* and /api/projects/:projectId/members/*
 app.use('/api/projects', taskRoutes);         // ✅ Now handles /api/projects/:projectId/tasks
@@ -173,6 +178,7 @@ app.get('/', (req, res) => {
       health: '/health',
       auth: '/api/auth',
       projects: '/api/projects',
+      'solo-projects': '/api/solo-projects',        // ✅ NEW: Added to documentation
       tasks: '/api/projects/:projectId/tasks',     // ✅ Correct path
       members: '/api/projects/:projectId/members', // ✅ Correct path
       'aichat': '/api/ai-chat',

@@ -1,122 +1,134 @@
 // frontend/src/pages/soloproject/SoloProjectGoals.js
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-// import { useAuth } from '../../contexts/AuthContext'; // Removed unused import
+import SoloProjectService from '../../services/soloProjectService';
 
 function SoloProjectGoals() {
   const { projectId } = useParams();
-  // const { user } = useAuth(); // Removed unused variable
+
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateGoal, setShowCreateGoal] = useState(false);
+  const [error, setError] = useState(null);
   const [newGoal, setNewGoal] = useState({
     title: '',
     description: '',
     target_date: '',
     priority: 'medium',
-    category: 'development'
+    category: 'feature'
   });
   const [activeTab, setActiveTab] = useState('all');
 
-  // Mock goals data - replace with API calls
+  // Fetch goals from API
   useEffect(() => {
-    const mockGoals = [
-      {
-        id: 1,
-        title: 'Complete User Authentication System',
-        description: 'Implement login, registration, and password reset functionality with JWT tokens',
-        target_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 2 weeks from now
-        priority: 'high',
-        category: 'development',
-        status: 'in_progress',
-        progress: 65,
-        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-      },
-      {
-        id: 2,
-        title: 'Design System Documentation',
-        description: 'Create comprehensive style guide and component documentation',
-        target_date: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000), // 3 weeks from now
-        priority: 'medium',
-        category: 'design',
-        status: 'todo',
-        progress: 0,
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-      },
-      {
-        id: 3,
-        title: 'Launch MVP Version',
-        description: 'Deploy the minimum viable product to production with core features',
-        target_date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 1.5 months from now
-        priority: 'urgent',
-        category: 'milestone',
-        status: 'todo',
-        progress: 25,
-        created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
-      },
-      {
-        id: 4,
-        title: 'Performance Optimization',
-        description: 'Optimize database queries and implement caching strategies',
-        target_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 1 month from now
-        priority: 'medium',
-        category: 'optimization',
-        status: 'completed',
-        progress: 100,
-        created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-        completed_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+    let isMounted = true;
+
+    const fetchGoals = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await SoloProjectService.getGoals(projectId, {
+          sort_by: 'created_at',
+          sort_order: 'desc'
+        });
+        const apiGoals = res?.data?.goals || [];
+        // Attach a UI-only progress value: 100 if completed, else 0
+        const withProgress = apiGoals.map(g => ({
+          ...g,
+          progress: g.status === 'completed' ? 100 : 0
+        }));
+        if (isMounted) setGoals(withProgress);
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.response?.data?.message || 'Failed to load goals');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    ];
-    
-    setGoals(mockGoals);
-    setLoading(false);
+    };
+
+    fetchGoals();
+    return () => { isMounted = false; };
   }, [projectId]);
 
-  const handleCreateGoal = (e) => {
+  // Create goal via API
+  const handleCreateGoal = async (e) => {
     e.preventDefault();
     if (!newGoal.title.trim()) return;
 
-    const goal = {
-      id: Date.now(),
-      ...newGoal,
-      target_date: newGoal.target_date ? new Date(newGoal.target_date) : null,
-      status: 'todo',
-      progress: 0,
-      created_at: new Date()
-    };
+    // Validate before sending (optional)
+    const { isValid, errors } = SoloProjectService.validateGoalData(newGoal);
+    if (!isValid) {
+      alert(errors.join('\n'));
+      return;
+    }
 
-    setGoals(prev => [goal, ...prev]);
-    setNewGoal({
-      title: '',
-      description: '',
-      target_date: '',
-      priority: 'medium',
-      category: 'development'
-    });
-    setShowCreateGoal(false);
+    try {
+      const payload = {
+        title: newGoal.title,
+        description: newGoal.description,
+        target_date: newGoal.target_date || null,
+        priority: newGoal.priority,
+        category: newGoal.category
+      };
+      const res = await SoloProjectService.createGoal(projectId, payload);
+      const createdGoal = res?.data?.goal;
+      if (createdGoal) {
+        // Add UI-only progress
+        setGoals(prev => [{ ...createdGoal, progress: 0 }, ...prev]);
+      }
+      setNewGoal({
+        title: '',
+        description: '',
+        target_date: '',
+        priority: 'medium',
+        category: 'feature'
+      });
+      setShowCreateGoal(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to create goal');
+    }
   };
 
-  const updateGoalProgress = (goalId, newProgress) => {
+  // Update progress locally and persist status via API
+  const updateGoalProgress = async (goalId, newProgress) => {
     setGoals(prev => prev.map(goal => {
       if (goal.id === goalId) {
-        const updatedGoal = { ...goal, progress: newProgress };
-        if (newProgress === 100 && goal.status !== 'completed') {
-          updatedGoal.status = 'completed';
-          updatedGoal.completed_at = new Date();
-        } else if (newProgress > 0 && newProgress < 100 && goal.status !== 'in_progress') {
-          updatedGoal.status = 'in_progress';
-        } else if (newProgress === 0 && goal.status !== 'todo') {
-          updatedGoal.status = 'todo';
-        }
-        return updatedGoal;
+        return { ...goal, progress: newProgress };
       }
       return goal;
     }));
+
+    // Map progress to status for persistence
+    const newStatus = newProgress >= 100 ? 'completed' : 'active';
+
+    try {
+      const res = await SoloProjectService.updateGoal(projectId, goalId, { status: newStatus });
+      const updatedGoal = res?.data?.goal;
+      if (updatedGoal) {
+        setGoals(prev => prev.map(g => g.id === goalId ? { ...g, ...updatedGoal } : g));
+      }
+    } catch (err) {
+      // Revert progress if API call fails
+      setGoals(prev => prev.map(goal => {
+        if (goal.id === goalId) {
+          const fallbackProgress = goal.status === 'completed' ? 100 : 0;
+          return { ...goal, progress: fallbackProgress };
+        }
+        return goal;
+      }));
+      alert(err?.response?.data?.message || 'Failed to update goal');
+    }
   };
 
-  const deleteGoal = (goalId) => {
-    if (window.confirm('Are you sure you want to delete this goal?')) {
+  // Delete goal via API
+  const deleteGoal = async (goalId) => {
+    if (!window.confirm('Are you sure you want to delete this goal?')) return;
+    try {
+      await SoloProjectService.deleteGoal(projectId, goalId);
       setGoals(prev => prev.filter(goal => goal.id !== goalId));
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to delete goal');
     }
   };
 
@@ -124,7 +136,7 @@ function SoloProjectGoals() {
   const filteredGoals = goals.filter(goal => {
     switch (activeTab) {
       case 'active':
-        return goal.status === 'in_progress';
+        return goal.status === 'active';
       case 'completed':
         return goal.status === 'completed';
       case 'overdue':
@@ -151,37 +163,37 @@ function SoloProjectGoals() {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'urgent': return '#dc3545';
-      case 'high': return '#fd7e14';
+      case 'high': return '#dc3545';
       case 'medium': return '#ffc107';
       case 'low': return '#28a745';
       default: return '#6c757d';
     }
   };
 
+  // Align category icons with backend categories
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'development': return '💻';
-      case 'design': return '🎨';
-      case 'milestone': return '🏁';
-      case 'optimization': return '⚡';
       case 'learning': return '📚';
-      case 'research': return '🔍';
-      default: return '📋';
+      case 'feature': return '⚡';
+      case 'bug_fix': return '🐛';
+      case 'optimization': return '⚡';
+      case 'documentation': return '📄';
+      case 'testing': return '🧪';
+      default: return '🎯';
     }
   };
 
   const getGoalStats = () => {
     const total = goals.length;
     const completed = goals.filter(g => g.status === 'completed').length;
-    const inProgress = goals.filter(g => g.status === 'in_progress').length;
-    const overdue = goals.filter(g => 
-      g.target_date && 
-      new Date(g.target_date) < new Date() && 
+    const active = goals.filter(g => g.status === 'active').length;
+    const overdue = goals.filter(g =>
+      g.target_date &&
+      new Date(g.target_date) < new Date() &&
       g.status !== 'completed'
     ).length;
-    
-    return { total, completed, inProgress, overdue };
+
+    return { total, completed, active, overdue };
   };
 
   const goalStats = getGoalStats();
@@ -221,6 +233,14 @@ function SoloProjectGoals() {
       fontWeight: '500',
       cursor: 'pointer',
       transition: 'all 0.2s ease'
+    },
+    error: {
+      backgroundColor: '#fff3f3',
+      border: '1px solid #f5c2c7',
+      color: '#842029',
+      padding: '12px 16px',
+      borderRadius: '8px',
+      marginBottom: '20px'
     },
     statsGrid: {
       display: 'grid',
@@ -510,6 +530,9 @@ function SoloProjectGoals() {
         </button>
       </div>
 
+      {/* Error */}
+      {error && <div style={styles.error}>⚠️ {error}</div>}
+
       {/* Stats Cards */}
       <div style={styles.statsGrid}>
         <div style={styles.statCard}>
@@ -521,8 +544,8 @@ function SoloProjectGoals() {
           <div style={styles.statLabel}>Completed</div>
         </div>
         <div style={styles.statCard}>
-          <div style={styles.statNumber}>{goalStats.inProgress}</div>
-          <div style={styles.statLabel}>In Progress</div>
+          <div style={styles.statNumber}>{goalStats.active}</div>
+          <div style={styles.statLabel}>Active</div>
         </div>
         <div style={styles.statCard}>
           <div style={styles.statNumber}>{goalStats.overdue}</div>
@@ -557,7 +580,8 @@ function SoloProjectGoals() {
           filteredGoals.map((goal) => {
             const daysUntil = getDaysUntilTarget(goal.target_date);
             const isOverdue = daysUntil !== null && daysUntil < 0 && goal.status !== 'completed';
-            
+            const progress = typeof goal.progress === 'number' ? goal.progress : (goal.status === 'completed' ? 100 : 0);
+
             return (
               <div
                 key={goal.id}
@@ -591,21 +615,21 @@ function SoloProjectGoals() {
                   >
                     {goal.priority} priority
                   </span>
-                  
+
                   <span style={styles.categoryBadge}>
                     {getCategoryIcon(goal.category)} {goal.category}
                   </span>
-                  
+
                   <span style={{
                     ...styles.targetDate,
                     ...(isOverdue ? styles.overdue : {})
                   }}>
                     {goal.target_date ? (
-                      isOverdue 
+                      isOverdue
                         ? `Overdue by ${Math.abs(daysUntil)} days`
-                        : daysUntil === 0 
+                        : daysUntil === 0
                         ? 'Due today'
-                        : daysUntil > 0 
+                        : daysUntil > 0
                         ? `${daysUntil} days left`
                         : formatDate(goal.target_date)
                     ) : 'No deadline'}
@@ -620,38 +644,38 @@ function SoloProjectGoals() {
                 <div style={styles.progressSection}>
                   <div style={styles.progressHeader}>
                     <span style={styles.progressLabel}>Progress</span>
-                    <span style={styles.progressValue}>{goal.progress}%</span>
+                    <span style={styles.progressValue}>{progress}%</span>
                   </div>
                   <div style={styles.progressBar}>
-                    <div 
+                    <div
                       style={{
                         ...styles.progressFill,
-                        width: `${goal.progress}%`
+                        width: `${progress}%`
                       }}
                     />
                   </div>
-                  
+
                   {goal.status !== 'completed' && (
                     <div style={styles.progressControls}>
                       <button
                         style={styles.progressButton}
-                        onClick={() => updateGoalProgress(goal.id, Math.max(0, goal.progress - 10))}
+                        onClick={() => updateGoalProgress(goal.id, Math.max(0, progress - 10))}
                       >
                         -10%
                       </button>
                       <button
                         style={styles.progressButton}
-                        onClick={() => updateGoalProgress(goal.id, Math.min(100, goal.progress + 10))}
+                        onClick={() => updateGoalProgress(goal.id, Math.min(100, progress + 10))}
                       >
                         +10%
                       </button>
                       <button
                         style={styles.progressButton}
-                        onClick={() => updateGoalProgress(goal.id, Math.min(100, goal.progress + 25))}
+                        onClick={() => updateGoalProgress(goal.id, Math.min(100, progress + 25))}
                       >
                         +25%
                       </button>
-                      {goal.progress < 100 && (
+                      {progress < 100 && (
                         <button
                           style={styles.progressButton}
                           onClick={() => updateGoalProgress(goal.id, 100)}
@@ -684,7 +708,7 @@ function SoloProjectGoals() {
         <div style={styles.modal} onClick={() => setShowCreateGoal(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h2 style={styles.modalTitle}>Create New Goal</h2>
-            
+
             <form style={styles.form} onSubmit={handleCreateGoal}>
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Goal Title *</label>
@@ -719,7 +743,6 @@ function SoloProjectGoals() {
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
                   </select>
                 </div>
 
@@ -730,12 +753,12 @@ function SoloProjectGoals() {
                     value={newGoal.category}
                     onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
                   >
-                    <option value="development">Development</option>
-                    <option value="design">Design</option>
-                    <option value="milestone">Milestone</option>
-                    <option value="optimization">Optimization</option>
                     <option value="learning">Learning</option>
-                    <option value="research">Research</option>
+                    <option value="feature">Feature</option>
+                    <option value="bug_fix">Bug Fix</option>
+                    <option value="optimization">Optimization</option>
+                    <option value="documentation">Documentation</option>
+                    <option value="testing">Testing</option>
                   </select>
                 </div>
               </div>

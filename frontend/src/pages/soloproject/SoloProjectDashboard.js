@@ -1,358 +1,166 @@
-// frontend/src/pages/soloproject/SoloProjectDashboard.js
+// frontend/src/pages/soloproject/SoloProjectDashboard.js - UPDATED VERSION
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { projectService } from '../../services/projectService';
+import SoloProjectService from '../../services/soloProjectService'; // NEW import
+import { taskService } from '../../services/taskService'; // Keep existing task service
 
 function SoloProjectDashboard() {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
+  
+  // State management
   const [project, setProject] = useState(null);
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [projectStats, setProjectStats] = useState({
     totalTasks: 0,
     completedTasks: 0,
     inProgressTasks: 0,
     completionRate: 0,
+    totalGoals: 0,
+    completedGoals: 0,
+    activeGoals: 0,
     timeSpentToday: 0,
     streakDays: 0
   });
   const [recentActivity, setRecentActivity] = useState([]);
-  const [loadingActivity, setLoadingActivity] = useState(true);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingActivity, setLoadingActivity] = useState(false);
+  const [error, setError] = useState('');
 
-  // Fetch project and dashboard data
+  // Fetch dashboard data using NEW backend API
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Fetch project details
-      const projectResponse = await projectService.getProjectById(projectId);
-      if (projectResponse.success) {
-        setProject(projectResponse.data.project);
+      console.log('🔄 Fetching dashboard data for solo project:', projectId);
+
+      // Use the new SoloProjectService for dashboard data
+      const response = await SoloProjectService.getDashboardData(projectId);
+      
+      if (response.success) {
+        const { project: projectData, stats } = response.data;
+        setProject(projectData);
+        setProjectStats(stats);
+        console.log('✅ Dashboard data fetched successfully:', stats);
       }
 
-      // Fetch project tasks
-      const tasksResponse = await projectService.getProjectTasks(projectId);
-      if (tasksResponse.success) {
-        setTasks(tasksResponse.data.tasks || []);
-        
-        // Calculate project statistics
-        const allTasks = tasksResponse.data.tasks || [];
-        const completed = allTasks.filter(task => task.status === 'completed');
-        const inProgress = allTasks.filter(task => task.status === 'in_progress');
-        const completionRate = allTasks.length > 0 ? Math.round((completed.length / allTasks.length) * 100) : 0;
-        
-        setProjectStats({
-          totalTasks: allTasks.length,
-          completedTasks: completed.length,
-          inProgressTasks: inProgress.length,
-          completionRate: completionRate,
-          timeSpentToday: Math.floor(Math.random() * 8) + 1, // Mock data - replace with actual tracking
-          streakDays: Math.floor(Math.random() * 30) + 1 // Mock data - replace with actual tracking
-        });
+      // Still fetch tasks using existing task service for consistency
+      try {
+        const tasksResponse = await taskService.getProjectTasks(projectId);
+        if (tasksResponse.success) {
+          setTasks(tasksResponse.data.tasks || []);
+        }
+      } catch (taskError) {
+        console.warn('Could not fetch tasks:', taskError);
+        // This is okay, dashboard will still work without task details
       }
 
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('💥 Error fetching dashboard data:', error);
       setError('Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   }, [projectId]);
 
-  // Fetch recent activity (mock data for now)
+  // Fetch recent activity using NEW backend API
   const fetchRecentActivity = useCallback(async () => {
     try {
       setLoadingActivity(true);
       
-      // Mock recent activity - replace with actual API call
+      console.log('🔄 Fetching recent activity for solo project:', projectId);
+
+      // Use the new SoloProjectService for recent activity
+      const response = await SoloProjectService.getRecentActivity(projectId, 10);
+      
+      if (response.success) {
+        setRecentActivity(response.data.activities || []);
+        console.log('✅ Recent activity fetched successfully');
+      }
+    } catch (error) {
+      console.warn('Could not fetch recent activity:', error);
+      // Fallback to mock data if API fails (for development)
       const mockActivity = [
         {
           id: 1,
-          action: 'completed task',
-          target: 'Implement user authentication',
-          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          type: 'task_completed'
+          activity_type: 'task_completed',
+          activity_data: {
+            action: 'completed task',
+            target: 'Implement user authentication'
+          },
+          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
         },
         {
           id: 2,
-          action: 'started working on',
-          target: 'Database schema design',
-          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
-          type: 'task_started'
-        },
-        {
-          id: 3,
-          action: 'updated project',
-          target: 'Added new requirements',
-          timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
-          type: 'project_updated'
-        },
-        {
-          id: 4,
-          action: 'uploaded file',
-          target: 'project-wireframes.pdf',
-          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-          type: 'file_uploaded'
+          activity_type: 'task_started',
+          activity_data: {
+            action: 'started working on',
+            target: 'Database schema design'
+          },
+          created_at: new Date(Date.now() - 4 * 60 * 60 * 1000) // 4 hours ago
         }
       ];
-
       setRecentActivity(mockActivity);
-    } catch (error) {
-      console.error('Error fetching recent activity:', error);
     } finally {
       setLoadingActivity(false);
     }
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     fetchDashboardData();
     fetchRecentActivity();
   }, [fetchDashboardData, fetchRecentActivity]);
 
-  // Helper functions
-  const formatTimeAgo = (timestamp) => {
-    const now = new Date();
-    const diff = now - new Date(timestamp);
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-    
-    if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-    return 'Just now';
-  };
+  // Helper function to log activity
+  const logActivity = useCallback(async (action, target, type) => {
+    try {
+      await SoloProjectService.logActivity(projectId, {
+        action,
+        target,
+        type
+      });
+      // Refresh activity after logging
+      fetchRecentActivity();
+    } catch (error) {
+      console.error('Failed to log activity:', error);
+    }
+  }, [projectId, fetchRecentActivity]);
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'task_completed': return '✅';
-      case 'task_started': return '🚀';
-      case 'project_updated': return '📝';
-      case 'file_uploaded': return '📁';
-      default: return '📌';
+  // Quick actions
+  const handleQuickTaskCreate = async () => {
+    try {
+      navigate(`/project/${projectId}/tasks`);
+      // Log activity
+      await logActivity('navigated to', 'Tasks page', 'project_updated');
+    } catch (error) {
+      console.error('Failed to navigate to tasks:', error);
     }
   };
 
-  const styles = {
-    container: {
-      padding: '30px',
-      maxWidth: '1200px',
-      margin: '0 auto'
-    },
-    header: {
-      marginBottom: '30px',
-      paddingBottom: '20px',
-      borderBottom: '2px solid #e9ecef'
-    },
-    title: {
-      color: '#333',
-      fontSize: '28px',
-      margin: '0 0 8px 0',
-      fontWeight: 'bold'
-    },
-    subtitle: {
-      color: '#6c757d',
-      fontSize: '16px',
-      margin: 0
-    },
-    welcomeSection: {
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      padding: '24px',
-      borderRadius: '12px',
-      marginBottom: '30px',
-      backgroundImage: 'linear-gradient(135deg, #6f42c1 0%, #9c27b0 100%)'
-    },
-    welcomeTitle: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      margin: '0 0 8px 0'
-    },
-    welcomeMessage: {
-      fontSize: '16px',
-      margin: 0,
-      opacity: 0.9
-    },
-    statsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '20px',
-      marginBottom: '30px'
-    },
-    statCard: {
-      backgroundColor: 'white',
-      padding: '24px',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      textAlign: 'center',
-      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-    },
-    statCardHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-    },
-    statNumber: {
-      fontSize: '32px',
-      fontWeight: 'bold',
-      color: '#6f42c1',
-      margin: '0 0 8px 0'
-    },
-    statLabel: {
-      fontSize: '14px',
-      color: '#6c757d',
-      margin: 0,
-      fontWeight: '500'
-    },
-    contentGrid: {
-      display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '30px',
-      marginBottom: '30px'
-    },
-    section: {
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      overflow: 'hidden'
-    },
-    sectionHeader: {
-      padding: '20px 24px',
-      borderBottom: '1px solid #e9ecef',
-      backgroundColor: '#f8f9fa'
-    },
-    sectionTitle: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: 0
-    },
-    sectionContent: {
-      padding: '24px'
-    },
-    taskItem: {
-      display: 'flex',
-      alignItems: 'center',
-      padding: '12px 0',
-      borderBottom: '1px solid #f1f3f4'
-    },
-    taskItemLast: {
-      borderBottom: 'none'
-    },
-    taskStatus: {
-      width: '16px',
-      height: '16px',
-      borderRadius: '50%',
-      marginRight: '12px',
-      flexShrink: 0
-    },
-    taskStatusCompleted: {
-      backgroundColor: '#28a745'
-    },
-    taskStatusInProgress: {
-      backgroundColor: '#ffc107'
-    },
-    taskStatusTodo: {
-      backgroundColor: '#6c757d'
-    },
-    taskInfo: {
-      flex: 1,
-      minWidth: 0
-    },
-    taskTitle: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#333',
-      margin: '0 0 4px 0',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    },
-    taskMeta: {
-      fontSize: '12px',
-      color: '#6c757d',
-      margin: 0
-    },
-    activityItem: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      padding: '16px 0',
-      borderBottom: '1px solid #f1f3f4'
-    },
-    activityItemLast: {
-      borderBottom: 'none'
-    },
-    activityIcon: {
-      fontSize: '16px',
-      marginRight: '12px',
-      marginTop: '2px',
-      flexShrink: 0
-    },
-    activityContent: {
-      flex: 1,
-      minWidth: 0
-    },
-    activityText: {
-      fontSize: '14px',
-      color: '#333',
-      margin: '0 0 4px 0',
-      lineHeight: '1.4'
-    },
-    activityTime: {
-      fontSize: '12px',
-      color: '#6c757d',
-      margin: 0
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '40px 20px',
-      color: '#6c757d'
-    },
-    emptyStateIcon: {
-      fontSize: '48px',
-      marginBottom: '16px',
-      opacity: 0.5
-    },
-    emptyStateText: {
-      fontSize: '16px',
-      margin: 0
-    },
-    loadingState: {
-      textAlign: 'center',
-      padding: '40px',
-      color: '#6c757d'
-    },
-    errorMessage: {
-      backgroundColor: '#f8d7da',
-      border: '1px solid #f5c6cb',
-      color: '#721c24',
-      padding: '16px',
-      borderRadius: '8px',
-      marginBottom: '20px',
-      textAlign: 'center'
-    },
-    progressBar: {
-      width: '100%',
-      height: '8px',
-      backgroundColor: '#e9ecef',
-      borderRadius: '4px',
-      overflow: 'hidden',
-      margin: '16px 0'
-    },
-    progressFill: {
-      height: '100%',
-      backgroundColor: '#6f42c1',
-      transition: 'width 0.3s ease'
-    },
-    progressText: {
-      fontSize: '14px',
-      color: '#6c757d',
-      textAlign: 'center',
-      margin: '8px 0 0 0'
+  const handleQuickGoalCreate = async () => {
+    try {
+      navigate(`/soloproject/${projectId}/goals`);
+      // Log activity
+      await logActivity('navigated to', 'Goals page', 'project_updated');
+    } catch (error) {
+      console.error('Failed to navigate to goals:', error);
     }
   };
 
+  const handleQuickNoteCreate = async () => {
+    try {
+      navigate(`/soloproject/${projectId}/notes`);
+      // Log activity
+      await logActivity('navigated to', 'Notes page', 'project_updated');
+    } catch (error) {
+      console.error('Failed to navigate to notes:', error);
+    }
+  };
+
+  // Render loading state
   if (loading) {
     return (
       <div style={styles.container}>
@@ -391,101 +199,9 @@ function SoloProjectDashboard() {
         <p style={styles.welcomeMessage}>
           {project?.title || 'Your Solo Project'} • Keep up the great work!
         </p>
-      </div>
-
-      {/* Statistics Cards */}
-      <div style={styles.statsGrid}>
-        <div 
-          style={styles.statCard}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, styles.statCardHover);
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={styles.statNumber}>{projectStats.totalTasks}</div>
-          <div style={styles.statLabel}>Total Tasks</div>
-        </div>
         
-        <div 
-          style={styles.statCard}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, styles.statCardHover);
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={styles.statNumber}>{projectStats.completedTasks}</div>
-          <div style={styles.statLabel}>Completed</div>
-        </div>
-        
-        <div 
-          style={styles.statCard}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, styles.statCardHover);
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={styles.statNumber}>{projectStats.completionRate}%</div>
-          <div style={styles.statLabel}>Progress</div>
-        </div>
-        
-        <div 
-          style={styles.statCard}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, styles.statCardHover);
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={styles.statNumber}>{projectStats.timeSpentToday}h</div>
-          <div style={styles.statLabel}>Today</div>
-        </div>
-        
-        <div 
-          style={styles.statCard}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, styles.statCardHover);
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={styles.statNumber}>{projectStats.streakDays}</div>
-          <div style={styles.statLabel}>Day Streak</div>
-        </div>
-        
-        <div 
-          style={styles.statCard}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, styles.statCardHover);
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'none';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <div style={styles.statNumber}>{projectStats.inProgressTasks}</div>
-          <div style={styles.statLabel}>In Progress</div>
-        </div>
-      </div>
-
-      {/* Progress Overview */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <h3 style={styles.sectionTitle}>Project Progress</h3>
-        </div>
-        <div style={styles.sectionContent}>
+        {/* Progress Bar */}
+        <div style={styles.progressContainer}>
           <div style={styles.progressBar}>
             <div 
               style={{
@@ -495,102 +211,168 @@ function SoloProjectDashboard() {
             />
           </div>
           <p style={styles.progressText}>
-            {projectStats.completedTasks} of {projectStats.totalTasks} tasks completed ({projectStats.completionRate}%)
+            {projectStats.completionRate}% Complete • {projectStats.completedTasks} of {projectStats.totalTasks} tasks done
           </p>
         </div>
       </div>
 
-      {/* Content Grid */}
+      {/* Stats Grid */}
+      <div style={styles.statsGrid}>
+        {/* Task Statistics */}
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>📋</div>
+          <div style={styles.statContent}>
+            <h3 style={styles.statNumber}>{projectStats.totalTasks}</h3>
+            <p style={styles.statLabel}>Total Tasks</p>
+            <p style={styles.statSubtext}>
+              {projectStats.inProgressTasks} in progress
+            </p>
+          </div>
+        </div>
+
+        {/* Goal Statistics */}
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>🎯</div>
+          <div style={styles.statContent}>
+            <h3 style={styles.statNumber}>{projectStats.totalGoals}</h3>
+            <p style={styles.statLabel}>Goals Set</p>
+            <p style={styles.statSubtext}>
+              {projectStats.activeGoals} active goals
+            </p>
+          </div>
+        </div>
+
+        {/* Time Today */}
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>⏰</div>
+          <div style={styles.statContent}>
+            <h3 style={styles.statNumber}>{projectStats.timeSpentToday}h</h3>
+            <p style={styles.statLabel}>Time Today</p>
+            <p style={styles.statSubtext}>
+              {projectStats.streakDays} day streak
+            </p>
+          </div>
+        </div>
+
+        {/* Completion Rate */}
+        <div style={styles.statCard}>
+          <div style={styles.statIcon}>📈</div>
+          <div style={styles.statContent}>
+            <h3 style={styles.statNumber}>{projectStats.completionRate}%</h3>
+            <p style={styles.statLabel}>Completion Rate</p>
+            <p style={styles.statSubtext}>
+              {projectStats.completedTasks} completed
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div style={styles.quickActionsSection}>
+        <h3 style={styles.sectionTitle}>Quick Actions</h3>
+        <div style={styles.quickActions}>
+          <button 
+            style={styles.quickActionButton}
+            onClick={handleQuickTaskCreate}
+          >
+            <span style={styles.quickActionIcon}>➕</span>
+            <span>Create Task</span>
+          </button>
+          <button 
+            style={styles.quickActionButton}
+            onClick={handleQuickGoalCreate}
+          >
+            <span style={styles.quickActionIcon}>🎯</span>
+            <span>Set Goal</span>
+          </button>
+          <button 
+            style={styles.quickActionButton}
+            onClick={handleQuickNoteCreate}
+          >
+            <span style={styles.quickActionIcon}>📝</span>
+            <span>Take Note</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
       <div style={styles.contentGrid}>
         {/* Recent Tasks */}
-        <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h3 style={styles.sectionTitle}>Recent Tasks</h3>
+        <div style={styles.contentCard}>
+          <div style={styles.cardHeader}>
+            <h3 style={styles.cardTitle}>Recent Tasks</h3>
+            <button 
+              style={styles.viewAllButton}
+              onClick={() => navigate(`/project/${projectId}/tasks`)}
+            >
+              View All →
+            </button>
           </div>
-          <div style={styles.sectionContent}>
+          <div style={styles.cardContent}>
             {recentTasks.length > 0 ? (
-              recentTasks.map((task, index) => {
-                const isLast = index === recentTasks.length - 1;
-                const getStatusStyle = (status) => {
-                  switch (status) {
-                    case 'completed':
-                      return styles.taskStatusCompleted;
-                    case 'in_progress':
-                      return styles.taskStatusInProgress;
-                    default:
-                      return styles.taskStatusTodo;
-                  }
-                };
-
-                return (
-                  <div
-                    key={task.id}
-                    style={{
-                      ...styles.taskItem,
-                      ...(isLast ? styles.taskItemLast : {})
-                    }}
-                  >
-                    <div style={{
-                      ...styles.taskStatus,
-                      ...getStatusStyle(task.status)
-                    }} />
-                    <div style={styles.taskInfo}>
-                      <div style={styles.taskTitle}>{task.title}</div>
-                      <div style={styles.taskMeta}>
-                        {task.status === 'completed' ? 'Completed' : 
-                         task.status === 'in_progress' ? 'In Progress' : 'To Do'} • 
-                        Priority: {task.priority || 'Medium'}
-                      </div>
-                    </div>
+              recentTasks.map(task => (
+                <div key={task.id} style={styles.taskItem}>
+                  <div style={styles.taskInfo}>
+                    <span 
+                      style={{
+                        ...styles.taskStatus,
+                        backgroundColor: SoloProjectService.getStatusColor(task.status)
+                      }}
+                    >
+                      {task.status.replace('_', ' ')}
+                    </span>
+                    <h4 style={styles.taskTitle}>{task.title}</h4>
+                    <p style={styles.taskMeta}>
+                      {task.priority} priority
+                    </p>
                   </div>
-                );
-              })
+                </div>
+              ))
             ) : (
               <div style={styles.emptyState}>
                 <div style={styles.emptyStateIcon}>📝</div>
-                <div style={styles.emptyStateText}>No tasks yet. Create your first task to get started!</div>
+                <p style={styles.emptyStateText}>No tasks yet. Create your first task!</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div style={styles.section}>
-          <div style={styles.sectionHeader}>
-            <h3 style={styles.sectionTitle}>Recent Activity</h3>
+        <div style={styles.contentCard}>
+          <div style={styles.cardHeader}>
+            <h3 style={styles.cardTitle}>Recent Activity</h3>
+            <span style={styles.activityCount}>
+              {loadingActivity ? 'Loading...' : `${recentActivity.length} activities`}
+            </span>
           </div>
-          <div style={styles.sectionContent}>
-            {loadingActivity ? (
-              <div style={styles.loadingState}>Loading activity...</div>
-            ) : recentActivity.length > 0 ? (
-              recentActivity.map((activity, index) => {
-                const isLast = index === recentActivity.length - 1;
-                return (
-                  <div
-                    key={activity.id}
-                    style={{
-                      ...styles.activityItem,
-                      ...(isLast ? styles.activityItemLast : {})
-                    }}
-                  >
-                    <div style={styles.activityIcon}>
-                      {getActivityIcon(activity.type)}
-                    </div>
-                    <div style={styles.activityContent}>
-                      <div style={styles.activityText}>
-                        <strong>You</strong> {activity.action} {activity.target}
-                      </div>
-                      <div style={styles.activityTime}>
-                        {formatTimeAgo(activity.timestamp)}
-                      </div>
-                    </div>
+          <div style={styles.cardContent}>
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity) => (
+                <div key={activity.id} style={styles.activityItem}>
+                  <div style={styles.activityIcon}>
+                    {SoloProjectService.getActivityTypeIcon(activity.activity_type)}
                   </div>
-                );
-              })
+                  <div style={styles.activityInfo}>
+                    <p style={styles.activityText}>
+                      <span style={styles.activityAction}>
+                        {activity.activity_data?.action || 'performed action'}
+                      </span>
+                      <span style={styles.activityTarget}>
+                        {activity.activity_data?.target || 'unknown target'}
+                      </span>
+                    </p>
+                    <p style={styles.activityTime}>
+                      {SoloProjectService.formatTimeAgo(activity.created_at)}
+                    </p>
+                  </div>
+                </div>
+              ))
             ) : (
               <div style={styles.emptyState}>
                 <div style={styles.emptyStateIcon}>📊</div>
-                <div style={styles.emptyStateText}>No recent activity</div>
+                <p style={styles.emptyStateText}>
+                  {loadingActivity ? 'Loading activities...' : 'No recent activity'}
+                </p>
               </div>
             )}
           </div>
@@ -599,5 +381,271 @@ function SoloProjectDashboard() {
     </div>
   );
 }
+
+// Styles remain the same as original
+const styles = {
+  container: {
+    padding: '24px',
+    maxWidth: '1200px',
+    margin: '0 auto',
+    minHeight: '100vh',
+    backgroundColor: '#f8f9fa'
+  },
+  header: {
+    marginBottom: '32px'
+  },
+  title: {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#333',
+    margin: '0 0 8px 0'
+  },
+  subtitle: {
+    fontSize: '16px',
+    color: '#6c757d',
+    margin: 0
+  },
+  welcomeSection: {
+    backgroundColor: 'white',
+    padding: '32px',
+    borderRadius: '12px',
+    border: '1px solid #e9ecef',
+    marginBottom: '32px'
+  },
+  welcomeTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: '#333',
+    margin: '0 0 8px 0'
+  },
+  welcomeMessage: {
+    fontSize: '16px',
+    color: '#6c757d',
+    margin: '0 0 24px 0'
+  },
+  progressContainer: {
+    marginTop: '20px'
+  },
+  progressBar: {
+    width: '100%',
+    height: '8px',
+    backgroundColor: '#e9ecef',
+    borderRadius: '4px',
+    overflow: 'hidden',
+    margin: '16px 0'
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#6f42c1',
+    transition: 'width 0.3s ease'
+  },
+  progressText: {
+    fontSize: '14px',
+    color: '#6c757d',
+    textAlign: 'center',
+    margin: '8px 0 0 0'
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '20px',
+    marginBottom: '32px'
+  },
+  statCard: {
+    backgroundColor: 'white',
+    padding: '24px',
+    borderRadius: '12px',
+    border: '1px solid #e9ecef',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  },
+  statIcon: {
+    fontSize: '40px'
+  },
+  statContent: {
+    flex: 1
+  },
+  statNumber: {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#333',
+    margin: '0 0 4px 0'
+  },
+  statLabel: {
+    fontSize: '16px',
+    fontWeight: '500',
+    color: '#333',
+    margin: '0 0 4px 0'
+  },
+  statSubtext: {
+    fontSize: '14px',
+    color: '#6c757d',
+    margin: 0
+  },
+  quickActionsSection: {
+    marginBottom: '32px'
+  },
+  sectionTitle: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#333',
+    margin: '0 0 16px 0'
+  },
+  quickActions: {
+    display: 'flex',
+    gap: '16px',
+    flexWrap: 'wrap'
+  },
+  quickActionButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 20px',
+    backgroundColor: '#6f42c1',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease'
+  },
+  quickActionIcon: {
+    fontSize: '16px'
+  },
+  contentGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+    gap: '24px'
+  },
+  contentCard: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    border: '1px solid #e9ecef',
+    overflow: 'hidden'
+  },
+  cardHeader: {
+    padding: '20px 24px',
+    borderBottom: '1px solid #e9ecef',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  cardTitle: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: '#333',
+    margin: 0
+  },
+  viewAllButton: {
+    background: 'none',
+    border: 'none',
+    color: '#6f42c1',
+    fontSize: '14px',
+    cursor: 'pointer',
+    fontWeight: '500'
+  },
+  activityCount: {
+    fontSize: '14px',
+    color: '#6c757d'
+  },
+  cardContent: {
+    padding: '24px',
+    maxHeight: '400px',
+    overflowY: 'auto'
+  },
+  taskItem: {
+    padding: '12px 0',
+    borderBottom: '1px solid #f1f3f4'
+  },
+  taskInfo: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px'
+  },
+  taskStatus: {
+    display: 'inline-block',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    color: 'white',
+    textTransform: 'capitalize',
+    width: 'fit-content'
+  },
+  taskTitle: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#333',
+    margin: 0
+  },
+  taskMeta: {
+    fontSize: '12px',
+    color: '#6c757d',
+    margin: 0,
+    textTransform: 'capitalize'
+  },
+  activityItem: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '12px',
+    padding: '12px 0',
+    borderBottom: '1px solid #f1f3f4'
+  },
+  activityIcon: {
+    fontSize: '20px',
+    marginTop: '2px'
+  },
+  activityInfo: {
+    flex: 1
+  },
+  activityText: {
+    fontSize: '14px',
+    color: '#333',
+    margin: '0 0 4px 0',
+    lineHeight: '1.4'
+  },
+  activityAction: {
+    fontWeight: '500'
+  },
+  activityTarget: {
+    fontWeight: '400',
+    marginLeft: '4px'
+  },
+  activityTime: {
+    fontSize: '12px',
+    color: '#6c757d',
+    margin: 0
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '40px 20px',
+    color: '#6c757d'
+  },
+  emptyStateIcon: {
+    fontSize: '48px',
+    marginBottom: '16px',
+    opacity: 0.5
+  },
+  emptyStateText: {
+    fontSize: '16px',
+    margin: 0
+  },
+  loadingState: {
+    textAlign: 'center',
+    padding: '40px',
+    color: '#6c757d'
+  },
+  errorMessage: {
+    backgroundColor: '#f8d7da',
+    border: '1px solid #f5c6cb',
+    color: '#721c24',
+    padding: '16px',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    textAlign: 'center'
+  }
+};
 
 export default SoloProjectDashboard;

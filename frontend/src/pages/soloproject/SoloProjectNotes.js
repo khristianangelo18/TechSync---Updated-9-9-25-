@@ -1,111 +1,165 @@
 // frontend/src/pages/soloproject/SoloProjectNotes.js
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-// import { useAuth } from '../../contexts/AuthContext'; // Removed unused import
+import SoloProjectService from '../../services/soloProjectService';
 
 function SoloProjectNotes() {
   const { projectId } = useParams();
-  // const { user } = useAuth(); // Removed unused variable
+
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('updated_at');
+
   const [newNote, setNewNote] = useState({
     title: '',
     content: '',
     category: 'general'
   });
+
   const [showCreateNote, setShowCreateNote] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock notes data - replace with API calls
+  // Fetch notes from API (debounced for search)
   useEffect(() => {
-    const mockNotes = [
-      {
-        id: 1,
-        title: 'Project Requirements',
-        content: 'Initial project requirements and specifications:\n\n• User authentication system\n• Dashboard with analytics\n• File management\n• Real-time notifications\n• Mobile responsive design',
-        category: 'planning',
-        created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-        updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
-      },
-      {
-        id: 2,
-        title: 'API Design Notes',
-        content: 'RESTful API endpoints:\n\nAuth:\n- POST /api/auth/login\n- POST /api/auth/register\n- POST /api/auth/refresh\n\nUsers:\n- GET /api/users/profile\n- PUT /api/users/profile\n\nProjects:\n- GET /api/projects\n- POST /api/projects\n- GET /api/projects/:id',
-        category: 'development',
-        created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-        updated_at: new Date(Date.now() - 2 * 60 * 60 * 1000)
-      },
-      {
-        id: 3,
-        title: 'Learning Resources',
-        content: 'Useful resources for this project:\n\n📚 Documentation:\n• React Hooks Guide\n• Node.js Best Practices\n• PostgreSQL Performance Tips\n\n🎥 Video Tutorials:\n• Advanced React Patterns\n• Database Optimization\n• Deployment Strategies',
-        category: 'learning',
-        created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        updated_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-      }
-    ];
-    setNotes(mockNotes);
-    if (mockNotes.length > 0) {
-      setSelectedNote(mockNotes[0]);
-    }
-  }, [projectId]);
+    let isMounted = true;
+    const timeout = setTimeout(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+        const filters = {
+            sort_by: sortBy,
+            sort_order: sortBy === 'title' ? 'asc' : 'desc'
+        };
+        if (searchTerm.trim()) filters.search = searchTerm.trim();
 
-  // Filter and sort notes
-  const filteredAndSortedNotes = notes
-    .filter(note => 
-      note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      note.content.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'created_at':
-          return new Date(b.created_at) - new Date(a.created_at);
-        case 'updated_at':
-        default:
-          return new Date(b.updated_at) - new Date(a.updated_at);
-      }
-    });
+        const res = await SoloProjectService.getNotes(projectId, filters);
+        const apiNotes =
+            res?.data?.data?.notes ||
+            res?.data?.notes ||
+            [];
 
-  const handleCreateNote = () => {
+        if (!isMounted) return;
+
+        setNotes(apiNotes);
+
+        // Keep selection valid without referencing selectedNote from the closure
+        setSelectedNote(prev => {
+            const stillExists = prev && apiNotes.some(n => n.id === prev.id);
+            if (stillExists) return prev;
+            // If previous selection is gone or was null, pick the first note
+            setIsEditing(false);
+            return apiNotes[0] || null;
+        });
+        } catch (err) {
+        if (isMounted) {
+            setError(err?.response?.data?.message || 'Failed to load notes');
+        }
+        } finally {
+        if (isMounted) setLoading(false);
+        }
+    }, 300);
+
+    return () => {
+        isMounted = false;
+        clearTimeout(timeout);
+    };
+    }, [projectId, searchTerm, sortBy]); // selectedNote no longer needed here
+
+  // Server-sorted/filtered list
+  const filteredAndSortedNotes = notes;
+
+  const handleCreateNote = async () => {
     if (!newNote.title.trim() || !newNote.content.trim()) return;
 
-    const note = {
-      id: Date.now(),
-      ...newNote,
-      created_at: new Date(),
-      updated_at: new Date()
-    };
+    // Optional client-side validation
+    const { isValid, errors } = SoloProjectService.validateNoteData(newNote);
+    if (!isValid) {
+      alert(errors.join('\n'));
+      return;
+    }
 
-    setNotes(prev => [note, ...prev]);
-    setSelectedNote(note);
-    setNewNote({ title: '', content: '', category: 'general' });
-    setShowCreateNote(false);
+    try {
+      const res = await SoloProjectService.createNote(projectId, {
+        title: newNote.title,
+        content: newNote.content,
+        category: newNote.category
+      });
+
+      const created =
+        res?.data?.data?.note ||
+        res?.data?.note;
+
+      if (created) {
+        setNotes(prev => [created, ...prev]);
+        setSelectedNote(created);
+      }
+
+      setNewNote({ title: '', content: '', category: 'general' });
+      setShowCreateNote(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to create note');
+    }
   };
 
-  const handleUpdateNote = () => {
+  const handleUpdateNote = async () => {
     if (!selectedNote || !selectedNote.title.trim() || !selectedNote.content.trim()) return;
 
-    setNotes(prev => prev.map(note => 
-      note.id === selectedNote.id 
-        ? { ...selectedNote, updated_at: new Date() }
-        : note
-    ));
-    setIsEditing(false);
+    // Optional validation
+    const { isValid, errors } = SoloProjectService.validateNoteData({
+      title: selectedNote.title,
+      content: selectedNote.content,
+      category: selectedNote.category
+    });
+    if (!isValid) {
+      alert(errors.join('\n'));
+      return;
+    }
+
+    try {
+      const res = await SoloProjectService.updateNote(
+        projectId,
+        selectedNote.id,
+        {
+          title: selectedNote.title,
+          content: selectedNote.content,
+          category: selectedNote.category
+        }
+      );
+
+      const updated =
+        res?.data?.data?.note ||
+        res?.data?.note;
+
+      if (updated) {
+        setNotes(prev => prev.map(n => (n.id === updated.id ? updated : n)));
+        setSelectedNote(updated);
+      }
+      setIsEditing(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to update note');
+    }
   };
 
-  const handleDeleteNote = (noteId) => {
-    setNotes(prev => prev.filter(note => note.id !== noteId));
-    if (selectedNote && selectedNote.id === noteId) {
-      const remaining = notes.filter(note => note.id !== noteId);
-      setSelectedNote(remaining.length > 0 ? remaining[0] : null);
+  const handleDeleteNote = async (noteId) => {
+    try {
+      await SoloProjectService.deleteNote(projectId, noteId);
+      setNotes(prev => prev.filter(n => n.id !== noteId));
+      if (selectedNote && selectedNote.id === noteId) {
+        const remaining = notes.filter(n => n.id !== noteId);
+        setSelectedNote(remaining[0] || null);
+        setIsEditing(false);
+      }
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to delete note');
     }
   };
 
   const formatDate = (date) => {
+    if (!date) return '';
     return new Date(date).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 
@@ -115,14 +169,15 @@ function SoloProjectNotes() {
     });
   };
 
+  // Align with backend allowed categories: general, planning, development, learning, ideas, bugs
   const getCategoryIcon = (category) => {
     switch (category) {
       case 'planning': return '📋';
       case 'development': return '💻';
-      case 'learning': return '🎓';
-      case 'research': return '🔍';
+      case 'learning': return '📚';
       case 'ideas': return '💡';
-      case 'meeting': return '👥';
+      case 'bugs': return '🐛';
+      case 'general':
       default: return '📝';
     }
   };
@@ -132,9 +187,9 @@ function SoloProjectNotes() {
       case 'planning': return '#007bff';
       case 'development': return '#28a745';
       case 'learning': return '#6f42c1';
-      case 'research': return '#fd7e14';
       case 'ideas': return '#ffc107';
-      case 'meeting': return '#17a2b8';
+      case 'bugs': return '#dc3545';
+      case 'general':
       default: return '#6c757d';
     }
   };
@@ -170,6 +225,14 @@ function SoloProjectNotes() {
       fontWeight: '500',
       cursor: 'pointer',
       transition: 'all 0.2s ease'
+    },
+    error: {
+      backgroundColor: '#fff3f3',
+      border: '1px solid #f5c2c7',
+      color: '#842029',
+      padding: '10px 14px',
+      borderRadius: '8px',
+      marginBottom: '16px'
     },
     mainContent: {
       display: 'grid',
@@ -451,6 +514,9 @@ function SoloProjectNotes() {
         </button>
       </div>
 
+      {/* Error */}
+      {error && <div style={styles.error}>⚠️ {error}</div>}
+
       {/* Main Content */}
       <div style={styles.mainContent}>
         {/* Sidebar */}
@@ -475,43 +541,49 @@ function SoloProjectNotes() {
           </div>
           
           <div style={styles.notesList}>
-            {filteredAndSortedNotes.map((note) => (
-              <div
-                key={note.id}
-                style={{
-                  ...styles.noteItem,
-                  ...(selectedNote && selectedNote.id === note.id ? styles.noteItemActive : {})
-                }}
-                onClick={() => {
-                  setSelectedNote(note);
-                  setIsEditing(false);
-                }}
-                onMouseEnter={(e) => {
-                  if (!selectedNote || selectedNote.id !== note.id) {
-                    Object.assign(e.currentTarget.style, styles.noteItemHover);
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!selectedNote || selectedNote.id !== note.id) {
-                    e.currentTarget.style.backgroundColor = 'white';
-                  }
-                }}
-              >
-                <h4 style={styles.noteItemTitle}>{note.title}</h4>
-                <div style={styles.noteItemMeta}>
-                  <span style={{
-                    ...styles.categoryBadge,
-                    backgroundColor: getCategoryColor(note.category)
-                  }}>
-                    {getCategoryIcon(note.category)} {note.category}
-                  </span>
-                  <span>{formatDate(note.updated_at)}</span>
+            {loading && filteredAndSortedNotes.length === 0 ? (
+              <div style={{ padding: '16px 20px', color: '#6c757d' }}>Loading notes...</div>
+            ) : filteredAndSortedNotes.length === 0 ? (
+              <div style={{ padding: '16px 20px', color: '#6c757d' }}>No notes found</div>
+            ) : (
+              filteredAndSortedNotes.map((note) => (
+                <div
+                  key={note.id}
+                  style={{
+                    ...styles.noteItem,
+                    ...(selectedNote && selectedNote.id === note.id ? styles.noteItemActive : {})
+                  }}
+                  onClick={() => {
+                    setSelectedNote(note);
+                    setIsEditing(false);
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!selectedNote || selectedNote.id !== note.id) {
+                      Object.assign(e.currentTarget.style, styles.noteItemHover);
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!selectedNote || selectedNote.id !== note.id) {
+                      e.currentTarget.style.backgroundColor = 'white';
+                    }
+                  }}
+                >
+                  <h4 style={styles.noteItemTitle}>{note.title}</h4>
+                  <div style={styles.noteItemMeta}>
+                    <span style={{
+                      ...styles.categoryBadge,
+                      backgroundColor: getCategoryColor(note.category)
+                    }}>
+                      {getCategoryIcon(note.category)} {note.category}
+                    </span>
+                    <span>{formatDate(note.updated_at)}</span>
+                  </div>
+                  <p style={styles.noteItemPreview}>
+                    {(note.content || '').substring(0, 60)}...
+                  </p>
                 </div>
-                <p style={styles.noteItemPreview}>
-                  {note.content.substring(0, 60)}...
-                </p>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -590,9 +662,8 @@ function SoloProjectNotes() {
                         <option value="planning">Planning</option>
                         <option value="development">Development</option>
                         <option value="learning">Learning</option>
-                        <option value="research">Research</option>
                         <option value="ideas">Ideas</option>
-                        <option value="meeting">Meeting</option>
+                        <option value="bugs">Bugs</option>
                       </select>
                     </div>
                     <textarea
@@ -648,9 +719,8 @@ function SoloProjectNotes() {
                 <option value="planning">Planning</option>
                 <option value="development">Development</option>
                 <option value="learning">Learning</option>
-                <option value="research">Research</option>
                 <option value="ideas">Ideas</option>
-                <option value="meeting">Meeting</option>
+                <option value="bugs">Bugs</option>
               </select>
             </div>
 

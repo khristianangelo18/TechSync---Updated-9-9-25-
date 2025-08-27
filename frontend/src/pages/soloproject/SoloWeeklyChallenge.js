@@ -1,11 +1,11 @@
 // frontend/src/pages/soloproject/SoloWeeklyChallenge.js
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-// import { useAuth } from '../../contexts/AuthContext'; // Removed unused import
+import ChallengeAPI from '../../services/challengeAPI';
 
 function SoloWeeklyChallenge() {
   const { projectId } = useParams();
-  // const { user } = useAuth(); // Removed unused variable
+
   const [currentChallenge, setCurrentChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSubmission, setShowSubmission] = useState(false);
@@ -17,124 +17,269 @@ function SoloWeeklyChallenge() {
   const [submitting, setSubmitting] = useState(false);
   const [pastChallenges, setPastChallenges] = useState([]);
   const [activeTab, setActiveTab] = useState('current');
+  const [error, setError] = useState(null);
 
-  // Mock current challenge data
-  useEffect(() => {
-    const mockCurrentChallenge = {
-      id: 1,
-      title: "Array Manipulation Challenge",
-      description: "Given an array of integers, implement a function that finds the two numbers that sum up to a specific target. Return the indices of these two numbers.",
-      difficulty: "medium",
-      points: 150,
-      timeLimit: "30 minutes",
-      category: "algorithms",
-      startDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
+  const [languageId, setLanguageId] = useState(null);
+  const [languageName, setLanguageName] = useState('');
+
+  // Helpers
+  const mapDifficultyToPoints = (level) => {
+    const lv = String(level || '').toLowerCase();
+    if (lv === 'easy') return 100;
+    if (lv === 'medium') return 150;
+    if (lv === 'hard') return 250;
+    if (lv === 'expert') return 350;
+    return 150;
+  };
+
+  const examplesFromTestCases = (testCases) => {
+    if (!Array.isArray(testCases)) return [];
+    return testCases.slice(0, 3).map((tc, idx) => ({
+      input: typeof tc.input === 'string' ? tc.input : JSON.stringify(tc.input),
+      output: typeof tc.output === 'string' ? tc.output : JSON.stringify(tc.output),
+      explanation: tc.explanation || `Example ${idx + 1}`
+    }));
+  };
+
+  const formatChallengeForUI = (ch) => {
+    // ch is coding_challenges row with fields like:
+    // id, title, description, difficulty_level, time_limit_minutes, test_cases, expected_solution, programming_languages (id, name)
+    const now = new Date();
+    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    const examples = examplesFromTestCases(ch?.test_cases);
+    const category = 'algorithms'; // Optional: derive from topics if you have them
+
+    return {
+      id: ch.id,
+      title: ch.title,
+      description: ch.description,
+      difficulty: ch.difficulty_level || 'medium',
+      points: mapDifficultyToPoints(ch.difficulty_level),
+      timeLimit: ch.time_limit_minutes ? `${ch.time_limit_minutes} minutes` : '30 minutes',
+      category,
       requirements: [
-        "Function should handle edge cases (empty array, no solution)",
-        "Time complexity should be O(n) or better",
-        "Include proper error handling",
-        "Write clean, readable code with comments"
+        'Write clean, readable code with comments',
+        'Pass all provided test cases',
+        ch.time_limit_minutes ? `Complete within ${ch.time_limit_minutes} minutes` : 'Manage time efficiently'
       ],
-      examples: [
-        {
-          input: "nums = [2,7,11,15], target = 9",
-          output: "[0,1]",
-          explanation: "Because nums[0] + nums[1] == 9, we return [0, 1]"
-        },
-        {
-          input: "nums = [3,2,4], target = 6",
-          output: "[1,2]",
-          explanation: "Because nums[1] + nums[2] == 6, we return [1, 2]"
-        }
-      ],
+      examples: examples.length
+        ? examples
+        : [
+            {
+              input: 'N/A',
+              output: 'N/A',
+              explanation: 'No sample cases provided'
+            }
+          ],
       hints: [
-        "Consider using a hash map to store numbers you've seen",
-        "Think about what you need to look for as you iterate",
-        "Remember to check if the complement exists before the current element"
+        'Consider time and space complexity',
+        'Leverage built-in data structures where appropriate'
       ],
+      startDate: now,
+      endDate: weekFromNow,
       submitted: false,
-      userSubmission: null
+      userSubmission: null,
+      programming_languages: ch.programming_languages
+    };
+  };
+
+  // Fetch current challenge (filtered strictly by project’s challenge language)
+  useEffect(() => {
+    let isMounted = true;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        // 1) Get project's "programming challenge" info to determine language
+        const pcRes = await ChallengeAPI.getProjectChallenge(projectId);
+        // Try multiple shapes to extract language id/name
+        const pcData =
+          pcRes?.data?.data?.challenge ||
+          pcRes?.data?.challenge ||
+          pcRes?.challenge ||
+          pcRes?.data ||
+          pcRes;
+
+        const langId =
+          pcData?.programming_language_id ||
+          pcData?.language_id ||
+          pcData?.programming_languages?.id ||
+          pcData?.language?.id ||
+          null;
+
+        const langName =
+          pcData?.programming_languages?.name ||
+          pcData?.language?.name ||
+          '';
+
+        if (!langId) {
+          throw new Error('No programming language configured for this project’s challenge.');
+        }
+
+        if (!isMounted) return;
+        setLanguageId(langId);
+        setLanguageName(langName || '');
+
+        // 2) Fetch the next challenge for this language, tied to this project
+        const nextRes = await ChallengeAPI.getNextChallenge({
+          programming_language_id: langId,
+          project_id: projectId
+        });
+
+        const nextCh =
+          nextRes?.data?.data?.challenge ||
+          nextRes?.data?.challenge ||
+          nextRes?.challenge ||
+          null;
+
+        if (nextCh && isMounted) {
+          const formatted = formatChallengeForUI(nextCh);
+          formatted.submission = null;
+          // Set submission language dropdown default to the project language if we have it
+          if (langName) {
+            setSubmission(prev => ({ ...prev, language: langName.toLowerCase() }));
+          }
+          setCurrentChallenge(formatted);
+        } else if (isMounted) {
+          setCurrentChallenge(null);
+        }
+
+        // 3) Fetch user attempts and filter to this language
+        const attemptsRes = await ChallengeAPI.getUserAttempts({ page: 1, limit: 20 });
+        const attempts =
+          attemptsRes?.data?.data?.attempts ||
+          attemptsRes?.data?.attempts ||
+          [];
+
+        // We need challenge details to know each attempt's language
+        const uniqueChallengeIds = [...new Set(attempts.map(a => a.challenge_id).filter(Boolean))];
+
+        const detailsArr = await Promise.all(
+          uniqueChallengeIds.map(id => ChallengeAPI.getChallengeById(id).catch(() => null))
+        );
+
+        const challengeDetailsMap = new Map();
+        detailsArr.forEach(resp => {
+          const det = resp?.data?.data?.challenge || resp?.data?.challenge;
+          if (det) challengeDetailsMap.set(det.id, det);
+        });
+
+        const filteredPast = attempts
+          .filter(a => {
+            const det = challengeDetailsMap.get(a.challenge_id);
+            return det?.programming_language_id === langId;
+          })
+          .map(a => {
+            const det = challengeDetailsMap.get(a.challenge_id);
+            const status = a.status;
+            return {
+              id: a.challenge_id,
+              title: det?.title || 'Challenge',
+              difficulty: det?.difficulty_level || 'medium',
+              points: mapDifficultyToPoints(det?.difficulty_level),
+              category: 'algorithms',
+              completedAt: a.submitted_at || a.reviewed_at || a.started_at,
+              score: a.score || 0,
+              timeSpent: a.solve_time_minutes
+                ? `${a.solve_time_minutes} minutes`
+                : a.execution_time_ms
+                ? `${Math.round(a.execution_time_ms / 1000)}s`
+                : '—',
+              status: status === 'passed' ? 'completed' : 'missed'
+            };
+          });
+
+        if (isMounted) setPastChallenges(filteredPast);
+
+        // 4) If we already attempted the "current" one, reflect it
+        if (isMounted && nextCh) {
+          const myAttempt = attempts.find(a => a.challenge_id === nextCh.id);
+          if (myAttempt) {
+            setCurrentChallenge(prev =>
+              prev
+                ? {
+                    ...prev,
+                    submitted: myAttempt.status !== 'pending',
+                    userSubmission: {
+                      submittedAt: myAttempt.submitted_at || myAttempt.started_at,
+                      score: myAttempt.score ?? 0,
+                      language: langName?.toLowerCase() || submission.language,
+                      feedback: myAttempt.feedback || ''
+                    }
+                  }
+                : prev
+            );
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err?.response?.data?.message || err.message || 'Failed to load weekly challenge');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
-    const mockPastChallenges = [
-      {
-        id: 2,
-        title: "String Palindrome Checker",
-        difficulty: "easy",
-        points: 100,
-        category: "strings",
-        completedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-        score: 95,
-        timeSpent: "15 minutes",
-        status: "completed"
-      },
-      {
-        id: 3,
-        title: "Binary Tree Traversal",
-        difficulty: "hard",
-        points: 250,
-        category: "data-structures",
-        completedAt: new Date(Date.now() - 17 * 24 * 60 * 60 * 1000),
-        score: 78,
-        timeSpent: "45 minutes",
-        status: "completed"
-      },
-      {
-        id: 4,
-        title: "API Rate Limiter",
-        difficulty: "medium",
-        points: 180,
-        category: "system-design",
-        completedAt: null,
-        score: 0,
-        timeSpent: "0 minutes",
-        status: "missed"
-      }
-    ];
-
-    setCurrentChallenge(mockCurrentChallenge);
-    setPastChallenges(mockPastChallenges);
-    setLoading(false);
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, [projectId]);
 
   const handleSubmitChallenge = async (e) => {
     e.preventDefault();
-    if (!submission.code.trim()) return;
+    if (!currentChallenge || !submission.code.trim()) return;
 
     try {
       setSubmitting(true);
-      
-      // Mock submission - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Update challenge as submitted
-      setCurrentChallenge(prev => ({
-        ...prev,
-        submitted: true,
-        userSubmission: {
-          ...submission,
-          submittedAt: new Date(),
-          score: Math.floor(Math.random() * 30) + 70, // Random score 70-100
-          feedback: "Great solution! Your implementation handles edge cases well and has optimal time complexity."
-        }
-      }));
+      setError(null);
+
+      const res = await ChallengeAPI.submitChallengeAttempt(projectId, {
+        challenge_id: currentChallenge.id,
+        submitted_code: submission.code,
+        notes: submission.description, // optional, backend may ignore
+        language: submission.language // optional for your backend
+      });
+
+      // Attempt result shape can vary, try common paths
+      const attempt =
+        res?.data?.data?.attempt ||
+        res?.data?.attempt ||
+        res?.attempt ||
+        null;
+
+      setCurrentChallenge(prev =>
+        prev
+          ? {
+              ...prev,
+              submitted: true,
+              userSubmission: {
+                submittedAt: attempt?.submitted_at || new Date(),
+                score: attempt?.score ?? 0,
+                language: submission.language,
+                feedback: attempt?.feedback || 'Your submission has been received.'
+              }
+            }
+          : prev
+      );
 
       setShowSubmission(false);
-      setSubmission({ code: '', description: '', language: 'javascript' });
-      
-    } catch (error) {
-      console.error('Error submitting challenge:', error);
+      setSubmission({ code: '', description: '', language: submission.language });
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Error submitting challenge');
     } finally {
       setSubmitting(false);
     }
   };
 
   const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
+    switch (String(difficulty || '').toLowerCase()) {
       case 'easy': return '#28a745';
       case 'medium': return '#ffc107';
       case 'hard': return '#dc3545';
+      case 'expert': return '#6f42c1';
       default: return '#6c757d';
     }
   };
@@ -154,12 +299,9 @@ function SoloWeeklyChallenge() {
     const now = new Date();
     const end = new Date(endDate);
     const diff = end - now;
-    
     if (diff <= 0) return 'Expired';
-    
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
     if (days > 0) return `${days} day${days > 1 ? 's' : ''} left`;
     if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} left`;
     return 'Less than 1 hour left';
@@ -521,6 +663,14 @@ function SoloWeeklyChallenge() {
       textAlign: 'center',
       padding: '60px',
       color: '#6c757d'
+    },
+    errorBox: {
+      backgroundColor: '#fff3f3',
+      border: '1px solid #f5c2c7',
+      color: '#842029',
+      padding: '10px 14px',
+      borderRadius: '8px',
+      marginBottom: '16px'
     }
   };
 
@@ -537,8 +687,12 @@ function SoloWeeklyChallenge() {
       {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>Weekly Challenge</h1>
-        <p style={styles.subtitle}>Test your skills with curated programming challenges</p>
+        <p style={styles.subtitle}>
+          {languageName ? `Language: ${languageName}` : 'Test your skills with curated programming challenges'}
+        </p>
       </div>
+
+      {error && <div style={styles.errorBox}>⚠️ {error}</div>}
 
       {/* Tabs */}
       <div style={styles.tabsContainer}>
@@ -649,9 +803,11 @@ function SoloWeeklyChallenge() {
                 Submitted on {formatDate(currentChallenge.userSubmission.submittedAt)} •
                 Language: {currentChallenge.userSubmission.language}
               </div>
-              <div style={styles.submissionFeedback}>
-                <strong>Feedback:</strong> {currentChallenge.userSubmission.feedback}
-              </div>
+              {currentChallenge.userSubmission.feedback && (
+                <div style={styles.submissionFeedback}>
+                  <strong>Feedback:</strong> {currentChallenge.userSubmission.feedback}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -660,56 +816,60 @@ function SoloWeeklyChallenge() {
       {/* Past Challenges Tab */}
       {activeTab === 'past' && (
         <div style={styles.pastChallengesGrid}>
-          {pastChallenges.map((challenge) => (
-            <div key={challenge.id} style={styles.pastChallengeCard}>
-              <h3 style={styles.pastChallengeTitle}>{challenge.title}</h3>
-              <div style={styles.pastChallengeMeta}>
-                <span style={{
-                  ...styles.difficultyBadge,
-                  backgroundColor: getDifficultyColor(challenge.difficulty)
-                }}>
-                  {challenge.difficulty}
-                </span>
-                
-                <span style={styles.pointsBadge}>
-                  {challenge.points} points
-                </span>
-                
-                <span style={styles.categoryBadge}>
-                  {getCategoryIcon(challenge.category)} {challenge.category}
-                </span>
-                
-                {challenge.status === 'completed' ? (
-                  <>
-                    <span style={styles.scoreDisplay}>
-                      Score: {challenge.score}/100
-                    </span>
+          {pastChallenges.length === 0 ? (
+            <div style={styles.emptyState}>No past challenges for this language yet.</div>
+          ) : (
+            pastChallenges.map((challenge) => (
+              <div key={challenge.id} style={styles.pastChallengeCard}>
+                <h3 style={styles.pastChallengeTitle}>{challenge.title}</h3>
+                <div style={styles.pastChallengeMeta}>
+                  <span style={{
+                    ...styles.difficultyBadge,
+                    backgroundColor: getDifficultyColor(challenge.difficulty)
+                  }}>
+                    {challenge.difficulty}
+                  </span>
+                  
+                  <span style={styles.pointsBadge}>
+                    {challenge.points} points
+                  </span>
+                  
+                  <span style={styles.categoryBadge}>
+                    {getCategoryIcon(challenge.category)} {challenge.category}
+                  </span>
+
+                  {challenge.status === 'completed' ? (
+                    <>
+                      <span style={styles.scoreDisplay}>
+                        Score: {challenge.score}/100
+                      </span>
+                      <span style={{
+                        ...styles.statusBadge,
+                        backgroundColor: '#28a745'
+                      }}>
+                        Completed
+                      </span>
+                      <span style={{ fontSize: '14px', color: '#6c757d' }}>
+                        {challenge.completedAt ? formatDate(challenge.completedAt) : ''} • {challenge.timeSpent}
+                      </span>
+                    </>
+                  ) : (
                     <span style={{
                       ...styles.statusBadge,
-                      backgroundColor: '#28a745'
+                      backgroundColor: '#dc3545'
                     }}>
-                      Completed
+                      Missed
                     </span>
-                    <span style={{ fontSize: '14px', color: '#6c757d' }}>
-                      {formatDate(challenge.completedAt)} • {challenge.timeSpent}
-                    </span>
-                  </>
-                ) : (
-                  <span style={{
-                    ...styles.statusBadge,
-                    backgroundColor: '#dc3545'
-                  }}>
-                    Missed
-                  </span>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
 
       {/* Submit Solution Modal */}
-      {showSubmission && (
+      {showSubmission && currentChallenge && (
         <div style={styles.modal} onClick={() => setShowSubmission(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <h2 style={styles.modalTitle}>Submit Your Solution</h2>
@@ -725,6 +885,7 @@ function SoloWeeklyChallenge() {
                     language: e.target.value
                   })}
                 >
+                  {/* Keep options for user convenience; backend uses challenge_id anyway */}
                   <option value="javascript">JavaScript</option>
                   <option value="python">Python</option>
                   <option value="java">Java</option>
