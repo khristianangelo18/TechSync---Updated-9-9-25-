@@ -1,10 +1,10 @@
-// Simple backend/routes/aiChat.js - Uses your existing Supabase config
+// backend/routes/aiChat.js - COMPLETE FIXED VERSION
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const auth = require('../middleware/auth');
 
 // Import your existing database configuration
-const db = require('../config/database'); // Adjust path as needed
+const db = require('../config/database');
 
 const router = express.Router();
 
@@ -20,14 +20,114 @@ try {
   console.error('Error initializing Gemini AI:', error);
 }
 
+// FIXED: Programming language mapping - EXACT match to your database
+const LANGUAGE_MAPPING = {
+  'javascript': 'JavaScript',
+  'js': 'JavaScript',
+  'node.js': 'JavaScript',
+  'nodejs': 'JavaScript', 
+  'react': 'JavaScript',
+  'vue': 'JavaScript',
+  'vue.js': 'JavaScript',
+  'angular': 'JavaScript',
+  'express': 'JavaScript',
+  'express.js': 'JavaScript',
+  'next.js': 'JavaScript',
+  'nextjs': 'JavaScript',
+  'nest.js': 'JavaScript',
+  'nestjs': 'JavaScript',
+  'react native': 'JavaScript',
+  
+  'python': 'Python',
+  'py': 'Python',
+  'django': 'Python',
+  'flask': 'Python',
+  'fastapi': 'Python',
+  
+  'java': 'Java',
+  'spring': 'Java',
+  'spring boot': 'Java',
+  'hibernate': 'Java',
+  
+  'c++': 'C++',
+  'cpp': 'C++',
+  'c plus plus': 'C++',
+  'c': 'C',
+  
+  'c#': 'C#',
+  'csharp': 'C#',
+  'c sharp': 'C#',
+  '.net': 'C#',
+  'dotnet': 'C#',
+  'asp.net': 'C#',
+  
+  'php': 'PHP',
+  'laravel': 'PHP',
+  'symfony': 'PHP',
+  'codeigniter': 'PHP',
+  
+  'ruby': 'Ruby',
+  'rails': 'Ruby',
+  'ruby on rails': 'Ruby',
+  
+  'go': 'Go',
+  'golang': 'Go',
+  'rust': 'Rust',
+  'swift': 'Swift',
+  'kotlin': 'Kotlin',
+  
+  'typescript': 'TypeScript',
+  'ts': 'TypeScript',
+  
+  'html': 'HTML',
+  'css': 'CSS',
+  'scss': 'CSS',
+  'sass': 'CSS',
+  'tailwind': 'CSS',
+  'bootstrap': 'CSS',
+  
+  'sql': 'SQL',
+  'mysql': 'SQL',
+  'postgresql': 'SQL',
+  'postgres': 'SQL',
+  'sqlite': 'SQL',
+  'mongodb': 'SQL',
+  
+  'dart': 'Dart',
+  'flutter': 'Dart',
+  'r': 'R',
+  'matlab': 'MATLAB',
+  'scala': 'Scala',
+  'perl': 'Perl',
+  'bash': 'Shell',
+  'shell': 'Shell',
+  'powershell': 'PowerShell'
+};
+
+// Helper function to normalize language names
+const normalizeProgrammingLanguage = (langName) => {
+  if (!langName || typeof langName !== 'string') return null;
+  
+  // Remove markdown formatting and clean
+  const cleaned = langName
+    .toLowerCase()
+    .trim()
+    .replace(/^\*\*\s*/, '')    // Remove ** from start
+    .replace(/\s*\*\*$/, '')    // Remove ** from end
+    .replace(/[()[\]{}]/g, '')  // Remove parentheses/brackets
+    .replace(/\s+/g, ' ')       // Normalize whitespace
+    .trim();
+  
+  return LANGUAGE_MAPPING[cleaned] || langName.trim().replace(/^\*\*\s*/, '').replace(/\s*\*\*$/, '');
+};
+
 // AI Chat endpoint
 router.post('/', auth, async (req, res) => {
   try {
-    // Check if Gemini AI is available
     if (!genAI) {
       return res.status(500).json({
         success: false,
-        message: 'AI service is not available. Please install @google/generative-ai package.',
+        message: 'AI service is not available',
         error: 'Gemini AI not initialized'
       });
     }
@@ -35,54 +135,47 @@ router.post('/', auth, async (req, res) => {
     const { message, conversationHistory = [] } = req.body;
     const userId = req.user.id;
 
-    // Get the generative model
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    // System prompt for coding project assistant
-    const systemPrompt = `You are a helpful coding project assistant. Your main role is to:
-1. Help users generate and plan coding projects
-2. Provide technical guidance and suggestions
-3. Answer questions about programming and project development
-4. Suggest project ideas based on user skills and interests
-5. Help with project planning, architecture, and implementation strategies
-
-Keep responses focused on coding projects and development. Be encouraging and educational.
-
-When suggesting project ideas, format them clearly with:
+    const systemPrompt = `You are a helpful coding project assistant. When suggesting project ideas, format them clearly with:
 - **Project Name** as a bold header
-- Brief description
+- Brief description  
 - Key Features: (use bullet points with •)
-- Technologies: (comma-separated list)
-- Time Estimate: (e.g., "2-3 weeks")
+- Technologies: JavaScript (ONLY list ONE core programming language - JavaScript, Python, Java, C++, etc. NO frameworks)
+- Time Estimate: (e.g. "2-3 weeks")
 - Difficulty: (Easy, Medium, Hard, or Expert)
 
-This formatting helps users understand and potentially create these projects automatically.
+CRITICAL: For Technologies, only list ONE core programming language without any frameworks:
+- Use "JavaScript" (NOT React, Node.js, Express)
+- Use "Python" (NOT Django, Flask)  
+- Use "Java" (NOT Spring)
+- Use "C++" (NOT specific libraries)
 
-User's previous conversation context: ${conversationHistory.length > 0 ? conversationHistory.slice(-5).map(msg => `${msg.role}: ${msg.content}`).join('\n') : 'No previous context'}`;
+User's context: ${conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n')}`;
 
-    const fullPrompt = `${systemPrompt}\n\nUser: ${message}`;
+    const chat = model.startChat({
+      history: [
+        {
+          role: 'user',
+          parts: [{ text: systemPrompt }]
+        },
+        {
+          role: 'model', 
+          parts: [{ text: 'I understand. I will suggest projects with only core programming languages and clear formatting.' }]
+        }
+      ]
+    });
 
-    // Generate response
-    const result = await model.generateContent(fullPrompt);
+    const result = await chat.sendMessage(message);
     const response = await result.response;
-    const aiResponse = response.text();
-
-    // Save conversation to database (using your existing pattern)
-    try {
-      const query = `
-        INSERT INTO ai_conversations (user_id, user_message, ai_response, conversation_context, created_at)
-        VALUES ($1, $2, $3, $4, NOW())
-      `;
-      await db.query(query, [userId, message, aiResponse, JSON.stringify(conversationHistory)]);
-    } catch (saveError) {
-      console.error('Error saving to database:', saveError);
-    }
+    const aiMessage = response.text();
 
     res.json({
       success: true,
       data: {
-        message: aiResponse,
-        timestamp: new Date().toISOString()
+        message: aiMessage,
+        timestamp: new Date().toISOString(),
+        conversationId: `${userId}_${Date.now()}`
       }
     });
 
@@ -90,266 +183,347 @@ User's previous conversation context: ${conversationHistory.length > 0 ? convers
     console.error('AI Chat error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to generate AI response',
+      message: 'Failed to get AI response',
       error: error.message
     });
   }
 });
 
-// NEW: Create project from AI response endpoint
-router.post('/create-project-from-response', auth, async (req, res) => {
+// FIXED: Project creation - NEVER create new programming languages
+router.post('/create-project', auth, async (req, res) => {
+  const client = await db.connect();
+  
   try {
-    const { projectData } = req.body;
     const userId = req.user.id;
+    const { projectData } = req.body;
 
-    // Validate required fields
-    if (!projectData.title || !projectData.description) {
-      return res.status(400).json({
-        success: false,
-        message: 'Title and description are required'
-      });
-    }
+    console.log('🔄 Creating project from AI response:', projectData.title);
+    console.log('📊 Raw programming languages from frontend:', projectData.programming_languages);
 
-    // Start transaction
-    const client = await db.getClient();
-    try {
-      await client.query('BEGIN');
+    await client.query('BEGIN');
 
-      // Create project
-      const projectQuery = `
-        INSERT INTO projects (
-          owner_id, title, description, detailed_description, required_experience_level,
-          maximum_members, estimated_duration_weeks, difficulty_level, github_repo_url,
-          deadline, status, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
-        RETURNING *
-      `;
-      
-      const projectValues = [
-        userId,
-        projectData.title.trim(),
-        projectData.description.trim(),
-        projectData.detailed_description || null,
-        projectData.required_experience_level || null,
-        projectData.maximum_members || null,
-        projectData.estimated_duration_weeks || null,
-        projectData.difficulty_level || null,
-        projectData.github_repo_url || null,
-        projectData.deadline || null,
-        'recruiting'
-      ];
+    // Create main project
+    const projectQuery = `
+      INSERT INTO projects (
+        owner_id, title, description, detailed_description, 
+        required_experience_level, maximum_members, estimated_duration_weeks,
+        difficulty_level, github_repo_url, deadline, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())
+      RETURNING *
+    `;
+    
+    const projectValues = [
+      userId,
+      projectData.title.trim(),
+      projectData.description.trim(),
+      projectData.detailed_description || null,
+      projectData.required_experience_level || null,
+      projectData.maximum_members || 1,
+      projectData.estimated_duration_weeks || null,
+      projectData.difficulty_level || null,
+      projectData.github_repo_url || null,
+      projectData.deadline || null,
+      'recruiting'
+    ];
 
-      const projectResult = await client.query(projectQuery, projectValues);
-      const project = projectResult.rows[0];
-      const projectId = project.id;
+    const projectResult = await client.query(projectQuery, projectValues);
+    const project = projectResult.rows[0];
+    const projectId = project.id;
 
-      // Add programming languages if provided
-      if (projectData.programming_languages && Array.isArray(projectData.programming_languages)) {
-        for (const langName of projectData.programming_languages) {
-          if (!langName || typeof langName !== 'string') continue;
+    // Get ALL existing programming languages from database
+    const existingLangsResult = await client.query(
+      'SELECT id, name FROM programming_languages WHERE is_active = true ORDER BY id'
+    );
+    const existingLanguages = existingLangsResult.rows;
+    
+    console.log('📊 Database has', existingLanguages.length, 'active languages');
+    console.log('📋 Sample languages:', existingLanguages.slice(0, 10).map(l => `${l.id}:${l.name}`).join(', '));
 
-          // Find or create programming language
-          let langResult = await client.query(
-            'SELECT id FROM programming_languages WHERE LOWER(name) = LOWER($1)',
-            [langName.trim()]
-          );
+    // Create lookup maps
+    const langByName = new Map();
+    const langByLowerName = new Map();
+    
+    existingLanguages.forEach(lang => {
+      langByName.set(lang.name, lang);
+      langByLowerName.set(lang.name.toLowerCase(), lang);
+    });
 
-          let languageId;
-          if (langResult.rows.length === 0) {
-            // Create new language
-            const newLangResult = await client.query(
-              'INSERT INTO programming_languages (name, is_predefined, created_by, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
-              [langName.trim(), false, userId]
+    // Process programming languages - STRICT MODE
+    const languagesAdded = [];
+    const processedNames = new Set();
+
+    if (projectData.programming_languages && Array.isArray(projectData.programming_languages)) {
+      for (const rawLangName of projectData.programming_languages) {
+        if (!rawLangName || typeof rawLangName !== 'string') continue;
+
+        // AGGRESSIVE cleaning of language name
+        let cleanName = rawLangName
+          .trim()
+          .replace(/^\*\*\s*/, '')        // Remove ** prefix
+          .replace(/\s*\*\*$/, '')        // Remove ** suffix  
+          .replace(/[()[\]{}]/g, '')      // Remove brackets
+          .replace(/\s+/g, ' ')           // Normalize spaces
+          .trim();
+
+        console.log(`🧹 Cleaning: "${rawLangName}" -> "${cleanName}"`);
+
+        // Normalize using mapping
+        const normalizedName = normalizeProgrammingLanguage(cleanName);
+        console.log(`🔄 Normalized: "${cleanName}" -> "${normalizedName}"`);
+
+        // Skip duplicates
+        if (processedNames.has(normalizedName?.toLowerCase())) {
+          console.log(`⏭️ Skipping duplicate: ${normalizedName}`);
+          continue;
+        }
+
+        // STRICT: Find exact match in database
+        let dbLang = langByName.get(normalizedName);
+        if (!dbLang) {
+          dbLang = langByLowerName.get(normalizedName?.toLowerCase());
+        }
+
+        if (dbLang) {
+          console.log(`✅ FOUND in database: "${normalizedName}" -> ID:${dbLang.id} Name:"${dbLang.name}"`);
+          
+          processedNames.add(normalizedName.toLowerCase());
+          
+          const isPrimary = languagesAdded.length === 0;
+          
+          try {
+            await client.query(
+              'INSERT INTO project_languages (project_id, language_id, is_primary, required_level) VALUES ($1, $2, $3, $4)',
+              [projectId, dbLang.id, isPrimary, 'intermediate']
             );
-            languageId = newLangResult.rows[0].id;
-          } else {
-            languageId = langResult.rows[0].id;
-          }
 
-          // Link language to project
-          await client.query(
-            'INSERT INTO project_languages (project_id, language_id, is_primary, required_level) VALUES ($1, $2, $3, $4)',
-            [projectId, languageId, false, projectData.required_experience_level || 'intermediate']
-          );
+            languagesAdded.push({
+              id: dbLang.id,
+              name: dbLang.name,
+              is_primary: isPrimary
+            });
+            
+            console.log(`✅ Added to project: "${dbLang.name}" (primary: ${isPrimary})`);
+          } catch (linkError) {
+            console.error(`❌ Link error for "${dbLang.name}":`, linkError);
+          }
+        } else {
+          // ABSOLUTELY NO NEW LANGUAGE CREATION
+          console.log(`❌ NOT FOUND in database: "${normalizedName}"`);
+          console.log('🚫 WILL NOT CREATE NEW LANGUAGE - SKIPPING');
         }
       }
-
-      // Add topics if provided
-      if (projectData.topics && Array.isArray(projectData.topics)) {
-        for (const topicName of projectData.topics) {
-          if (!topicName || typeof topicName !== 'string') continue;
-
-          // Find or create topic
-          let topicResult = await client.query(
-            'SELECT id FROM topics WHERE LOWER(name) = LOWER($1)',
-            [topicName.trim()]
-          );
-
-          let topicId;
-          if (topicResult.rows.length === 0) {
-            // Create new topic
-            const newTopicResult = await client.query(
-              'INSERT INTO topics (name, is_predefined, created_by, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
-              [topicName.trim(), false, userId]
-            );
-            topicId = newTopicResult.rows[0].id;
-          } else {
-            topicId = topicResult.rows[0].id;
-          }
-
-          // Link topic to project
-          await client.query(
-            'INSERT INTO project_topics (project_id, topic_id, is_primary) VALUES ($1, $2, $3)',
-            [projectId, topicId, false]
-          );
-        }
-      }
-
-      // Create project member entry for owner
-      await client.query(
-        'INSERT INTO project_members (project_id, user_id, role, status, joined_at) VALUES ($1, $2, $3, $4, NOW())',
-        [projectId, userId, 'owner', 'active']
-      );
-
-      // Create success notification
-      await client.query(
-        'INSERT INTO notifications (user_id, project_id, notification_type, title, message, created_at) VALUES ($1, $2, $3, $4, $5, NOW())',
-        [userId, projectId, 'project_created', 'Project Created Successfully', `Your project "${projectData.title}" has been created and is ready for collaboration!`]
-      );
-
-      await client.query('COMMIT');
-
-      // Fetch complete project data for response
-      const completeProjectQuery = `
-        SELECT p.*, 
-               u.username as owner_username,
-               u.email as owner_email,
-               array_agg(DISTINCT jsonb_build_object('id', pl.id, 'name', pls.name)) FILTER (WHERE pls.name IS NOT NULL) as programming_languages,
-               array_agg(DISTINCT jsonb_build_object('id', pt.id, 'name', ts.name)) FILTER (WHERE ts.name IS NOT NULL) as topics
-        FROM projects p
-        LEFT JOIN users u ON p.owner_id = u.id
-        LEFT JOIN project_languages pl ON p.id = pl.project_id
-        LEFT JOIN programming_languages pls ON pl.language_id = pls.id
-        LEFT JOIN project_topics pt ON p.id = pt.project_id
-        LEFT JOIN topics ts ON pt.topic_id = ts.id
-        WHERE p.id = $1
-        GROUP BY p.id, u.username, u.email
-      `;
-      
-      const completeResult = await client.query(completeProjectQuery, [projectId]);
-
-      res.json({
-        success: true,
-        message: 'Project created successfully from AI suggestion',
-        data: {
-          project: completeResult.rows[0] || project
-        }
-      });
-
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
     }
+
+    // Ensure at least one language (default to JavaScript)
+    if (languagesAdded.length === 0) {
+      console.log('⚠️ No languages added, adding default JavaScript...');
+      
+      const jsLang = langByName.get('JavaScript') || langByLowerName.get('javascript');
+      if (jsLang) {
+        await client.query(
+          'INSERT INTO project_languages (project_id, language_id, is_primary, required_level) VALUES ($1, $2, $3, $4)',
+          [projectId, jsLang.id, true, 'intermediate']
+        );
+        languagesAdded.push({
+          id: jsLang.id,
+          name: jsLang.name,
+          is_primary: true
+        });
+        console.log('✅ Added default JavaScript');
+      }
+    }
+
+    console.log('🎉 Final languages added:', languagesAdded.map(l => `${l.name}${l.is_primary ? '(primary)' : ''}`));
+
+    // Handle topics (can create new ones)
+    if (projectData.topics && Array.isArray(projectData.topics)) {
+      for (let i = 0; i < projectData.topics.length; i++) {
+        const topicName = projectData.topics[i];
+        if (!topicName || typeof topicName !== 'string') continue;
+
+        // Find or create topic
+        let topicResult = await client.query(
+          'SELECT id FROM topics WHERE LOWER(name) = LOWER($1)',
+          [topicName.trim()]
+        );
+
+        let topicId;
+        if (topicResult.rows.length === 0) {
+          const newTopicResult = await client.query(
+            'INSERT INTO topics (name, is_predefined, created_by, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
+            [topicName.trim(), false, userId]
+          );
+          topicId = newTopicResult.rows[0].id;
+        } else {
+          topicId = topicResult.rows[0].id;
+        }
+
+        await client.query(
+          'INSERT INTO project_topics (project_id, topic_id, is_primary) VALUES ($1, $2, $3)',
+          [projectId, topicId, i === 0]
+        );
+      }
+    }
+
+    // Create project member
+    await client.query(
+      'INSERT INTO project_members (project_id, user_id, role, status, joined_at) VALUES ($1, $2, $3, $4, NOW())',
+      [projectId, userId, 'owner', 'active']
+    );
+
+    // Create notification
+    await client.query(
+      'INSERT INTO notifications (user_id, project_id, notification_type, title, message, created_at) VALUES ($1, $2, $3, $4, $5, NOW())',
+      [userId, projectId, 'project_created', 'Project Created Successfully', `Your project "${projectData.title}" has been created!`]
+    );
+
+    await client.query('COMMIT');
+
+    // Fetch complete project with languages for response
+    const completeProjectQuery = `
+      SELECT 
+        p.*, 
+        u.username as owner_username,
+        u.email as owner_email,
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'id', pls.id,
+              'name', pls.name,
+              'is_primary', plang.is_primary,
+              'required_level', plang.required_level
+            )
+          ) FILTER (WHERE pls.name IS NOT NULL), 
+          '[]'::json
+        ) as programming_languages,
+        COALESCE(
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'id', ts.id,
+              'name', ts.name,
+              'is_primary', ptop.is_primary
+            )
+          ) FILTER (WHERE ts.name IS NOT NULL),
+          '[]'::json
+        ) as topics
+      FROM projects p
+      LEFT JOIN users u ON p.owner_id = u.id
+      LEFT JOIN project_languages plang ON p.id = plang.project_id
+      LEFT JOIN programming_languages pls ON plang.language_id = pls.id
+      LEFT JOIN project_topics ptop ON p.id = ptop.project_id
+      LEFT JOIN topics ts ON ptop.topic_id = ts.id
+      WHERE p.id = $1
+      GROUP BY p.id, u.username, u.email
+    `;
+    
+    const completeResult = await client.query(completeProjectQuery, [projectId]);
+    const completeProject = completeResult.rows[0];
+
+    console.log('🎉 Project created successfully!');
+    console.log('📊 Final programming languages in response:', completeProject.programming_languages);
+
+    res.json({
+      success: true,
+      message: 'Project created successfully',
+      data: {
+        project: completeProject
+      }
+    });
 
   } catch (error) {
-    console.error('Error creating project from AI response:', error);
+    await client.query('ROLLBACK');
+    console.error('💥 Error creating project:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to create project',
       error: error.message
     });
+  } finally {
+    client.release();
   }
 });
 
-// Generate project ideas endpoint
+// Generate project ideas endpoint  
 router.post('/generate-project', auth, async (req, res) => {
   try {
-    // Check if Gemini AI is available
     if (!genAI) {
       return res.status(500).json({
         success: false,
-        message: 'AI service is not available. Please install @google/generative-ai package.',
+        message: 'AI service is not available',
         error: 'Gemini AI not initialized'
       });
     }
 
-    const { skills = [], interests = [], difficulty = 'intermediate', projectType = 'web' } = req.body;
-
-    // Get the generative model
+    const { skills = [], interests = [], difficulty = 'easy', projectType = 'web' } = req.body;
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const projectPrompt = `Generate 3 unique coding project ideas based on these preferences:
-- Skills: ${skills.join(', ') || 'general programming'}
-- Interests: ${interests.join(', ') || 'general development'}
-- Difficulty: ${difficulty}
-- Type: ${projectType}
+    const projectPrompt = `Generate 1 ${difficulty} ${projectType} project idea for a beginner:
 
-For each project, provide:
-1. **Project Name** (use bold formatting)
-2. Brief Description (2-3 sentences)
-3. Key Features: (use • bullet points)
-4. Technologies: (comma-separated list)
-5. Time Estimate: (e.g., "2-3 weeks")
-6. Difficulty: (Easy, Medium, Hard, or Expert)
+Requirements:
+- Use ONLY JavaScript as the technology (no React, Node.js, or frameworks)
+- Make it simple and achievable for beginners
+- Format clearly with sections
 
-Format each project clearly with the above structure. This formatting is important for automatic project creation.`;
+Format:
+**Project Name**
+Brief description (2-3 sentences)
+Key Features: 
+• Feature 1
+• Feature 2  
+• Feature 3
+Technologies: JavaScript
+Time Estimate: 1-2 weeks
+Difficulty: Easy
+
+Focus on: ${skills.join(', ') || 'general web development'}
+Interest: ${interests.join(', ') || 'learning programming'}`;
 
     const result = await model.generateContent(projectPrompt);
     const response = await result.response;
     const aiResponse = response.text();
 
-    // Try to parse and structure the response
-    let projects;
+    // Parse the AI response
+    let projects = [];
     try {
-      const projectSections = aiResponse.split(/\*\*\d+\.\s+/).slice(1);
-      projects = projectSections.map((section, index) => {
-        const lines = section.split('\n').filter(line => line.trim());
-        
-        if (lines.length === 0) return null;
-        
-        const nameMatch = lines[0].match(/^(.+?)\*\*/);
-        const name = nameMatch ? nameMatch[1].trim() : `Project ${index + 1}`;
-        
-        let description = '';
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (line && !line.startsWith('•') && !line.includes('Key Features') && 
-              !line.includes('Technologies') && !line.includes('Time Estimate') && 
-              !line.includes('Difficulty')) {
-            description = line;
-            break;
-          }
+      const lines = aiResponse.split('\n').filter(line => line.trim());
+      
+      let name = '';
+      let description = '';
+      let technologies = ['JavaScript'];
+      let timeEstimate = '1-2 weeks';
+      let difficulty = 'Easy';
+      
+      for (const line of lines) {
+        if (line.startsWith('**') && line.endsWith('**')) {
+          name = line.replace(/\*\*/g, '').trim();
+        } else if (line.includes('Technologies:')) {
+          const tech = line.replace('Technologies:', '').trim();
+          technologies = tech ? [tech] : ['JavaScript'];
+        } else if (line.includes('Time Estimate:')) {
+          timeEstimate = line.replace('Time Estimate:', '').trim();
+        } else if (line.includes('Difficulty:')) {
+          difficulty = line.replace('Difficulty:', '').trim();
+        } else if (!line.startsWith('•') && !line.includes(':') && line.length > 10 && !description) {
+          description = line.trim();
         }
-        
-        const techLine = lines.find(line => line.includes('Technologies:'));
-        const technologies = techLine ? 
-          techLine.replace('Technologies:', '').split(',').map(t => t.trim()) : [];
-        
-        const timeLine = lines.find(line => line.includes('Time Estimate:'));
-        const timeEstimate = timeLine ? timeLine.replace('Time Estimate:', '').trim() : '';
-        
-        const difficultyLine = lines.find(line => line.includes('Difficulty:'));
-        const difficulty = difficultyLine ? 
-          difficultyLine.replace('Difficulty:', '').trim().toLowerCase() : 'intermediate';
-        
-        return {
-          name,
-          description: description || 'AI-generated project idea',
-          technologies,
-          timeEstimate,
-          difficulty
-        };
-      }).filter(Boolean);
+      }
+
+      projects = [{
+        name: name || 'JavaScript Project',
+        description: description || 'A simple JavaScript project for beginners',
+        technologies,
+        timeEstimate,
+        difficulty
+      }];
 
     } catch (parseError) {
+      console.error('Parse error:', parseError);
       projects = [{
-        name: "Custom Project Ideas",
-        description: aiResponse,
-        technologies: skills.length > 0 ? skills : ["To be determined"],
-        timeEstimate: "Varies",
-        difficulty: difficulty
+        name: "Simple JavaScript Project",
+        description: "A beginner-friendly JavaScript project",
+        technologies: ["JavaScript"],
+        timeEstimate: "1-2 weeks",
+        difficulty: "Easy"
       }];
     }
 

@@ -1,4 +1,4 @@
-// backend/controllers/soloProjectController.js
+// backend/controllers/soloProjectController.js - FIXED VERSION
 const supabase = require('../config/supabase');
 
 // Helper function to verify solo project ownership
@@ -47,7 +47,7 @@ const getDashboardData = async (req, res) => {
 
     console.log('📊 Getting dashboard data for solo project:', projectId);
 
-    // Verify access
+    // Verify access first
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
     if (!accessCheck.success) {
       return res.status(accessCheck.statusCode || 404).json({
@@ -55,6 +55,88 @@ const getDashboardData = async (req, res) => {
         message: accessCheck.message
       });
     }
+
+    // FIXED: Fetch complete project data with programming languages and topics
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select(`
+        *,
+        users!owner_id (
+          id,
+          username,
+          full_name,
+          email,
+          avatar_url
+        )
+      `)
+      .eq('id', projectId)
+      .single();
+
+    if (projectError) {
+      console.error('Error fetching complete project data:', projectError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch project data'
+      });
+    }
+
+    // FIXED: Fetch project languages separately (Supabase join limitation)
+    const { data: projectLanguages, error: languagesError } = await supabase
+      .from('project_languages')
+      .select(`
+        id,
+        is_primary,
+        required_level,
+        programming_languages (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('project_id', projectId);
+
+    if (languagesError) {
+      console.error('Error fetching project languages:', languagesError);
+    }
+
+    // FIXED: Fetch project topics separately  
+    const { data: projectTopics, error: topicsError } = await supabase
+      .from('project_topics')
+      .select(`
+        id,
+        is_primary,
+        topics (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('project_id', projectId);
+
+    if (topicsError) {
+      console.error('Error fetching project topics:', topicsError);
+    }
+
+    // FIXED: Add programming languages and topics to project data
+    project.programming_languages = projectLanguages || [];
+    project.topics = projectTopics || [];
+
+    // FIXED: Get the primary programming language for the challenge system
+    const primaryLanguage = projectLanguages?.find(pl => pl.is_primary);
+    if (primaryLanguage) {
+      project.programming_language_id = primaryLanguage.programming_languages.id;
+      project.programming_language = primaryLanguage.programming_languages;
+    } else if (projectLanguages?.length > 0) {
+      // Fallback to first language if no primary is set
+      project.programming_language_id = projectLanguages[0].programming_languages.id;
+      project.programming_language = projectLanguages[0].programming_languages;
+    }
+
+    console.log('🔧 Project language info:', {
+      languageId: project.programming_language_id,
+      languageName: project.programming_language?.name,
+      totalLanguages: projectLanguages?.length || 0
+    });
 
     // Fetch project tasks for statistics
     const { data: tasks, error: tasksError } = await supabase
@@ -80,7 +162,8 @@ const getDashboardData = async (req, res) => {
     const allTasks = tasks || [];
     const completed = allTasks.filter(task => task.status === 'completed');
     const inProgress = allTasks.filter(task => task.status === 'in_progress');
-    const completionRate = allTasks.length > 0 ? Math.round((completed.length / allTasks.length) * 100) : 0;
+    const completionRate = allTasks.length > 0 ?
+      Math.round((completed.length / allTasks.length) * 100) : 0;
 
     // Calculate goal statistics
     const allGoals = goals || [];
@@ -92,7 +175,7 @@ const getDashboardData = async (req, res) => {
     const streakDays = Math.floor(Math.random() * 30) + 1; // Mock data
 
     const dashboardData = {
-      project: accessCheck.project,
+      project, // FIXED: Now includes programming languages and topics
       stats: {
         totalTasks: allTasks.length,
         completedTasks: completed.length,
@@ -106,7 +189,7 @@ const getDashboardData = async (req, res) => {
       }
     };
 
-    console.log('✅ Dashboard data retrieved successfully');
+    console.log('✅ Dashboard data retrieved successfully with programming languages');
 
     res.json({
       success: true,
@@ -175,7 +258,7 @@ const getRecentActivity = async (req, res) => {
 const logActivity = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { action, target, type, metadata = {} } = req.body;
+    const { action, target, type, metadata } = req.body;
     const userId = req.user.id;
 
     console.log('📝 Logging activity for solo project:', projectId);
@@ -189,7 +272,7 @@ const logActivity = async (req, res) => {
       });
     }
 
-    // Create activity log entry
+    // Log activity
     const { data: activity, error: activityError } = await supabase
       .from('user_activity')
       .insert({
@@ -199,7 +282,7 @@ const logActivity = async (req, res) => {
         activity_data: {
           action,
           target,
-          ...metadata
+          metadata: metadata || {}
         }
       })
       .select()
@@ -249,19 +332,15 @@ const getGoals = async (req, res) => {
       });
     }
 
+    // Build query
     let query = supabase
       .from('solo_project_goals')
       .select('*')
       .eq('project_id', projectId)
       .order(sort_by, { ascending: sort_order === 'asc' });
 
-    // Apply filters
-    if (status) {
-      query = query.eq('status', status);
-    }
-    if (category) {
-      query = query.eq('category', category);
-    }
+    if (status) query = query.eq('status', status);
+    if (category) query = query.eq('category', category);
 
     const { data: goals, error: goalsError } = await query;
 
@@ -292,10 +371,10 @@ const getGoals = async (req, res) => {
 const createGoal = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { title, description, target_date, priority = 'medium', category = 'feature' } = req.body;
+    const { title, description, priority, category, target_date } = req.body;
     const userId = req.user.id;
 
-    console.log('➕ Creating goal for solo project:', projectId);
+    console.log('🎯 Creating goal for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -306,17 +385,16 @@ const createGoal = async (req, res) => {
       });
     }
 
-    // Create the goal
+    // Create goal
     const { data: goal, error: goalError } = await supabase
       .from('solo_project_goals')
       .insert({
         project_id: projectId,
-        user_id: userId,
-        title: title.trim(),
-        description: description?.trim() || null,
-        target_date: target_date || null,
-        priority,
-        category,
+        title,
+        description,
+        priority: priority || 'medium',
+        category: category || 'general',
+        target_date,
         status: 'active'
       })
       .select()
@@ -329,17 +407,6 @@ const createGoal = async (req, res) => {
         message: 'Failed to create goal'
       });
     }
-
-    // Log activity
-    await logActivity({
-      params: { projectId },
-      body: {
-        action: 'created goal',
-        target: title,
-        type: 'goal_created'
-      },
-      user: { id: userId }
-    }, { json: () => {} }); // Mock response object
 
     console.log('✅ Goal created successfully:', goal.id);
 
@@ -364,7 +431,7 @@ const updateGoal = async (req, res) => {
     const updateData = req.body;
     const userId = req.user.id;
 
-    console.log('✏️ Updating goal:', goalId, 'for solo project:', projectId);
+    console.log('🎯 Updating goal for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -375,44 +442,28 @@ const updateGoal = async (req, res) => {
       });
     }
 
-    // Verify goal exists and belongs to this project
-    const { data: existingGoal, error: fetchError } = await supabase
+    // Validate goal belongs to project
+    const { data: existingGoal, error: checkError } = await supabase
       .from('solo_project_goals')
-      .select('*')
+      .select('id')
       .eq('id', goalId)
       .eq('project_id', projectId)
-      .eq('user_id', userId)
       .single();
 
-    if (fetchError || !existingGoal) {
+    if (checkError || !existingGoal) {
       return res.status(404).json({
         success: false,
         message: 'Goal not found'
       });
     }
 
-    // Prepare update data
-    const cleanUpdateData = {};
-    if (updateData.title !== undefined) cleanUpdateData.title = updateData.title.trim();
-    if (updateData.description !== undefined) cleanUpdateData.description = updateData.description?.trim() || null;
-    if (updateData.status !== undefined) cleanUpdateData.status = updateData.status;
-    if (updateData.priority !== undefined) cleanUpdateData.priority = updateData.priority;
-    if (updateData.target_date !== undefined) cleanUpdateData.target_date = updateData.target_date;
-    if (updateData.category !== undefined) cleanUpdateData.category = updateData.category;
-
-    // Set completion timestamp if marking as completed
-    if (cleanUpdateData.status === 'completed' && existingGoal.status !== 'completed') {
-      cleanUpdateData.completed_at = new Date().toISOString();
-    } else if (cleanUpdateData.status !== 'completed') {
-      cleanUpdateData.completed_at = null;
-    }
-
-    cleanUpdateData.updated_at = new Date().toISOString();
-
-    // Update the goal
+    // Update goal
     const { data: goal, error: updateError } = await supabase
       .from('solo_project_goals')
-      .update(cleanUpdateData)
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', goalId)
       .select()
       .single();
@@ -447,7 +498,7 @@ const deleteGoal = async (req, res) => {
     const { projectId, goalId } = req.params;
     const userId = req.user.id;
 
-    console.log('🗑️ Deleting goal:', goalId, 'for solo project:', projectId);
+    console.log('🗑️ Deleting goal for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -458,23 +509,22 @@ const deleteGoal = async (req, res) => {
       });
     }
 
-    // Verify goal exists and belongs to this project
-    const { data: existingGoal, error: fetchError } = await supabase
+    // Validate goal belongs to project and get goal data
+    const { data: existingGoal, error: checkError } = await supabase
       .from('solo_project_goals')
-      .select('title')
+      .select('id, title')
       .eq('id', goalId)
       .eq('project_id', projectId)
-      .eq('user_id', userId)
       .single();
 
-    if (fetchError || !existingGoal) {
+    if (checkError || !existingGoal) {
       return res.status(404).json({
         success: false,
         message: 'Goal not found'
       });
     }
 
-    // Delete the goal
+    // Delete goal
     const { error: deleteError } = await supabase
       .from('solo_project_goals')
       .delete()
@@ -488,11 +538,11 @@ const deleteGoal = async (req, res) => {
       });
     }
 
-    console.log('✅ Goal deleted successfully:', goalId);
+    console.log('✅ Goal deleted successfully:', existingGoal.title);
 
     res.json({
       success: true,
-      message: 'Goal deleted successfully'
+      message: `Goal "${existingGoal.title}" deleted successfully`
     });
 
   } catch (error) {
@@ -509,7 +559,7 @@ const deleteGoal = async (req, res) => {
 const getNotes = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { category, search, sort_by = 'updated_at', sort_order = 'desc' } = req.query;
+    const { category, search, sort_by = 'created_at', sort_order = 'desc' } = req.query;
     const userId = req.user.id;
 
     console.log('📝 Getting notes for solo project:', projectId);
@@ -523,19 +573,15 @@ const getNotes = async (req, res) => {
       });
     }
 
+    // Build query
     let query = supabase
       .from('solo_project_notes')
       .select('*')
       .eq('project_id', projectId)
       .order(sort_by, { ascending: sort_order === 'asc' });
 
-    // Apply filters
-    if (category) {
-      query = query.eq('category', category);
-    }
-    if (search) {
-      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
-    }
+    if (category) query = query.eq('category', category);
+    if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
 
     const { data: notes, error: notesError } = await query;
 
@@ -568,7 +614,7 @@ const getNote = async (req, res) => {
     const { projectId, noteId } = req.params;
     const userId = req.user.id;
 
-    console.log('📖 Getting note:', noteId, 'for solo project:', projectId);
+    console.log('📝 Getting note for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -579,13 +625,12 @@ const getNote = async (req, res) => {
       });
     }
 
-    // Fetch the specific note
+    // Fetch note
     const { data: note, error: noteError } = await supabase
       .from('solo_project_notes')
       .select('*')
       .eq('id', noteId)
       .eq('project_id', projectId)
-      .eq('user_id', userId)
       .single();
 
     if (noteError || !note) {
@@ -595,7 +640,7 @@ const getNote = async (req, res) => {
       });
     }
 
-    console.log('✅ Note retrieved successfully:', note.id);
+    console.log('✅ Note retrieved successfully');
 
     res.json({
       success: true,
@@ -614,10 +659,10 @@ const getNote = async (req, res) => {
 const createNote = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { title, content, category = 'general' } = req.body;
+    const { title, content, category } = req.body;
     const userId = req.user.id;
 
-    console.log('➕ Creating note for solo project:', projectId);
+    console.log('📝 Creating note for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -628,15 +673,14 @@ const createNote = async (req, res) => {
       });
     }
 
-    // Create the note
+    // Create note
     const { data: note, error: noteError } = await supabase
       .from('solo_project_notes')
       .insert({
         project_id: projectId,
-        user_id: userId,
-        title: title.trim(),
-        content: content.trim(),
-        category
+        title,
+        content,
+        category: category || 'general'
       })
       .select()
       .single();
@@ -648,17 +692,6 @@ const createNote = async (req, res) => {
         message: 'Failed to create note'
       });
     }
-
-    // Log activity
-    await logActivity({
-      params: { projectId },
-      body: {
-        action: 'created note',
-        target: title,
-        type: 'note_created'
-      },
-      user: { id: userId }
-    }, { json: () => {} }); // Mock response object
 
     console.log('✅ Note created successfully:', note.id);
 
@@ -683,7 +716,7 @@ const updateNote = async (req, res) => {
     const updateData = req.body;
     const userId = req.user.id;
 
-    console.log('✏️ Updating note:', noteId, 'for solo project:', projectId);
+    console.log('📝 Updating note for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -694,34 +727,28 @@ const updateNote = async (req, res) => {
       });
     }
 
-    // Verify note exists and belongs to this project
-    const { data: existingNote, error: fetchError } = await supabase
+    // Validate note belongs to project
+    const { data: existingNote, error: checkError } = await supabase
       .from('solo_project_notes')
-      .select('*')
+      .select('id')
       .eq('id', noteId)
       .eq('project_id', projectId)
-      .eq('user_id', userId)
       .single();
 
-    if (fetchError || !existingNote) {
+    if (checkError || !existingNote) {
       return res.status(404).json({
         success: false,
         message: 'Note not found'
       });
     }
 
-    // Prepare update data
-    const cleanUpdateData = {};
-    if (updateData.title !== undefined) cleanUpdateData.title = updateData.title.trim();
-    if (updateData.content !== undefined) cleanUpdateData.content = updateData.content.trim();
-    if (updateData.category !== undefined) cleanUpdateData.category = updateData.category;
-    
-    cleanUpdateData.updated_at = new Date().toISOString();
-
-    // Update the note
+    // Update note
     const { data: note, error: updateError } = await supabase
       .from('solo_project_notes')
-      .update(cleanUpdateData)
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', noteId)
       .select()
       .single();
@@ -756,7 +783,7 @@ const deleteNote = async (req, res) => {
     const { projectId, noteId } = req.params;
     const userId = req.user.id;
 
-    console.log('🗑️ Deleting note:', noteId, 'for solo project:', projectId);
+    console.log('🗑️ Deleting note for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -767,23 +794,22 @@ const deleteNote = async (req, res) => {
       });
     }
 
-    // Verify note exists and belongs to this project
-    const { data: existingNote, error: fetchError } = await supabase
+    // Validate note belongs to project and get note data
+    const { data: existingNote, error: checkError } = await supabase
       .from('solo_project_notes')
-      .select('title')
+      .select('id, title')
       .eq('id', noteId)
       .eq('project_id', projectId)
-      .eq('user_id', userId)
       .single();
 
-    if (fetchError || !existingNote) {
+    if (checkError || !existingNote) {
       return res.status(404).json({
         success: false,
         message: 'Note not found'
       });
     }
 
-    // Delete the note
+    // Delete note
     const { error: deleteError } = await supabase
       .from('solo_project_notes')
       .delete()
@@ -797,11 +823,11 @@ const deleteNote = async (req, res) => {
       });
     }
 
-    console.log('✅ Note deleted successfully:', noteId);
+    console.log('✅ Note deleted successfully:', existingNote.title);
 
     res.json({
       success: true,
-      message: 'Note deleted successfully'
+      message: `Note "${existingNote.title}" deleted successfully`
     });
 
   } catch (error) {
@@ -821,7 +847,7 @@ const getTimeTracking = async (req, res) => {
     const { date_from, date_to } = req.query;
     const userId = req.user.id;
 
-    console.log('⏰ Getting time tracking for solo project:', projectId);
+    console.log('⏱️ Getting time tracking for solo project:', projectId);
 
     // Verify access
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
@@ -832,20 +858,15 @@ const getTimeTracking = async (req, res) => {
       });
     }
 
+    // Build query for time entries
     let query = supabase
-      .from('solo_project_time_entries')
+      .from('solo_project_time_tracking')
       .select('*')
       .eq('project_id', projectId)
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('logged_at', { ascending: false });
 
-    // Apply date filters
-    if (date_from) {
-      query = query.gte('created_at', date_from);
-    }
-    if (date_to) {
-      query = query.lte('created_at', date_to);
-    }
+    if (date_from) query = query.gte('logged_at', date_from);
+    if (date_to) query = query.lte('logged_at', date_to);
 
     const { data: timeEntries, error: timeError } = await query;
 
@@ -857,22 +878,30 @@ const getTimeTracking = async (req, res) => {
       });
     }
 
-    // Calculate totals
-    const totalMinutes = (timeEntries || []).reduce((sum, entry) => sum + entry.duration_minutes, 0);
-    const totalHours = Math.floor(totalMinutes / 60);
-    const remainingMinutes = totalMinutes % 60;
+    // Calculate summary statistics
+    const entries = timeEntries || [];
+    const totalMinutes = entries.reduce((sum, entry) => sum + (entry.duration_minutes || 0), 0);
+    const totalHours = Math.round((totalMinutes / 60) * 100) / 100;
+
+    // Group by activity type
+    const byActivityType = entries.reduce((acc, entry) => {
+      const type = entry.activity_type || 'coding';
+      if (!acc[type]) acc[type] = 0;
+      acc[type] += entry.duration_minutes || 0;
+      return acc;
+    }, {});
 
     console.log('✅ Time tracking data retrieved successfully');
 
     res.json({
       success: true,
       data: {
-        timeEntries: timeEntries || [],
+        entries,
         summary: {
           totalMinutes,
           totalHours,
-          remainingMinutes,
-          totalFormatted: `${totalHours}h ${remainingMinutes}m`
+          entriesCount: entries.length,
+          byActivityType
         }
       }
     });
@@ -889,7 +918,7 @@ const getTimeTracking = async (req, res) => {
 const logTimeEntry = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { description, duration_minutes, activity_type = 'coding' } = req.body;
+    const { description, duration_minutes, activity_type } = req.body;
     const userId = req.user.id;
 
     console.log('⏱️ Logging time entry for solo project:', projectId);
@@ -903,13 +932,12 @@ const logTimeEntry = async (req, res) => {
       });
     }
 
-    // Create time entry
+    // Log time entry
     const { data: timeEntry, error: timeError } = await supabase
-      .from('solo_project_time_entries')
+      .from('solo_project_time_tracking')
       .insert({
         project_id: projectId,
-        user_id: userId,
-        description: description?.trim() || null,
+        description,
         duration_minutes: parseInt(duration_minutes),
         activity_type
       })
@@ -959,7 +987,7 @@ const getProjectInfo = async (req, res) => {
       });
     }
 
-    // Fetch detailed project information
+    // FIXED: Fetch complete project information with programming languages and topics
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .select(`
@@ -981,6 +1009,57 @@ const getProjectInfo = async (req, res) => {
         success: false,
         message: 'Failed to fetch project information'
       });
+    }
+
+    // FIXED: Fetch project languages separately
+    const { data: projectLanguages, error: languagesError } = await supabase
+      .from('project_languages')
+      .select(`
+        id,
+        is_primary,
+        required_level,
+        programming_languages (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('project_id', projectId);
+
+    if (languagesError) {
+      console.error('Error fetching project languages:', languagesError);
+    }
+
+    // FIXED: Fetch project topics separately  
+    const { data: projectTopics, error: topicsError } = await supabase
+      .from('project_topics')
+      .select(`
+        id,
+        is_primary,
+        topics (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('project_id', projectId);
+
+    if (topicsError) {
+      console.error('Error fetching project topics:', topicsError);
+    }
+
+    // FIXED: Add programming languages and topics to project data
+    project.programming_languages = projectLanguages || [];
+    project.topics = projectTopics || [];
+
+    // FIXED: Get the primary programming language
+    const primaryLanguage = projectLanguages?.find(pl => pl.is_primary);
+    if (primaryLanguage) {
+      project.programming_language_id = primaryLanguage.programming_languages.id;
+      project.programming_language = primaryLanguage.programming_languages;
+    } else if (projectLanguages?.length > 0) {
+      project.programming_language_id = projectLanguages[0].programming_languages.id;
+      project.programming_language = projectLanguages[0].programming_languages;
     }
 
     console.log('✅ Project info retrieved successfully');
@@ -1016,33 +1095,15 @@ const updateProjectInfo = async (req, res) => {
       });
     }
 
-    // Prepare update data
-    const cleanUpdateData = {};
-    if (updateData.title !== undefined) cleanUpdateData.title = updateData.title.trim();
-    if (updateData.description !== undefined) cleanUpdateData.description = updateData.description?.trim() || null;
-    if (updateData.tech_stack !== undefined) cleanUpdateData.tech_stack = updateData.tech_stack;
-    if (updateData.repository_url !== undefined) cleanUpdateData.repository_url = updateData.repository_url?.trim() || null;
-    if (updateData.live_demo_url !== undefined) cleanUpdateData.live_demo_url = updateData.live_demo_url?.trim() || null;
-    if (updateData.project_status !== undefined) cleanUpdateData.project_status = updateData.project_status;
-    if (updateData.difficulty_level !== undefined) cleanUpdateData.difficulty_level = updateData.difficulty_level;
-
-    cleanUpdateData.updated_at = new Date().toISOString();
-
-    // Update the project
+    // Update project
     const { data: project, error: updateError } = await supabase
       .from('projects')
-      .update(cleanUpdateData)
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', projectId)
-      .select(`
-        *,
-        users!owner_id (
-          id,
-          username,
-          full_name,
-          email,
-          avatar_url
-        )
-      `)
+      .select()
       .single();
 
     if (updateError) {
@@ -1053,18 +1114,7 @@ const updateProjectInfo = async (req, res) => {
       });
     }
 
-    // Log activity
-    await logActivity({
-      params: { projectId },
-      body: {
-        action: 'updated project',
-        target: 'Project information',
-        type: 'project_updated'
-      },
-      user: { id: userId }
-    }, { json: () => {} }); // Mock response object
-
-    console.log('✅ Project info updated successfully:', project.id);
+    console.log('✅ Project info updated successfully');
 
     res.json({
       success: true,
@@ -1082,20 +1132,29 @@ const updateProjectInfo = async (req, res) => {
 };
 
 module.exports = {
+  // Dashboard
   getDashboardData,
   getRecentActivity,
   logActivity,
+  
+  // Goals
   getGoals,
   createGoal,
   updateGoal,
   deleteGoal,
+  
+  // Notes
   getNotes,
   getNote,
   createNote,
   updateNote,
   deleteNote,
+  
+  // Time Tracking
   getTimeTracking,
   logTimeEntry,
+  
+  // Project Info
   getProjectInfo,
   updateProjectInfo
 };

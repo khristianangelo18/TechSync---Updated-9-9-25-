@@ -1,4 +1,4 @@
-// frontend/src/services/challengeAPI.js - FIXED
+// frontend/src/services/challengeAPI.js - FIXED ROUTES
 import api from './api';
 
 class ChallengeAPI {
@@ -151,6 +151,10 @@ class ChallengeAPI {
         cleanParams.difficulty_level = filters.difficulty_level;
       }
       
+      if (filters.project_id && filters.project_id !== '') {
+        cleanParams.project_id = filters.project_id;
+      }
+      
       if (filters.search && filters.search.trim() !== '') {
         cleanParams.search = filters.search.trim();
       }
@@ -166,7 +170,12 @@ class ChallengeAPI {
     }
   }
 
-   static async getNextChallenge(params = {}) {
+  /**
+   * Get next challenge for user
+   * @param {Object} params - Parameters (programming_language_id, project_id)
+   * @returns {Promise} - Next challenge
+   */
+  static async getNextChallenge(params = {}) {
     try {
       // params can include: programming_language_id, project_id
       const response = await api.get('/challenges/next', { params });
@@ -297,14 +306,17 @@ class ChallengeAPI {
     }
   }
 
+  // ===== PROJECT RECRUITMENT CHALLENGE ROUTES (FIXED) =====
+
   /**
-   * Get project challenge (for recruitment)
+   * Get project challenge (for recruitment) - FIXED ROUTE
    * @param {string} projectId - Project ID
    * @returns {Promise} - Project challenge details
    */
   static async getProjectChallenge(projectId) {
     try {
-      const response = await api.get(`/projects/${projectId}/challenge`);
+      // FIXED: Use correct backend route
+      const response = await api.get(`/challenges/project/${projectId}/challenge`);
       return response.data;
     } catch (error) {
       console.error('Error fetching project challenge:', error);
@@ -313,13 +325,14 @@ class ChallengeAPI {
   }
 
   /**
-   * Check if user can attempt challenge
+   * Check if user can attempt challenge - FIXED ROUTE
    * @param {string} projectId - Project ID
    * @returns {Promise} - Attempt eligibility
    */
   static async canAttemptChallenge(projectId) {
     try {
-      const response = await api.get(`/projects/${projectId}/can-attempt`);
+      // FIXED: Use correct backend route
+      const response = await api.get(`/challenges/project/${projectId}/can-attempt`);
       return response.data;
     } catch (error) {
       console.error('Error checking challenge attempt eligibility:', error);
@@ -328,17 +341,48 @@ class ChallengeAPI {
   }
 
   /**
-   * Submit challenge attempt
+   * Submit challenge attempt - FIXED ROUTE
    * @param {string} projectId - Project ID
    * @param {Object} attemptData - Attempt submission data
    * @returns {Promise} - Submission result
    */
   static async submitChallengeAttempt(projectId, attemptData) {
     try {
-      const response = await api.post(`/projects/${projectId}/attempt`, attemptData);
+      // FIXED: Use correct backend route
+      const response = await api.post(`/challenges/project/${projectId}/attempt`, attemptData);
       return response.data;
     } catch (error) {
       console.error('Error submitting challenge attempt:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get failed attempts count for project - NEW METHOD
+   * @param {string} projectId - Project ID
+   * @returns {Promise} - Failed attempts count and alert info
+   */
+  static async getFailedAttemptsCount(projectId) {
+    try {
+      const response = await api.get(`/challenges/project/${projectId}/failed-attempts-count`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching failed attempts count:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit a simple challenge attempt (for solo weekly challenges) - NEW METHOD
+   * @param {Object} attemptData - Attempt data (challenge_id, submitted_code, etc.)
+   * @returns {Promise} - Submission result
+   */
+  static async submitSimpleChallenge(attemptData) {
+    try {
+      const response = await api.post('/challenges/submit', attemptData);
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting simple challenge:', error);
       throw error;
     }
   }

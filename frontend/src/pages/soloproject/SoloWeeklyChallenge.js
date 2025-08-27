@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import ChallengeAPI from '../../services/challengeAPI';
+import SoloProjectService from '../../services/soloProjectService';
+import api from '../../services/api'; // Add this import for direct API calls
 
 function SoloWeeklyChallenge() {
   const { projectId } = useParams();
@@ -42,13 +44,8 @@ function SoloWeeklyChallenge() {
   };
 
   const formatChallengeForUI = (ch) => {
-    // ch is coding_challenges row with fields like:
-    // id, title, description, difficulty_level, time_limit_minutes, test_cases, expected_solution, programming_languages (id, name)
-    const now = new Date();
-    const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
     const examples = examplesFromTestCases(ch?.test_cases);
-    const category = 'algorithms'; // Optional: derive from topics if you have them
+    const category = 'algorithms';
 
     return {
       id: ch.id,
@@ -67,118 +64,130 @@ function SoloWeeklyChallenge() {
         ? examples
         : [
             {
-              input: 'N/A',
-              output: 'N/A',
-              explanation: 'No sample cases provided'
+              input: 'Input will be provided',
+              output: 'Expected output format',
+              explanation: 'Example will be provided when you start'
             }
           ],
-      hints: [
-        'Consider time and space complexity',
-        'Leverage built-in data structures where appropriate'
-      ],
-      startDate: now,
-      endDate: weekFromNow,
-      submitted: false,
-      userSubmission: null,
-      programming_languages: ch.programming_languages
+      startedAt: new Date(),
+      endsAt: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
     };
   };
 
-  // Fetch current challenge (filtered strictly by project’s challenge language)
   useEffect(() => {
     let isMounted = true;
 
     const load = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        // 1) Get project's "programming challenge" info to determine language
-        const pcRes = await ChallengeAPI.getProjectChallenge(projectId);
-        // Try multiple shapes to extract language id/name
-        const pcData =
-          pcRes?.data?.data?.challenge ||
-          pcRes?.data?.challenge ||
-          pcRes?.challenge ||
-          pcRes?.data ||
-          pcRes;
+        setLoading(true);
+        setError(null);
 
-        const langId =
-          pcData?.programming_language_id ||
-          pcData?.language_id ||
-          pcData?.programming_languages?.id ||
-          pcData?.language?.id ||
-          null;
+        console.log('🔄 Loading weekly challenge for project:', projectId);
 
-        const langName =
-          pcData?.programming_languages?.name ||
-          pcData?.language?.name ||
-          '';
+        // 1) Get project language information
+        const dashboardRes = await SoloProjectService.getDashboardData(projectId);
+        const dashboardData = dashboardRes?.data || {};
+        
+        const langId = dashboardData.project?.programming_language_id;
+        const langName = dashboardData.project?.programming_language?.name;
+
+        console.log('📊 Project language info:', { langId, langName });
 
         if (!langId) {
-          throw new Error('No programming language configured for this project’s challenge.');
+          if (isMounted) {
+            setError('Project programming language not found. Please set up your project language first.');
+            setLoading(false);
+          }
+          return;
         }
 
         if (!isMounted) return;
         setLanguageId(langId);
         setLanguageName(langName || '');
 
-        // 2) Fetch the next challenge for this language, tied to this project
-        const nextRes = await ChallengeAPI.getNextChallenge({
-          programming_language_id: langId,
-          project_id: projectId
+        // 2) Use the BETTER approach: Get challenges by language specifically
+        // This will filter at the database level for better performance
+        const challengesRes = await ChallengeAPI.getChallengesByLanguage(langId, {
+          project_id: projectId, // Include project-specific challenges
+          page: 1,
+          limit: 20
         });
 
-        const nextCh =
-          nextRes?.data?.data?.challenge ||
-          nextRes?.data?.challenge ||
-          nextRes?.challenge ||
-          null;
+        const allChallenges = challengesRes?.data?.challenges || [];
+        console.log('🎯 Found challenges for language:', allChallenges.length);
 
-        if (nextCh && isMounted) {
-          const formatted = formatChallengeForUI(nextCh);
-          formatted.submission = null;
-          // Set submission language dropdown default to the project language if we have it
+        // 3) Get user attempts to filter out recently attempted ones
+        const attemptsRes = await ChallengeAPI.getUserAttempts({ page: 1, limit: 50 });
+        const attempts = attemptsRes?.data?.data?.attempts || attemptsRes?.data?.attempts || [];
+
+        // Filter out challenges attempted in the last 14 days
+        const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+        const recentAttemptIds = new Set(
+          attempts
+            .filter(a => new Date(a.started_at || a.submitted_at || 0) > since)
+            .map(a => a.challenge_id)
+        );
+
+        const availableChallenges = allChallenges.filter(ch => !recentAttemptIds.has(ch.id));
+        
+        console.log('✅ Available challenges after filtering:', availableChallenges.length);
+
+        // 4) Pick the next challenge (prefer project-specific, then general)
+        let nextChallenge = null;
+        
+        if (availableChallenges.length > 0) {
+          // Prefer project-specific challenges first
+          const projectSpecific = availableChallenges.filter(ch => ch.project_id === projectId);
+          const general = availableChallenges.filter(ch => !ch.project_id);
+          
+          if (projectSpecific.length > 0) {
+            nextChallenge = projectSpecific[Math.floor(Math.random() * projectSpecific.length)];
+            console.log('🎯 Selected project-specific challenge:', nextChallenge.title);
+          } else if (general.length > 0) {
+            nextChallenge = general[Math.floor(Math.random() * general.length)];
+            console.log('🌍 Selected general challenge:', nextChallenge.title);
+          }
+        }
+
+        if (nextChallenge && isMounted) {
+          const formatted = formatChallengeForUI(nextChallenge);
+          
+          // Check if user already attempted this challenge
+          const existingAttempt = attempts.find(a => a.challenge_id === nextChallenge.id);
+          if (existingAttempt) {
+            formatted.submitted = existingAttempt.status !== 'pending';
+            formatted.userSubmission = {
+              submittedAt: existingAttempt.submitted_at || existingAttempt.started_at,
+              score: existingAttempt.score ?? 0,
+              language: langName?.toLowerCase() || submission.language,
+              feedback: existingAttempt.feedback || ''
+            };
+          }
+          
+          // Set submission language default
           if (langName) {
             setSubmission(prev => ({ ...prev, language: langName.toLowerCase() }));
           }
+          
           setCurrentChallenge(formatted);
         } else if (isMounted) {
           setCurrentChallenge(null);
+          setError(`No ${langName || 'programming'} challenges available. New challenges are added weekly!`);
         }
 
-        // 3) Fetch user attempts and filter to this language
-        const attemptsRes = await ChallengeAPI.getUserAttempts({ page: 1, limit: 20 });
-        const attempts =
-          attemptsRes?.data?.data?.attempts ||
-          attemptsRes?.data?.attempts ||
-          [];
-
-        // We need challenge details to know each attempt's language
-        const uniqueChallengeIds = [...new Set(attempts.map(a => a.challenge_id).filter(Boolean))];
-
-        const detailsArr = await Promise.all(
-          uniqueChallengeIds.map(id => ChallengeAPI.getChallengeById(id).catch(() => null))
-        );
-
-        const challengeDetailsMap = new Map();
-        detailsArr.forEach(resp => {
-          const det = resp?.data?.data?.challenge || resp?.data?.challenge;
-          if (det) challengeDetailsMap.set(det.id, det);
-        });
-
-        const filteredPast = attempts
+        // 5) Set up past challenges (only from this language)
+        const pastAttempts = attempts
           .filter(a => {
-            const det = challengeDetailsMap.get(a.challenge_id);
-            return det?.programming_language_id === langId;
+            const challengeInList = allChallenges.find(ch => ch.id === a.challenge_id);
+            return challengeInList && challengeInList.programming_language_id === langId;
           })
           .map(a => {
-            const det = challengeDetailsMap.get(a.challenge_id);
-            const status = a.status;
+            const challengeDetail = allChallenges.find(ch => ch.id === a.challenge_id);
             return {
               id: a.challenge_id,
-              title: det?.title || 'Challenge',
-              difficulty: det?.difficulty_level || 'medium',
-              points: mapDifficultyToPoints(det?.difficulty_level),
+              title: challengeDetail?.title || 'Challenge',
+              difficulty: challengeDetail?.difficulty_level || 'medium',
+              points: mapDifficultyToPoints(challengeDetail?.difficulty_level),
               category: 'algorithms',
               completedAt: a.submitted_at || a.reviewed_at || a.started_at,
               score: a.score || 0,
@@ -187,33 +196,15 @@ function SoloWeeklyChallenge() {
                 : a.execution_time_ms
                 ? `${Math.round(a.execution_time_ms / 1000)}s`
                 : '—',
-              status: status === 'passed' ? 'completed' : 'missed'
+              status: a.status === 'passed' ? 'completed' : 'missed'
             };
-          });
+          })
+          .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
 
-        if (isMounted) setPastChallenges(filteredPast);
+        if (isMounted) setPastChallenges(pastAttempts);
 
-        // 4) If we already attempted the "current" one, reflect it
-        if (isMounted && nextCh) {
-          const myAttempt = attempts.find(a => a.challenge_id === nextCh.id);
-          if (myAttempt) {
-            setCurrentChallenge(prev =>
-              prev
-                ? {
-                    ...prev,
-                    submitted: myAttempt.status !== 'pending',
-                    userSubmission: {
-                      submittedAt: myAttempt.submitted_at || myAttempt.started_at,
-                      score: myAttempt.score ?? 0,
-                      language: langName?.toLowerCase() || submission.language,
-                      feedback: myAttempt.feedback || ''
-                    }
-                  }
-                : prev
-            );
-          }
-        }
       } catch (err) {
+        console.error('❌ Error loading weekly challenge:', err);
         if (isMounted) {
           setError(err?.response?.data?.message || err.message || 'Failed to load weekly challenge');
         }
@@ -236,19 +227,22 @@ function SoloWeeklyChallenge() {
       setSubmitting(true);
       setError(null);
 
-      const res = await ChallengeAPI.submitChallengeAttempt(projectId, {
+      console.log('🚀 Submitting solo weekly challenge attempt...');
+
+      // FIXED: Use simple challenge submission for solo weekly challenges
+      // This bypasses the project recruitment system entirely
+      const attemptData = {
         challenge_id: currentChallenge.id,
         submitted_code: submission.code,
-        notes: submission.description, // optional, backend may ignore
-        language: submission.language // optional for your backend
-      });
+        notes: submission.description,
+        language: submission.language,
+        project_id: projectId, // Include project ID for tracking
+        attempt_type: 'solo_weekly' // Mark this as a solo weekly challenge
+      };
 
-      // Attempt result shape can vary, try common paths
-      const attempt =
-        res?.data?.data?.attempt ||
-        res?.data?.attempt ||
-        res?.attempt ||
-        null;
+      // Use the new simple challenge submission method
+      const response = await ChallengeAPI.submitSimpleChallenge(attemptData);
+      const attempt = response?.data?.attempt || response?.data || null;
 
       setCurrentChallenge(prev =>
         prev
@@ -259,7 +253,7 @@ function SoloWeeklyChallenge() {
                 submittedAt: attempt?.submitted_at || new Date(),
                 score: attempt?.score ?? 0,
                 language: submission.language,
-                feedback: attempt?.feedback || 'Your submission has been received.'
+                feedback: attempt?.feedback || 'Your submission has been received and is being evaluated.'
               }
             }
           : prev
@@ -267,684 +261,426 @@ function SoloWeeklyChallenge() {
 
       setShowSubmission(false);
       setSubmission({ code: '', description: '', language: submission.language });
+
+      console.log('✅ Solo weekly challenge submitted successfully');
+
     } catch (err) {
-      setError(err?.response?.data?.message || 'Error submitting challenge');
+      console.error('❌ Submission error:', err);
+      setError(err?.response?.data?.message || err.message || 'Failed to submit challenge');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const getDifficultyColor = (difficulty) => {
-    switch (String(difficulty || '').toLowerCase()) {
-      case 'easy': return '#28a745';
-      case 'medium': return '#ffc107';
-      case 'hard': return '#dc3545';
-      case 'expert': return '#6f42c1';
-      default: return '#6c757d';
-    }
-  };
-
-  const getCategoryIcon = (category) => {
-    switch (category) {
-      case 'algorithms': return '🧮';
-      case 'data-structures': return '🗂️';
-      case 'strings': return '📝';
-      case 'system-design': return '🏗️';
-      case 'database': return '🗄️';
-      default: return '💻';
-    }
-  };
-
-  const getTimeRemaining = (endDate) => {
-    const now = new Date();
-    const end = new Date(endDate);
-    const diff = end - now;
-    if (diff <= 0) return 'Expired';
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    if (days > 0) return `${days} day${days > 1 ? 's' : ''} left`;
-    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} left`;
-    return 'Less than 1 hour left';
-  };
-
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const styles = {
-    container: {
-      padding: '30px',
-      maxWidth: '1200px',
-      margin: '0 auto'
-    },
-    header: {
-      marginBottom: '30px',
-      paddingBottom: '20px',
-      borderBottom: '2px solid #e9ecef'
-    },
-    title: {
-      color: '#333',
-      fontSize: '28px',
-      margin: '0 0 8px 0',
-      fontWeight: 'bold'
-    },
-    subtitle: {
-      color: '#6c757d',
-      fontSize: '16px',
-      margin: 0
-    },
-    tabsContainer: {
-      display: 'flex',
-      gap: '4px',
-      marginBottom: '30px',
-      borderBottom: '1px solid #e9ecef'
-    },
-    tab: {
-      padding: '12px 24px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: '#6c757d',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      borderBottom: '2px solid transparent',
-      transition: 'all 0.2s ease'
-    },
-    tabActive: {
-      color: '#6f42c1',
-      borderBottomColor: '#6f42c1'
-    },
-    challengeCard: {
-      backgroundColor: 'white',
-      border: '1px solid #e9ecef',
-      borderRadius: '12px',
-      padding: '30px',
-      marginBottom: '30px'
-    },
-    challengeHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '20px'
-    },
-    challengeTitle: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 8px 0',
-      flex: 1
-    },
-    challengeMeta: {
-      display: 'flex',
-      gap: '12px',
-      alignItems: 'center',
-      flexWrap: 'wrap'
-    },
-    difficultyBadge: {
-      padding: '6px 12px',
-      borderRadius: '16px',
-      fontSize: '12px',
-      fontWeight: '500',
-      color: 'white',
-      textTransform: 'capitalize'
-    },
-    pointsBadge: {
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      padding: '6px 12px',
-      borderRadius: '16px',
-      fontSize: '12px',
-      fontWeight: '500'
-    },
-    categoryBadge: {
-      backgroundColor: '#f8f9fa',
-      color: '#6c757d',
-      padding: '6px 12px',
-      borderRadius: '16px',
-      fontSize: '12px',
-      fontWeight: '500'
-    },
-    timeRemaining: {
-      fontSize: '14px',
-      color: '#dc3545',
-      fontWeight: '500',
-      marginLeft: '16px'
-    },
-    challengeDescription: {
-      fontSize: '16px',
-      color: '#333',
-      lineHeight: '1.6',
-      marginBottom: '24px'
-    },
-    section: {
-      marginBottom: '24px'
-    },
-    sectionTitle: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 16px 0'
-    },
-    requirementsList: {
-      margin: 0,
-      paddingLeft: '20px'
-    },
-    requirementItem: {
-      marginBottom: '8px',
-      color: '#333',
-      lineHeight: '1.5'
-    },
-    examplesGrid: {
-      display: 'grid',
-      gap: '16px'
-    },
-    exampleCard: {
-      backgroundColor: '#f8f9fa',
-      padding: '16px',
-      borderRadius: '8px',
-      borderLeft: '4px solid #6f42c1'
-    },
-    exampleLabel: {
-      fontSize: '14px',
-      fontWeight: '600',
-      color: '#333',
-      marginBottom: '8px'
-    },
-    exampleCode: {
-      fontFamily: 'Monaco, Consolas, "Lucida Console", monospace',
-      fontSize: '14px',
-      color: '#333',
-      backgroundColor: 'white',
-      padding: '8px 12px',
-      borderRadius: '4px',
-      marginBottom: '8px'
-    },
-    exampleExplanation: {
-      fontSize: '13px',
-      color: '#6c757d',
-      fontStyle: 'italic'
-    },
-    hintsList: {
-      margin: 0,
-      paddingLeft: '20px'
-    },
-    hintItem: {
-      marginBottom: '8px',
-      color: '#6c757d',
-      lineHeight: '1.5'
-    },
-    actionButtons: {
-      display: 'flex',
-      gap: '12px',
-      marginTop: '30px',
-      paddingTop: '20px',
-      borderTop: '1px solid #e9ecef'
-    },
-    submitButton: {
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      border: 'none',
-      padding: '12px 24px',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '500',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease'
-    },
-    submittedBadge: {
-      backgroundColor: '#28a745',
-      color: 'white',
-      padding: '12px 24px',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '500',
-      border: 'none',
-      cursor: 'default'
-    },
-    submissionCard: {
-      backgroundColor: '#e8f5e8',
-      border: '1px solid #28a745',
-      borderRadius: '8px',
-      padding: '20px',
-      marginTop: '20px'
-    },
-    submissionTitle: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#28a745',
-      margin: '0 0 12px 0'
-    },
-    submissionMeta: {
-      fontSize: '14px',
-      color: '#6c757d',
-      marginBottom: '12px'
-    },
-    submissionFeedback: {
-      fontSize: '14px',
-      color: '#333',
-      lineHeight: '1.5'
-    },
-    pastChallengesGrid: {
-      display: 'grid',
-      gap: '16px'
-    },
-    pastChallengeCard: {
-      backgroundColor: 'white',
-      border: '1px solid #e9ecef',
-      borderRadius: '8px',
-      padding: '20px',
-      transition: 'all 0.2s ease'
-    },
-    pastChallengeTitle: {
-      fontSize: '18px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 12px 0'
-    },
-    pastChallengeMeta: {
-      display: 'flex',
-      gap: '16px',
-      alignItems: 'center',
-      flexWrap: 'wrap'
-    },
-    scoreDisplay: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#6f42c1'
-    },
-    statusBadge: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      color: 'white'
-    },
-    modal: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    },
-    modalContent: {
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '30px',
-      width: '90%',
-      maxWidth: '800px',
-      maxHeight: '80vh',
-      overflow: 'auto'
-    },
-    modalTitle: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 24px 0'
-    },
-    formGroup: {
-      marginBottom: '20px'
-    },
-    formLabel: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#333',
-      marginBottom: '8px',
-      display: 'block'
-    },
-    formSelect: {
-      width: '200px',
-      padding: '8px 12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '6px',
-      fontSize: '14px',
-      backgroundColor: 'white'
-    },
-    codeTextarea: {
-      width: '100%',
-      height: '300px',
-      padding: '16px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontFamily: 'Monaco, Consolas, "Lucida Console", monospace',
-      resize: 'vertical'
-    },
-    descriptionTextarea: {
-      width: '100%',
-      height: '100px',
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      resize: 'vertical'
-    },
-    modalActions: {
-      display: 'flex',
-      gap: '12px',
-      justifyContent: 'flex-end',
-      marginTop: '24px',
-      paddingTop: '20px',
-      borderTop: '1px solid #e9ecef'
-    },
-    cancelButton: {
-      padding: '12px 24px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      backgroundColor: 'white',
-      color: '#6c757d',
-      fontSize: '14px',
-      cursor: 'pointer'
-    },
-    modalSubmitButton: {
-      padding: '12px 24px',
-      border: 'none',
-      borderRadius: '8px',
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      fontSize: '14px',
-      cursor: 'pointer',
-      fontWeight: '500'
-    },
-    loadingState: {
-      textAlign: 'center',
-      padding: '60px',
-      color: '#6c757d'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '60px',
-      color: '#6c757d'
-    },
-    errorBox: {
-      backgroundColor: '#fff3f3',
-      border: '1px solid #f5c2c7',
-      color: '#842029',
-      padding: '10px 14px',
-      borderRadius: '8px',
-      marginBottom: '16px'
-    }
-  };
-
+  // Rest of your component rendering logic remains the same...
   if (loading) {
     return (
-      <div style={styles.container}>
-        <div style={styles.loadingState}>Loading challenge...</div>
+      <div style={{ padding: '30px', textAlign: 'center' }}>
+        <div style={{ fontSize: '18px', marginBottom: '10px' }}>Loading Weekly Challenge...</div>
+        <div style={{ color: '#666' }}>Fetching {languageName || 'programming'} challenges for you</div>
+      </div>
+    );
+  }
+
+  if (error && !currentChallenge) {
+    return (
+      <div style={{ padding: '30px', textAlign: 'center', color: '#e74c3c' }}>
+        <div style={{ fontSize: '18px', marginBottom: '10px' }}>⚠️ {error}</div>
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ 
+            padding: '10px 20px', 
+            backgroundColor: '#3498db', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          Try Again
+        </button>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      {/* Header */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Weekly Challenge</h1>
-        <p style={styles.subtitle}>
-          {languageName ? `Language: ${languageName}` : 'Test your skills with curated programming challenges'}
+    <div style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <h1>Weekly {languageName || 'Programming'} Challenge</h1>
+        <p style={{ color: '#666' }}>
+          Challenge yourself with weekly {languageName || 'programming'} problems to improve your skills!
         </p>
       </div>
 
-      {error && <div style={styles.errorBox}>⚠️ {error}</div>}
-
-      {/* Tabs */}
-      <div style={styles.tabsContainer}>
-        {[
-          { key: 'current', label: 'Current Challenge' },
-          { key: 'past', label: 'Past Challenges' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            style={{
-              ...styles.tab,
-              ...(activeTab === tab.key ? styles.tabActive : {})
-            }}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div style={{ borderBottom: '2px solid #eee', marginBottom: '20px' }}>
+        <button
+          onClick={() => setActiveTab('current')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            backgroundColor: activeTab === 'current' ? '#3498db' : 'transparent',
+            color: activeTab === 'current' ? 'white' : '#666',
+            borderRadius: '5px 5px 0 0',
+            cursor: 'pointer',
+            marginRight: '5px'
+          }}
+        >
+          Current Challenge
+        </button>
+        <button
+          onClick={() => setActiveTab('past')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            backgroundColor: activeTab === 'past' ? '#3498db' : 'transparent',
+            color: activeTab === 'past' ? 'white' : '#666',
+            borderRadius: '5px 5px 0 0',
+            cursor: 'pointer'
+          }}
+        >
+          Past Challenges ({pastChallenges.length})
+        </button>
       </div>
 
-      {/* Current Challenge Tab */}
-      {activeTab === 'current' && currentChallenge && (
-        <div style={styles.challengeCard}>
-          <div style={styles.challengeHeader}>
-            <div style={{ flex: 1 }}>
-              <h2 style={styles.challengeTitle}>{currentChallenge.title}</h2>
-              <div style={styles.challengeMeta}>
-                <span style={{
-                  ...styles.difficultyBadge,
-                  backgroundColor: getDifficultyColor(currentChallenge.difficulty)
+      {activeTab === 'current' && (
+        <div>
+          {currentChallenge ? (
+            <div>
+              <div style={{ 
+                backgroundColor: '#f8f9fa', 
+                padding: '20px', 
+                borderRadius: '8px', 
+                marginBottom: '20px' 
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start',
+                  marginBottom: '15px'
                 }}>
-                  {currentChallenge.difficulty}
-                </span>
-                <span style={styles.pointsBadge}>
-                  {currentChallenge.points} points
-                </span>
-                <span style={styles.categoryBadge}>
-                  {getCategoryIcon(currentChallenge.category)} {currentChallenge.category}
-                </span>
-                <span style={styles.timeRemaining}>
-                  ⏰ {getTimeRemaining(currentChallenge.endDate)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <p style={styles.challengeDescription}>{currentChallenge.description}</p>
-
-          {/* Requirements */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Requirements</h3>
-            <ul style={styles.requirementsList}>
-              {currentChallenge.requirements.map((req, index) => (
-                <li key={index} style={styles.requirementItem}>{req}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Examples */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Examples</h3>
-            <div style={styles.examplesGrid}>
-              {currentChallenge.examples.map((example, index) => (
-                <div key={index} style={styles.exampleCard}>
-                  <div style={styles.exampleLabel}>Example {index + 1}:</div>
-                  <div style={styles.exampleCode}>
-                    <strong>Input:</strong> {example.input}<br/>
-                    <strong>Output:</strong> {example.output}
+                  <div>
+                    <h2 style={{ margin: '0 0 10px 0' }}>{currentChallenge.title}</h2>
+                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                      <span style={{ 
+                        padding: '4px 12px', 
+                        backgroundColor: getDifficultyColor(currentChallenge.difficulty),
+                        color: 'white',
+                        borderRadius: '15px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {currentChallenge.difficulty?.toUpperCase()}
+                      </span>
+                      <span style={{ color: '#666' }}>
+                        🏆 {currentChallenge.points} points
+                      </span>
+                      <span style={{ color: '#666' }}>
+                        ⏱️ {currentChallenge.timeLimit}
+                      </span>
+                      <span style={{ color: '#666' }}>
+                        💻 {languageName}
+                      </span>
+                    </div>
                   </div>
-                  <div style={styles.exampleExplanation}>{example.explanation}</div>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {/* Hints */}
-          <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Hints</h3>
-            <ul style={styles.hintsList}>
-              {currentChallenge.hints.map((hint, index) => (
-                <li key={index} style={styles.hintItem}>{hint}</li>
-              ))}
-            </ul>
-          </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <h3>Description</h3>
+                  <div style={{ 
+                    backgroundColor: 'white', 
+                    padding: '15px', 
+                    borderRadius: '5px',
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {currentChallenge.description}
+                  </div>
+                </div>
 
-          {/* Action Buttons */}
-          <div style={styles.actionButtons}>
-            {currentChallenge.submitted ? (
-              <div style={styles.submittedBadge}>
-                ✅ Challenge Completed
+                {currentChallenge.examples && currentChallenge.examples.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h3>Examples</h3>
+                    {currentChallenge.examples.map((example, idx) => (
+                      <div key={idx} style={{ 
+                        backgroundColor: 'white', 
+                        padding: '15px', 
+                        borderRadius: '5px',
+                        marginBottom: '10px'
+                      }}>
+                        <div style={{ marginBottom: '10px' }}>
+                          <strong>Input:</strong>
+                          <pre style={{ 
+                            backgroundColor: '#f1f2f6', 
+                            padding: '8px', 
+                            borderRadius: '3px',
+                            margin: '5px 0',
+                            fontSize: '14px'
+                          }}>
+                            {example.input}
+                          </pre>
+                        </div>
+                        <div style={{ marginBottom: '10px' }}>
+                          <strong>Output:</strong>
+                          <pre style={{ 
+                            backgroundColor: '#f1f2f6', 
+                            padding: '8px', 
+                            borderRadius: '3px',
+                            margin: '5px 0',
+                            fontSize: '14px'
+                          }}>
+                            {example.output}
+                          </pre>
+                        </div>
+                        {example.explanation && (
+                          <div style={{ color: '#666', fontSize: '14px' }}>
+                            <strong>Explanation:</strong> {example.explanation}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : (
-              <button
-                style={styles.submitButton}
-                onClick={() => setShowSubmission(true)}
-              >
-                Submit Solution
-              </button>
-            )}
-          </div>
 
-          {/* User Submission Display */}
-          {currentChallenge.userSubmission && (
-            <div style={styles.submissionCard}>
-              <h4 style={styles.submissionTitle}>Your Submission</h4>
-              <div style={styles.submissionMeta}>
-                Score: <strong>{currentChallenge.userSubmission.score}/100</strong> • 
-                Submitted on {formatDate(currentChallenge.userSubmission.submittedAt)} •
-                Language: {currentChallenge.userSubmission.language}
-              </div>
-              {currentChallenge.userSubmission.feedback && (
-                <div style={styles.submissionFeedback}>
-                  <strong>Feedback:</strong> {currentChallenge.userSubmission.feedback}
+              {!currentChallenge.submitted ? (
+                <div>
+                  {!showSubmission ? (
+                    <button
+                      onClick={() => setShowSubmission(true)}
+                      style={{
+                        padding: '15px 30px',
+                        backgroundColor: '#27ae60',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        fontSize: '16px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Start Challenge
+                    </button>
+                  ) : (
+                    <form onSubmit={handleSubmitChallenge}>
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                          Your Solution ({languageName})
+                        </label>
+                        <textarea
+                          value={submission.code}
+                          onChange={(e) => setSubmission(prev => ({ ...prev, code: e.target.value }))}
+                          placeholder={`Write your ${languageName} solution here...`}
+                          rows={15}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '2px solid #ddd',
+                            borderRadius: '5px',
+                            fontFamily: 'Monaco, Consolas, monospace',
+                            fontSize: '14px'
+                          }}
+                          required
+                        />
+                      </div>
+
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
+                          Description (Optional)
+                        </label>
+                        <textarea
+                          value={submission.description}
+                          onChange={(e) => setSubmission(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Describe your approach or any notes about your solution..."
+                          rows={3}
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            border: '2px solid #ddd',
+                            borderRadius: '5px'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <button
+                          type="submit"
+                          disabled={submitting || !submission.code.trim()}
+                          style={{
+                            padding: '12px 24px',
+                            backgroundColor: submitting ? '#95a5a6' : '#27ae60',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: submitting ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {submitting ? 'Submitting...' : 'Submit Solution'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowSubmission(false)}
+                          style={{
+                            padding: '12px 24px',
+                            backgroundColor: '#95a5a6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+
+                      {error && (
+                        <div style={{ 
+                          color: '#e74c3c', 
+                          marginTop: '10px',
+                          padding: '10px',
+                          backgroundColor: '#fdf2f2',
+                          borderRadius: '5px'
+                        }}>
+                          {error}
+                        </div>
+                      )}
+                    </form>
+                  )}
+                </div>
+              ) : (
+                <div style={{ 
+                  backgroundColor: '#d5edda', 
+                  padding: '20px', 
+                  borderRadius: '8px',
+                  border: '1px solid #c3e6cb'
+                }}>
+                  <h3 style={{ color: '#155724', margin: '0 0 10px 0' }}>
+                    ✅ Challenge Completed!
+                  </h3>
+                  <p style={{ margin: '5px 0' }}>
+                    <strong>Score:</strong> {currentChallenge.userSubmission?.score}/100
+                  </p>
+                  <p style={{ margin: '5px 0' }}>
+                    <strong>Submitted:</strong> {new Date(currentChallenge.userSubmission?.submittedAt).toLocaleDateString()}
+                  </p>
+                  {currentChallenge.userSubmission?.feedback && (
+                    <p style={{ margin: '10px 0 0 0', fontStyle: 'italic' }}>
+                      {currentChallenge.userSubmission.feedback}
+                    </p>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Past Challenges Tab */}
-      {activeTab === 'past' && (
-        <div style={styles.pastChallengesGrid}>
-          {pastChallenges.length === 0 ? (
-            <div style={styles.emptyState}>No past challenges for this language yet.</div>
           ) : (
-            pastChallenges.map((challenge) => (
-              <div key={challenge.id} style={styles.pastChallengeCard}>
-                <h3 style={styles.pastChallengeTitle}>{challenge.title}</h3>
-                <div style={styles.pastChallengeMeta}>
-                  <span style={{
-                    ...styles.difficultyBadge,
-                    backgroundColor: getDifficultyColor(challenge.difficulty)
-                  }}>
-                    {challenge.difficulty}
-                  </span>
-                  
-                  <span style={styles.pointsBadge}>
-                    {challenge.points} points
-                  </span>
-                  
-                  <span style={styles.categoryBadge}>
-                    {getCategoryIcon(challenge.category)} {challenge.category}
-                  </span>
-
-                  {challenge.status === 'completed' ? (
-                    <>
-                      <span style={styles.scoreDisplay}>
-                        Score: {challenge.score}/100
-                      </span>
-                      <span style={{
-                        ...styles.statusBadge,
-                        backgroundColor: '#28a745'
-                      }}>
-                        Completed
-                      </span>
-                      <span style={{ fontSize: '14px', color: '#6c757d' }}>
-                        {challenge.completedAt ? formatDate(challenge.completedAt) : ''} • {challenge.timeSpent}
-                      </span>
-                    </>
-                  ) : (
-                    <span style={{
-                      ...styles.statusBadge,
-                      backgroundColor: '#dc3545'
-                    }}>
-                      Missed
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '60px 20px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎯</div>
+              <h2>No Current Challenge</h2>
+              <p style={{ color: '#666', maxWidth: '500px', margin: '0 auto 20px' }}>
+                {languageName 
+                  ? `No new ${languageName} challenges available right now. New challenges are added weekly!`
+                  : 'No challenges available. Set up your project programming language first.'
+                }
+              </p>
+              <button 
+                onClick={() => window.location.reload()} 
+                style={{ 
+                  padding: '12px 24px', 
+                  backgroundColor: '#3498db', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Check Again
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {/* Submit Solution Modal */}
-      {showSubmission && currentChallenge && (
-        <div style={styles.modal} onClick={() => setShowSubmission(false)}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 style={styles.modalTitle}>Submit Your Solution</h2>
-            
-            <form onSubmit={handleSubmitChallenge}>
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Programming Language</label>
-                <select
-                  style={styles.formSelect}
-                  value={submission.language}
-                  onChange={(e) => setSubmission({
-                    ...submission,
-                    language: e.target.value
-                  })}
-                >
-                  {/* Keep options for user convenience; backend uses challenge_id anyway */}
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
-                  <option value="csharp">C#</option>
-                  <option value="go">Go</option>
-                  <option value="rust">Rust</option>
-                </select>
+      {activeTab === 'past' && (
+        <div>
+          {pastChallenges.length > 0 ? (
+            <div>
+              <h2>Past {languageName} Challenges</h2>
+              <div style={{ display: 'grid', gap: '15px' }}>
+                {pastChallenges.map(challenge => (
+                  <div key={challenge.id} style={{ 
+                    backgroundColor: '#f8f9fa', 
+                    padding: '20px', 
+                    borderRadius: '8px',
+                    border: challenge.status === 'completed' ? '2px solid #27ae60' : '2px solid #e67e22'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <h3 style={{ margin: '0 0 10px 0' }}>{challenge.title}</h3>
+                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '10px' }}>
+                          <span style={{ 
+                            padding: '4px 12px', 
+                            backgroundColor: getDifficultyColor(challenge.difficulty),
+                            color: 'white',
+                            borderRadius: '15px',
+                            fontSize: '12px',
+                            fontWeight: 'bold'
+                          }}>
+                            {challenge.difficulty?.toUpperCase()}
+                          </span>
+                          <span style={{ color: '#666' }}>🏆 {challenge.points} points</span>
+                          <span style={{ color: '#666' }}>⏱️ {challenge.timeSpent}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: '#666' }}>
+                          <span>Completed: {new Date(challenge.completedAt).toLocaleDateString()}</span>
+                          <span>Score: {challenge.score}/100</span>
+                        </div>
+                      </div>
+                      <div style={{ 
+                        padding: '8px 16px',
+                        backgroundColor: challenge.status === 'completed' ? '#27ae60' : '#e67e22',
+                        color: 'white',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {challenge.status === 'completed' ? '✅ PASSED' : '❌ FAILED'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Your Solution *</label>
-                <textarea
-                  style={styles.codeTextarea}
-                  value={submission.code}
-                  onChange={(e) => setSubmission({
-                    ...submission,
-                    code: e.target.value
-                  })}
-                  placeholder="Paste your solution code here..."
-                  required
-                />
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Explanation (Optional)</label>
-                <textarea
-                  style={styles.descriptionTextarea}
-                  value={submission.description}
-                  onChange={(e) => setSubmission({
-                    ...submission,
-                    description: e.target.value
-                  })}
-                  placeholder="Explain your approach and reasoning..."
-                />
-              </div>
-
-              <div style={styles.modalActions}>
-                <button
-                  type="button"
-                  style={styles.cancelButton}
-                  onClick={() => setShowSubmission(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={styles.modalSubmitButton}
-                  disabled={submitting || !submission.code.trim()}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Solution'}
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+          ) : (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '60px 20px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>📚</div>
+              <h2>No Past Challenges</h2>
+              <p style={{ color: '#666' }}>
+                You haven't attempted any {languageName || 'programming'} challenges yet. 
+                Start with the current challenge to build your history!
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+// Helper function for difficulty colors
+function getDifficultyColor(difficulty) {
+  switch (difficulty?.toLowerCase()) {
+    case 'easy': return '#27ae60';
+    case 'medium': return '#f39c12';
+    case 'hard': return '#e74c3c';
+    case 'expert': return '#8e44ad';
+    default: return '#95a5a6';
+  }
 }
 
 export default SoloWeeklyChallenge;
