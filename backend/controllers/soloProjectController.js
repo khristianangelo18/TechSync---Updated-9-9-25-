@@ -673,11 +673,12 @@ const createNote = async (req, res) => {
       });
     }
 
-    // Create note
+    // Create note - FIXED: Include user_id in the insert
     const { data: note, error: noteError } = await supabase
       .from('solo_project_notes')
       .insert({
         project_id: projectId,
+        user_id: userId,  // ✅ ADDED: This was missing and causing the error
         title,
         content,
         category: category || 'general'
