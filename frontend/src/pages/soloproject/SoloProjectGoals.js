@@ -1,29 +1,39 @@
-// frontend/src/pages/soloproject/SoloProjectGoals.js
+// frontend/src/pages/soloproject/SoloProjectGoals.js - ENHANCED UNIFIED VERSION
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import SoloProjectService from '../../services/soloProjectService';
 
 function SoloProjectGoals() {
   const { projectId } = useParams();
+  const location = useLocation();
 
-  const [goals, setGoals] = useState([]);
+  // Check if we came here with a specific intent (task vs goal)
+  const searchParams = new URLSearchParams(location.search);
+  const createIntent = searchParams.get('intent'); // 'task' or 'goal'
+
+  const [items, setItems] = useState([]); // Renamed from 'goals' to 'items'
   const [loading, setLoading] = useState(true);
-  const [showCreateGoal, setShowCreateGoal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState(null);
-  const [newGoal, setNewGoal] = useState({
+  const [viewMode, setViewMode] = useState('list'); // 'list', 'kanban', 'goals'
+  const [newItem, setNewItem] = useState({
     title: '',
     description: '',
     target_date: '',
     priority: 'medium',
-    category: 'feature'
+    category: 'feature',
+    type: createIntent || 'goal', // Default to goal, but can be task
+    estimated_hours: '',
+    task_type: 'development'
   });
   const [activeTab, setActiveTab] = useState('all');
+  const [editingItem, setEditingItem] = useState(null);
 
-  // Fetch goals from API
+  // Fetch goals/tasks from API
   useEffect(() => {
     let isMounted = true;
 
-    const fetchGoals = async () => {
+    const fetchItems = async () => {
       setLoading(true);
       setError(null);
       try {
@@ -31,121 +41,210 @@ function SoloProjectGoals() {
           sort_by: 'created_at',
           sort_order: 'desc'
         });
-        const apiGoals = res?.data?.goals || [];
-        // Attach a UI-only progress value: 100 if completed, else 0
-        const withProgress = apiGoals.map(g => ({
-          ...g,
-          progress: g.status === 'completed' ? 100 : 0
+        const apiItems = res?.data?.goals || [];
+        
+        // Enhance items with UI-only properties
+        const enhancedItems = apiItems.map(item => ({
+          ...item,
+          progress: item.status === 'completed' ? 100 : 0,
+          type: item.estimated_hours ? 'task' : 'goal' // Infer type based on data
         }));
-        if (isMounted) setGoals(withProgress);
+        
+        if (isMounted) setItems(enhancedItems);
       } catch (err) {
         if (isMounted) {
-          setError(err?.response?.data?.message || 'Failed to load goals');
+          setError(err?.response?.data?.message || 'Failed to load items');
         }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    fetchGoals();
+    fetchItems();
     return () => { isMounted = false; };
   }, [projectId]);
 
-  // Create goal via API
-  const handleCreateGoal = async (e) => {
-    e.preventDefault();
-    if (!newGoal.title.trim()) return;
-
-    // Validate before sending (optional)
-    const { isValid, errors } = SoloProjectService.validateGoalData(newGoal);
-    if (!isValid) {
-      alert(errors.join('\n'));
-      return;
+  // Auto-open create modal if came with intent
+  useEffect(() => {
+    if (createIntent && !showCreateModal) {
+      setShowCreateModal(true);
+      setNewItem(prev => ({ ...prev, type: createIntent }));
     }
+  }, [createIntent, showCreateModal]);
+
+  // Create item via API
+  const handleCreateItem = async (e) => {
+    e.preventDefault();
+    if (!newItem.title.trim()) return;
 
     try {
       const payload = {
-        title: newGoal.title,
-        description: newGoal.description,
-        target_date: newGoal.target_date || null,
-        priority: newGoal.priority,
-        category: newGoal.category
+        title: newItem.title,
+        description: newItem.description,
+        target_date: newItem.target_date || null,
+        priority: newItem.priority,
+        category: newItem.category,
+        // Add task-specific fields if it's a task
+        ...(newItem.type === 'task' && {
+          estimated_hours: parseInt(newItem.estimated_hours) || null
+        })
       };
+
       const res = await SoloProjectService.createGoal(projectId, payload);
-      const createdGoal = res?.data?.goal;
-      if (createdGoal) {
-        // Add UI-only progress
-        setGoals(prev => [{ ...createdGoal, progress: 0 }, ...prev]);
+      const createdItem = res?.data?.goal;
+      
+      if (createdItem) {
+        const enhancedItem = {
+          ...createdItem,
+          progress: 0,
+          type: newItem.type
+        };
+        setItems(prev => [enhancedItem, ...prev]);
       }
-      setNewGoal({
+
+      // Reset form
+      setNewItem({
         title: '',
         description: '',
         target_date: '',
         priority: 'medium',
-        category: 'feature'
+        category: 'feature',
+        type: 'goal',
+        estimated_hours: '',
+        task_type: 'development'
       });
-      setShowCreateGoal(false);
+      setShowCreateModal(false);
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to create goal');
+      alert(err?.response?.data?.message || 'Failed to create item');
     }
   };
 
   // Update progress locally and persist status via API
-  const updateGoalProgress = async (goalId, newProgress) => {
-    setGoals(prev => prev.map(goal => {
-      if (goal.id === goalId) {
-        return { ...goal, progress: newProgress };
+  const updateItemProgress = async (itemId, newProgress) => {
+    setItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        return { ...item, progress: newProgress };
       }
-      return goal;
+      return item;
     }));
 
-    // Map progress to status for persistence
     const newStatus = newProgress >= 100 ? 'completed' : 'active';
 
     try {
-      const res = await SoloProjectService.updateGoal(projectId, goalId, { status: newStatus });
-      const updatedGoal = res?.data?.goal;
-      if (updatedGoal) {
-        setGoals(prev => prev.map(g => g.id === goalId ? { ...g, ...updatedGoal } : g));
+      const res = await SoloProjectService.updateGoal(projectId, itemId, { status: newStatus });
+      const updatedItem = res?.data?.goal;
+      if (updatedItem) {
+        setItems(prev => prev.map(item => 
+          item.id === itemId ? { ...item, ...updatedItem } : item
+        ));
       }
     } catch (err) {
       // Revert progress if API call fails
-      setGoals(prev => prev.map(goal => {
-        if (goal.id === goalId) {
-          const fallbackProgress = goal.status === 'completed' ? 100 : 0;
-          return { ...goal, progress: fallbackProgress };
+      setItems(prev => prev.map(item => {
+        if (item.id === itemId) {
+          const fallbackProgress = item.status === 'completed' ? 100 : 0;
+          return { ...item, progress: fallbackProgress };
         }
-        return goal;
+        return item;
       }));
-      alert(err?.response?.data?.message || 'Failed to update goal');
+      alert(err?.response?.data?.message || 'Failed to update item');
     }
   };
 
-  // Delete goal via API
-  const deleteGoal = async (goalId) => {
-    if (!window.confirm('Are you sure you want to delete this goal?')) return;
+  // Delete item via API
+  const deleteItem = async (itemId) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    
     try {
-      await SoloProjectService.deleteGoal(projectId, goalId);
-      setGoals(prev => prev.filter(goal => goal.id !== goalId));
+      await SoloProjectService.deleteGoal(projectId, itemId);
+      setItems(prev => prev.filter(item => item.id !== itemId));
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to delete goal');
+      alert(err?.response?.data?.message || 'Failed to delete item');
     }
   };
 
-  // Filter goals based on active tab
-  const filteredGoals = goals.filter(goal => {
+  // Edit item
+  const startEditItem = (item) => {
+    setEditingItem(item);
+    setNewItem({
+      title: item.title,
+      description: item.description || '',
+      target_date: item.target_date ? item.target_date.split('T')[0] : '',
+      priority: item.priority,
+      category: item.category,
+      type: item.type || 'goal',
+      estimated_hours: item.estimated_hours || '',
+      task_type: item.task_type || 'development'
+    });
+    setShowCreateModal(true);
+  };
+
+  // Update existing item
+  const handleUpdateItem = async (e) => {
+    e.preventDefault();
+    if (!editingItem || !newItem.title.trim()) return;
+
+    try {
+      const payload = {
+        title: newItem.title,
+        description: newItem.description,
+        target_date: newItem.target_date || null,
+        priority: newItem.priority,
+        category: newItem.category,
+        ...(newItem.type === 'task' && {
+          estimated_hours: parseInt(newItem.estimated_hours) || null
+        })
+      };
+
+      const res = await SoloProjectService.updateGoal(projectId, editingItem.id, payload);
+      const updatedItem = res?.data?.goal;
+      
+      if (updatedItem) {
+        setItems(prev => prev.map(item => 
+          item.id === editingItem.id ? { ...item, ...updatedItem, type: newItem.type } : item
+        ));
+      }
+
+      setEditingItem(null);
+      setNewItem({
+        title: '',
+        description: '',
+        target_date: '',
+        priority: 'medium',
+        category: 'feature',
+        type: 'goal',
+        estimated_hours: '',
+        task_type: 'development'
+      });
+      setShowCreateModal(false);
+    } catch (err) {
+      alert(err?.response?.data?.message || 'Failed to update item');
+    }
+  };
+
+  // Filter items based on active tab and view mode
+  const filteredItems = items.filter(item => {
+    // First filter by view mode
+    if (viewMode === 'goals' && item.type !== 'goal') return false;
+    
+    // Then filter by tab
     switch (activeTab) {
       case 'active':
-        return goal.status === 'active';
+        return ['active', 'in_progress'].includes(item.status);
       case 'completed':
-        return goal.status === 'completed';
+        return item.status === 'completed';
+      case 'tasks':
+        return item.type === 'task';
+      case 'goals':
+        return item.type === 'goal';
       case 'overdue':
-        return goal.target_date && new Date(goal.target_date) < new Date() && goal.status !== 'completed';
+        return item.target_date && new Date(item.target_date) < new Date() && item.status !== 'completed';
       default:
         return true;
     }
   });
 
+  // Helper functions
   const formatDate = (date) => {
     if (!date) return 'No deadline';
     return new Date(date).toLocaleDateString('en-US', {
@@ -170,7 +269,17 @@ function SoloProjectGoals() {
     }
   };
 
-  // Align category icons with backend categories
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return '#007bff';
+      case 'in_progress': return '#17a2b8';
+      case 'completed': return '#28a745';
+      case 'paused': return '#ffc107';
+      case 'blocked': return '#dc3545';
+      default: return '#6c757d';
+    }
+  };
+
   const getCategoryIcon = (category) => {
     switch (category) {
       case 'learning': return '📚';
@@ -183,332 +292,162 @@ function SoloProjectGoals() {
     }
   };
 
-  const getGoalStats = () => {
-    const total = goals.length;
-    const completed = goals.filter(g => g.status === 'completed').length;
-    const active = goals.filter(g => g.status === 'active').length;
-    const overdue = goals.filter(g =>
-      g.target_date &&
-      new Date(g.target_date) < new Date() &&
-      g.status !== 'completed'
+  const getItemStats = () => {
+    const total = items.length;
+    const completed = items.filter(i => i.status === 'completed').length;
+    const active = items.filter(i => ['active', 'in_progress'].includes(i.status)).length;
+    const tasks = items.filter(i => i.type === 'task').length;
+    const goals = items.filter(i => i.type === 'goal').length;
+    const overdue = items.filter(i =>
+      i.target_date &&
+      new Date(i.target_date) < new Date() &&
+      i.status !== 'completed'
     ).length;
 
-    return { total, completed, active, overdue };
+    return { total, completed, active, tasks, goals, overdue };
   };
 
-  const goalStats = getGoalStats();
+  const itemStats = getItemStats();
 
-  const styles = {
-    container: {
-      padding: '30px',
-      maxWidth: '1200px',
-      margin: '0 auto'
-    },
-    header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '30px',
-      paddingBottom: '20px',
-      borderBottom: '2px solid #e9ecef'
-    },
-    title: {
-      color: '#333',
-      fontSize: '28px',
-      margin: '0 0 8px 0',
-      fontWeight: 'bold'
-    },
-    subtitle: {
-      color: '#6c757d',
-      fontSize: '16px',
-      margin: 0
-    },
-    createButton: {
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      border: 'none',
-      padding: '12px 24px',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '500',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease'
-    },
-    error: {
-      backgroundColor: '#fff3f3',
-      border: '1px solid #f5c2c7',
-      color: '#842029',
-      padding: '12px 16px',
-      borderRadius: '8px',
-      marginBottom: '20px'
-    },
-    statsGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '20px',
-      marginBottom: '30px'
-    },
-    statCard: {
-      backgroundColor: 'white',
-      padding: '24px',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      textAlign: 'center'
-    },
-    statNumber: {
-      fontSize: '32px',
-      fontWeight: 'bold',
-      color: '#6f42c1',
-      margin: '0 0 8px 0'
-    },
-    statLabel: {
-      fontSize: '14px',
-      color: '#6c757d',
-      margin: 0,
-      fontWeight: '500'
-    },
-    tabsContainer: {
-      display: 'flex',
-      gap: '4px',
-      marginBottom: '30px',
-      borderBottom: '1px solid #e9ecef'
-    },
-    tab: {
-      padding: '12px 24px',
-      backgroundColor: 'transparent',
-      border: 'none',
-      color: '#6c757d',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      borderBottom: '2px solid transparent',
-      transition: 'all 0.2s ease'
-    },
-    tabActive: {
-      color: '#6f42c1',
-      borderBottomColor: '#6f42c1'
-    },
-    goalsGrid: {
-      display: 'grid',
-      gap: '20px'
-    },
-    goalCard: {
-      backgroundColor: 'white',
-      border: '1px solid #e9ecef',
-      borderRadius: '12px',
-      padding: '24px',
-      transition: 'all 0.2s ease'
-    },
-    goalCardHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
-    },
-    goalHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '16px'
-    },
-    goalTitle: {
-      fontSize: '20px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 8px 0',
-      flex: 1
-    },
-    goalActions: {
-      display: 'flex',
-      gap: '8px',
-      marginLeft: '16px'
-    },
-    actionButton: {
-      padding: '6px 12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '6px',
-      backgroundColor: 'white',
-      color: '#6c757d',
-      fontSize: '12px',
-      cursor: 'pointer'
-    },
-    goalMeta: {
-      display: 'flex',
-      gap: '16px',
-      alignItems: 'center',
-      flexWrap: 'wrap',
-      marginBottom: '16px'
-    },
-    priorityBadge: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      color: 'white',
-      textTransform: 'capitalize'
-    },
-    categoryBadge: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '500',
-      backgroundColor: '#f8f9fa',
-      color: '#6c757d'
-    },
-    targetDate: {
-      fontSize: '14px',
-      color: '#6c757d'
-    },
-    overdue: {
-      color: '#dc3545',
-      fontWeight: '500'
-    },
-    goalDescription: {
-      fontSize: '14px',
-      color: '#6c757d',
-      lineHeight: '1.5',
-      marginBottom: '20px'
-    },
-    progressSection: {
-      marginBottom: '16px'
-    },
-    progressHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '8px'
-    },
-    progressLabel: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#333'
-    },
-    progressValue: {
-      fontSize: '14px',
-      color: '#6f42c1',
-      fontWeight: 'bold'
-    },
-    progressBar: {
-      width: '100%',
-      height: '8px',
-      backgroundColor: '#e9ecef',
-      borderRadius: '4px',
-      overflow: 'hidden'
-    },
-    progressFill: {
-      height: '100%',
-      backgroundColor: '#6f42c1',
-      transition: 'width 0.3s ease'
-    },
-    progressControls: {
-      display: 'flex',
-      gap: '8px',
-      marginTop: '12px'
-    },
-    progressButton: {
-      padding: '6px 12px',
-      border: '1px solid #6f42c1',
-      borderRadius: '6px',
-      backgroundColor: 'white',
-      color: '#6f42c1',
-      fontSize: '12px',
-      cursor: 'pointer'
-    },
-    emptyState: {
-      textAlign: 'center',
-      padding: '60px 20px',
-      color: '#6c757d'
-    },
-    emptyStateIcon: {
-      fontSize: '64px',
-      marginBottom: '20px',
-      opacity: 0.5
-    },
-    modal: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    },
-    modalContent: {
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '30px',
-      width: '100%',
-      maxWidth: '500px',
-      margin: '20px'
-    },
-    modalTitle: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 24px 0'
-    },
-    form: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '20px'
-    },
-    formGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '8px'
-    },
-    formLabel: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#333'
-    },
-    formInput: {
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px'
-    },
-    formTextarea: {
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      minHeight: '100px',
-      resize: 'vertical'
-    },
-    formActions: {
-      display: 'flex',
-      gap: '12px',
-      justifyContent: 'flex-end',
-      marginTop: '24px'
-    },
-    cancelButton: {
-      padding: '12px 24px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      backgroundColor: 'white',
-      color: '#6c757d',
-      fontSize: '14px',
-      cursor: 'pointer'
-    },
-    submitButton: {
-      padding: '12px 24px',
-      border: 'none',
-      borderRadius: '8px',
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      fontSize: '14px',
-      cursor: 'pointer',
-      fontWeight: '500'
-    }
+  // Kanban View Component
+  const KanbanView = () => {
+    const todoItems = filteredItems.filter(i => ['active', 'todo'].includes(i.status));
+    const inProgressItems = filteredItems.filter(i => i.status === 'in_progress');
+    const completedItems = filteredItems.filter(i => i.status === 'completed');
+    const blockedItems = filteredItems.filter(i => i.status === 'blocked');
+
+    const KanbanColumn = ({ title, items: columnItems, status }) => (
+      <div style={styles.kanbanColumn}>
+        <div style={styles.kanbanHeader}>
+          <h3 style={styles.kanbanTitle}>{title}</h3>
+          <span style={styles.kanbanCount}>{columnItems.length}</span>
+        </div>
+        <div style={styles.kanbanItems}>
+          {columnItems.map(item => (
+            <ItemCard key={item.id} item={item} isKanban={true} />
+          ))}
+        </div>
+      </div>
+    );
+
+    return (
+      <div style={styles.kanbanBoard}>
+        <KanbanColumn title="To Do" items={todoItems} status="todo" />
+        <KanbanColumn title="In Progress" items={inProgressItems} status="in_progress" />
+        <KanbanColumn title="Completed" items={completedItems} status="completed" />
+        {blockedItems.length > 0 && (
+          <KanbanColumn title="Blocked" items={blockedItems} status="blocked" />
+        )}
+      </div>
+    );
   };
+
+  // Item Card Component
+  const ItemCard = ({ item, isKanban = false }) => (
+    <div style={{
+      ...styles.itemCard,
+      ...(isKanban ? styles.kanbanCard : {})
+    }}>
+      <div style={styles.itemHeader}>
+        <div style={styles.itemTypeIndicator}>
+          <span style={styles.itemTypeIcon}>
+            {item.type === 'goal' ? '🎯' : '📋'}
+          </span>
+          <span style={styles.itemTypeText}>{item.type}</span>
+        </div>
+        <div style={{
+          ...styles.priorityBadge,
+          backgroundColor: getPriorityColor(item.priority)
+        }}>
+          {item.priority}
+        </div>
+      </div>
+
+      <h3 style={styles.itemTitle}>{item.title}</h3>
+      
+      {item.description && (
+        <p style={styles.itemDescription}>
+          {item.description.length > 100 ? 
+            item.description.substring(0, 100) + '...' : 
+            item.description
+          }
+        </p>
+      )}
+
+      {/* Progress Bar for Goals */}
+      {item.type === 'goal' && (
+        <div style={styles.progressSection}>
+          <div style={styles.progressBar}>
+            <div 
+              style={{
+                ...styles.progressFill,
+                width: `${item.progress || 0}%`
+              }}
+            />
+          </div>
+          <div style={styles.progressControls}>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="10"
+              value={item.progress || 0}
+              onChange={(e) => updateItemProgress(item.id, parseInt(e.target.value))}
+              style={styles.progressSlider}
+            />
+            <span style={styles.progressText}>{item.progress || 0}%</span>
+          </div>
+        </div>
+      )}
+
+      <div style={styles.itemMeta}>
+        <div style={styles.itemDetails}>
+          <span style={styles.itemMetaItem}>
+            📅 {formatDate(item.target_date)}
+          </span>
+          {item.estimated_hours && (
+            <span style={styles.itemMetaItem}>
+              ⏱️ {item.estimated_hours}h
+            </span>
+          )}
+        </div>
+        
+        <div style={styles.itemCategory}>
+          {getCategoryIcon(item.category)} {item.category}
+        </div>
+      </div>
+
+      <div style={styles.itemFooter}>
+        <span style={{
+          ...styles.statusBadge,
+          backgroundColor: getStatusColor(item.status)
+        }}>
+          {item.status.replace('_', ' ')}
+        </span>
+        
+        <div style={styles.itemActions}>
+          <button 
+            style={styles.editButton}
+            onClick={() => startEditItem(item)}
+          >
+            Edit
+          </button>
+          <button 
+            style={styles.deleteButton}
+            onClick={() => deleteItem(item.id)}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (loading) {
     return (
       <div style={styles.container}>
-        <div style={{ textAlign: 'center', padding: '60px', color: '#6c757d' }}>
-          Loading goals...
+        <div style={styles.loadingState}>
+          <h2>Loading tasks & goals...</h2>
         </div>
       </div>
     );
@@ -518,206 +457,187 @@ function SoloProjectGoals() {
     <div style={styles.container}>
       {/* Header */}
       <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>Goals</h1>
-          <p style={styles.subtitle}>Track your project objectives and milestones</p>
+        <div style={styles.headerTop}>
+          <h1 style={styles.title}>Tasks & Goals</h1>
+          <button 
+            style={styles.createButton}
+            onClick={() => setShowCreateModal(true)}
+          >
+            + Add Item
+          </button>
         </div>
-        <button
-          style={styles.createButton}
-          onClick={() => setShowCreateGoal(true)}
-        >
-          + Create Goal
-        </button>
+
+        {/* View Mode Toggle */}
+        <div style={styles.viewToggle}>
+          <button 
+            style={{
+              ...styles.viewButton,
+              ...(viewMode === 'list' ? styles.viewButtonActive : {})
+            }}
+            onClick={() => setViewMode('list')}
+          >
+            📝 List
+          </button>
+          <button 
+            style={{
+              ...styles.viewButton,
+              ...(viewMode === 'kanban' ? styles.viewButtonActive : {})
+            }}
+            onClick={() => setViewMode('kanban')}
+          >
+            📋 Kanban
+          </button>
+          <button 
+            style={{
+              ...styles.viewButton,
+              ...(viewMode === 'goals' ? styles.viewButtonActive : {})
+            }}
+            onClick={() => setViewMode('goals')}
+          >
+            🎯 Goals Focus
+          </button>
+        </div>
+
+        {/* Stats Bar */}
+        <div style={styles.statsBar}>
+          <div style={styles.statItem}>📋 {itemStats.tasks} Tasks</div>
+          <div style={styles.statItem}>🎯 {itemStats.goals} Goals</div>
+          <div style={styles.statItem}>✅ {itemStats.completed} Completed</div>
+          <div style={styles.statItem}>🔄 {itemStats.active} Active</div>
+          {itemStats.overdue > 0 && (
+            <div style={{...styles.statItem, color: '#dc3545'}}>
+              ⚠️ {itemStats.overdue} Overdue
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Error */}
-      {error && <div style={styles.error}>⚠️ {error}</div>}
-
-      {/* Stats Cards */}
-      <div style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <div style={styles.statNumber}>{goalStats.total}</div>
-          <div style={styles.statLabel}>Total Goals</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statNumber}>{goalStats.completed}</div>
-          <div style={styles.statLabel}>Completed</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statNumber}>{goalStats.active}</div>
-          <div style={styles.statLabel}>Active</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statNumber}>{goalStats.overdue}</div>
-          <div style={styles.statLabel}>Overdue</div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div style={styles.tabsContainer}>
+      {/* Filter Tabs */}
+      <div style={styles.filterTabs}>
         {[
-          { key: 'all', label: 'All Goals' },
-          { key: 'active', label: 'Active' },
-          { key: 'completed', label: 'Completed' },
-          { key: 'overdue', label: 'Overdue' }
+          { key: 'all', label: 'All Items', count: itemStats.total },
+          { key: 'active', label: 'Active', count: itemStats.active },
+          { key: 'completed', label: 'Completed', count: itemStats.completed },
+          { key: 'tasks', label: 'Tasks Only', count: itemStats.tasks },
+          { key: 'goals', label: 'Goals Only', count: itemStats.goals },
+          ...(itemStats.overdue > 0 ? [{ key: 'overdue', label: 'Overdue', count: itemStats.overdue }] : [])
         ].map(tab => (
           <button
             key={tab.key}
             style={{
-              ...styles.tab,
-              ...(activeTab === tab.key ? styles.tabActive : {})
+              ...styles.filterTab,
+              ...(activeTab === tab.key ? styles.filterTabActive : {})
             }}
             onClick={() => setActiveTab(tab.key)}
           >
-            {tab.label}
+            {tab.label} ({tab.count})
           </button>
         ))}
       </div>
 
-      {/* Goals Grid */}
-      <div style={styles.goalsGrid}>
-        {filteredGoals.length > 0 ? (
-          filteredGoals.map((goal) => {
-            const daysUntil = getDaysUntilTarget(goal.target_date);
-            const isOverdue = daysUntil !== null && daysUntil < 0 && goal.status !== 'completed';
-            const progress = typeof goal.progress === 'number' ? goal.progress : (goal.status === 'completed' ? 100 : 0);
+      {/* Error Message */}
+      {error && (
+        <div style={styles.errorMessage}>
+          {error}
+        </div>
+      )}
 
-            return (
-              <div
-                key={goal.id}
-                style={styles.goalCard}
-                onMouseEnter={(e) => {
-                  Object.assign(e.currentTarget.style, styles.goalCardHover);
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'none';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
-              >
-                <div style={styles.goalHeader}>
-                  <h3 style={styles.goalTitle}>{goal.title}</h3>
-                  <div style={styles.goalActions}>
-                    <button
-                      style={{...styles.actionButton, color: '#dc3545'}}
-                      onClick={() => deleteGoal(goal.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                <div style={styles.goalMeta}>
-                  <span
-                    style={{
-                      ...styles.priorityBadge,
-                      backgroundColor: getPriorityColor(goal.priority)
-                    }}
-                  >
-                    {goal.priority} priority
-                  </span>
-
-                  <span style={styles.categoryBadge}>
-                    {getCategoryIcon(goal.category)} {goal.category}
-                  </span>
-
-                  <span style={{
-                    ...styles.targetDate,
-                    ...(isOverdue ? styles.overdue : {})
-                  }}>
-                    {goal.target_date ? (
-                      isOverdue
-                        ? `Overdue by ${Math.abs(daysUntil)} days`
-                        : daysUntil === 0
-                        ? 'Due today'
-                        : daysUntil > 0
-                        ? `${daysUntil} days left`
-                        : formatDate(goal.target_date)
-                    ) : 'No deadline'}
-                  </span>
-                </div>
-
-                {goal.description && (
-                  <p style={styles.goalDescription}>{goal.description}</p>
-                )}
-
-                {/* Progress Section */}
-                <div style={styles.progressSection}>
-                  <div style={styles.progressHeader}>
-                    <span style={styles.progressLabel}>Progress</span>
-                    <span style={styles.progressValue}>{progress}%</span>
-                  </div>
-                  <div style={styles.progressBar}>
-                    <div
-                      style={{
-                        ...styles.progressFill,
-                        width: `${progress}%`
-                      }}
-                    />
-                  </div>
-
-                  {goal.status !== 'completed' && (
-                    <div style={styles.progressControls}>
-                      <button
-                        style={styles.progressButton}
-                        onClick={() => updateGoalProgress(goal.id, Math.max(0, progress - 10))}
-                      >
-                        -10%
-                      </button>
-                      <button
-                        style={styles.progressButton}
-                        onClick={() => updateGoalProgress(goal.id, Math.min(100, progress + 10))}
-                      >
-                        +10%
-                      </button>
-                      <button
-                        style={styles.progressButton}
-                        onClick={() => updateGoalProgress(goal.id, Math.min(100, progress + 25))}
-                      >
-                        +25%
-                      </button>
-                      {progress < 100 && (
-                        <button
-                          style={styles.progressButton}
-                          onClick={() => updateGoalProgress(goal.id, 100)}
-                        >
-                          Complete
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {goal.completed_at && (
-                  <div style={{ fontSize: '12px', color: '#28a745', fontWeight: '500' }}>
-                    ✅ Completed on {formatDate(goal.completed_at)}
-                  </div>
-                )}
-              </div>
-            );
-          })
+      {/* Main Content */}
+      <div style={styles.content}>
+        {viewMode === 'kanban' ? (
+          <KanbanView />
         ) : (
-          <div style={styles.emptyState}>
-            <div style={styles.emptyStateIcon}>🎯</div>
-            <div>No goals found</div>
+          <div style={styles.itemGrid}>
+            {filteredItems.length > 0 ? (
+              filteredItems.map(item => (
+                <ItemCard key={item.id} item={item} />
+              ))
+            ) : (
+              <div style={styles.emptyState}>
+                <div style={styles.emptyStateIcon}>
+                  {activeTab === 'tasks' ? '📋' : activeTab === 'goals' ? '🎯' : '✅'}
+                </div>
+                <div style={styles.emptyStateText}>
+                  No {activeTab === 'all' ? 'items' : activeTab} found
+                </div>
+                <button 
+                  style={styles.emptyStateButton}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  Create your first {activeTab === 'tasks' ? 'task' : activeTab === 'goals' ? 'goal' : 'item'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Create Goal Modal */}
-      {showCreateGoal && (
-        <div style={styles.modal} onClick={() => setShowCreateGoal(false)}>
+      {/* Create/Edit Modal */}
+      {showCreateModal && (
+        <div style={styles.modal} onClick={() => {
+          setShowCreateModal(false);
+          setEditingItem(null);
+          setNewItem({
+            title: '',
+            description: '',
+            target_date: '',
+            priority: 'medium',
+            category: 'feature',
+            type: 'goal',
+            estimated_hours: '',
+            task_type: 'development'
+          });
+        }}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 style={styles.modalTitle}>Create New Goal</h2>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>
+                {editingItem ? 'Edit' : 'Create'} {newItem.type === 'task' ? 'Task' : 'Goal'}
+              </h2>
+              <button 
+                style={styles.closeButton}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setEditingItem(null);
+                }}
+              >
+                ✕
+              </button>
+            </div>
 
-            <form style={styles.form} onSubmit={handleCreateGoal}>
+            <form onSubmit={editingItem ? handleUpdateItem : handleCreateItem}>
+              {/* Type Toggle */}
+              <div style={styles.typeToggle}>
+                <button
+                  type="button"
+                  style={{
+                    ...styles.typeButton,
+                    ...(newItem.type === 'task' ? styles.typeButtonActive : {})
+                  }}
+                  onClick={() => setNewItem({...newItem, type: 'task'})}
+                >
+                  📋 Task
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    ...styles.typeButton,
+                    ...(newItem.type === 'goal' ? styles.typeButtonActive : {})
+                  }}
+                  onClick={() => setNewItem({...newItem, type: 'goal'})}
+                >
+                  🎯 Goal
+                </button>
+              </div>
+
+              {/* Common Fields */}
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Goal Title *</label>
+                <label style={styles.formLabel}>Title *</label>
                 <input
                   style={styles.formInput}
                   type="text"
-                  value={newGoal.title}
-                  onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-                  placeholder="Enter goal title"
+                  value={newItem.title}
+                  onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
+                  placeholder={`Enter ${newItem.type} title`}
                   required
                 />
               </div>
@@ -726,23 +646,24 @@ function SoloProjectGoals() {
                 <label style={styles.formLabel}>Description</label>
                 <textarea
                   style={styles.formTextarea}
-                  value={newGoal.description}
-                  onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-                  placeholder="Describe your goal in detail..."
+                  value={newItem.description}
+                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                  placeholder={`Describe your ${newItem.type}...`}
+                  rows="3"
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={styles.formRow}>
                 <div style={styles.formGroup}>
                   <label style={styles.formLabel}>Priority</label>
                   <select
                     style={styles.formInput}
-                    value={newGoal.priority}
-                    onChange={(e) => setNewGoal({ ...newGoal, priority: e.target.value })}
+                    value={newItem.priority}
+                    onChange={(e) => setNewItem({ ...newItem, priority: e.target.value })}
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value="low">Low Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="high">High Priority</option>
                   </select>
                 </div>
 
@@ -750,8 +671,8 @@ function SoloProjectGoals() {
                   <label style={styles.formLabel}>Category</label>
                   <select
                     style={styles.formInput}
-                    value={newGoal.category}
-                    onChange={(e) => setNewGoal({ ...newGoal, category: e.target.value })}
+                    value={newItem.category}
+                    onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
                   >
                     <option value="learning">Learning</option>
                     <option value="feature">Feature</option>
@@ -763,13 +684,60 @@ function SoloProjectGoals() {
                 </div>
               </div>
 
+              {/* Task-specific Fields */}
+              {newItem.type === 'task' && (
+                <div style={styles.taskSpecificFields}>
+                  <div style={styles.formRow}>
+                    <div style={styles.formGroup}>
+                      <label style={styles.formLabel}>Task Type</label>
+                      <select
+                        style={styles.formInput}
+                        value={newItem.task_type}
+                        onChange={(e) => setNewItem({ ...newItem, task_type: e.target.value })}
+                      >
+                        <option value="development">Development</option>
+                        <option value="design">Design</option>
+                        <option value="research">Research</option>
+                        <option value="planning">Planning</option>
+                        <option value="testing">Testing</option>
+                        <option value="documentation">Documentation</option>
+                      </select>
+                    </div>
+
+                    <div style={styles.formGroup}>
+                      <label style={styles.formLabel}>Estimated Hours</label>
+                      <input
+                        style={styles.formInput}
+                        type="number"
+                        value={newItem.estimated_hours}
+                        onChange={(e) => setNewItem({ ...newItem, estimated_hours: e.target.value })}
+                        placeholder="0"
+                        min="0"
+                        step="0.5"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Goal-specific Fields */}
+              {newItem.type === 'goal' && (
+                <div style={styles.goalSpecificFields}>
+                  <p style={styles.goalNote}>
+                    🎯 Goals are tracked with progress updates and focus on long-term objectives
+                  </p>
+                </div>
+              )}
+
               <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Target Date</label>
+                <label style={styles.formLabel}>
+                  {newItem.type === 'task' ? 'Due Date' : 'Target Date'}
+                </label>
                 <input
                   style={styles.formInput}
                   type="date"
-                  value={newGoal.target_date}
-                  onChange={(e) => setNewGoal({ ...newGoal, target_date: e.target.value })}
+                  value={newItem.target_date}
+                  onChange={(e) => setNewItem({ ...newItem, target_date: e.target.value })}
                 />
               </div>
 
@@ -777,16 +745,19 @@ function SoloProjectGoals() {
                 <button
                   type="button"
                   style={styles.cancelButton}
-                  onClick={() => setShowCreateGoal(false)}
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setEditingItem(null);
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   style={styles.submitButton}
-                  disabled={!newGoal.title.trim()}
+                  disabled={!newItem.title.trim()}
                 >
-                  Create Goal
+                  {editingItem ? 'Update' : 'Create'} {newItem.type === 'task' ? 'Task' : 'Goal'}
                 </button>
               </div>
             </form>
@@ -796,5 +767,466 @@ function SoloProjectGoals() {
     </div>
   );
 }
+
+// Comprehensive Styles
+const styles = {
+  container: {
+    padding: '24px',
+    backgroundColor: '#f8fafc',
+    minHeight: '100vh'
+  },
+  header: {
+    marginBottom: '32px'
+  },
+  headerTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  },
+  title: {
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#1a202c',
+    margin: 0
+  },
+  createButton: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease'
+  },
+  viewToggle: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '20px'
+  },
+  viewButton: {
+    backgroundColor: 'white',
+    color: '#64748b',
+    border: '2px solid #e2e8f0',
+    padding: '8px 16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  viewButtonActive: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    borderColor: '#3b82f6'
+  },
+  statsBar: {
+    display: 'flex',
+    gap: '24px',
+    flexWrap: 'wrap'
+  },
+  statItem: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#64748b'
+  },
+  filterTabs: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '24px',
+    flexWrap: 'wrap'
+  },
+  filterTab: {
+    backgroundColor: 'white',
+    color: '#64748b',
+    border: '1px solid #e2e8f0',
+    padding: '8px 16px',
+    borderRadius: '20px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  filterTabActive: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    borderColor: '#3b82f6'
+  },
+  content: {
+    marginBottom: '24px'
+  },
+  itemGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+    gap: '20px'
+  },
+  itemCard: {
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    border: '1px solid #e2e8f0',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+  },
+  kanbanBoard: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+    gap: '20px',
+    minHeight: '500px'
+  },
+  kanbanColumn: {
+    backgroundColor: '#f8fafc',
+    borderRadius: '12px',
+    padding: '16px'
+  },
+  kanbanHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px'
+  },
+  kanbanTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: '#1a202c',
+    margin: 0
+  },
+  kanbanCount: {
+    backgroundColor: '#e2e8f0',
+    color: '#64748b',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500'
+  },
+  kanbanItems: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px'
+  },
+  kanbanCard: {
+    margin: 0
+  },
+  itemHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px'
+  },
+  itemTypeIndicator: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  itemTypeIcon: {
+    fontSize: '16px'
+  },
+  itemTypeText: {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#64748b',
+    textTransform: 'uppercase'
+  },
+  priorityBadge: {
+    color: 'white',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
+  },
+  itemTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    color: '#1a202c',
+    margin: '0 0 12px 0'
+  },
+  itemDescription: {
+    fontSize: '14px',
+    color: '#64748b',
+    margin: '0 0 16px 0',
+    lineHeight: '1.5'
+  },
+  progressSection: {
+    marginBottom: '16px'
+  },
+  progressBar: {
+    height: '6px',
+    backgroundColor: '#e2e8f0',
+    borderRadius: '3px',
+    overflow: 'hidden',
+    marginBottom: '8px'
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#10b981',
+    borderRadius: '3px',
+    transition: 'width 0.3s ease'
+  },
+  progressControls: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  progressSlider: {
+    flex: 1,
+    height: '4px',
+    appearance: 'none',
+    backgroundColor: '#e2e8f0',
+    borderRadius: '2px',
+    outline: 'none'
+  },
+  progressText: {
+    fontSize: '12px',
+    fontWeight: '500',
+    color: '#64748b',
+    minWidth: '40px'
+  },
+  itemMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px'
+  },
+  itemDetails: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '4px'
+  },
+  itemMetaItem: {
+    fontSize: '12px',
+    color: '#64748b'
+  },
+  itemCategory: {
+    fontSize: '12px',
+    color: '#64748b',
+    fontWeight: '500'
+  },
+  itemFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: '16px',
+    borderTop: '1px solid #f1f5f9'
+  },
+  statusBadge: {
+    color: 'white',
+    padding: '4px 12px',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
+  },
+  itemActions: {
+    display: 'flex',
+    gap: '8px'
+  },
+  editButton: {
+    backgroundColor: '#f59e0b',
+    color: 'white',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  deleteButton: {
+    backgroundColor: '#ef4444',
+    color: 'white',
+    border: 'none',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '80px 20px',
+    color: '#64748b',
+    gridColumn: '1 / -1'
+  },
+  emptyStateIcon: {
+    fontSize: '64px',
+    marginBottom: '16px',
+    opacity: 0.5
+  },
+  emptyStateText: {
+    fontSize: '18px',
+    marginBottom: '16px'
+  },
+  emptyStateButton: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  loadingState: {
+    textAlign: 'center',
+    padding: '80px 20px',
+    color: '#64748b'
+  },
+  errorMessage: {
+    backgroundColor: '#fef2f2',
+    border: '1px solid #fecaca',
+    color: '#dc2626',
+    padding: '16px',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    textAlign: 'center'
+  },
+  modal: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: '12px',
+    width: '90%',
+    maxWidth: '500px',
+    maxHeight: '90vh',
+    overflow: 'auto'
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '24px 24px 0 24px',
+    marginBottom: '20px'
+  },
+  modalTitle: {
+    fontSize: '24px',
+    fontWeight: '600',
+    color: '#1a202c',
+    margin: 0
+  },
+  closeButton: {
+    background: 'none',
+    border: 'none',
+    fontSize: '24px',
+    color: '#64748b',
+    cursor: 'pointer',
+    padding: '4px'
+  },
+  typeToggle: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '20px',
+    padding: '0 24px'
+  },
+  typeButton: {
+    flex: 1,
+    backgroundColor: 'white',
+    color: '#64748b',
+    border: '2px solid #e2e8f0',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  typeButtonActive: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    borderColor: '#3b82f6'
+  },
+  formGroup: {
+    marginBottom: '20px'
+  },
+  formRow: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+    marginBottom: '20px'
+  },
+  formLabel: {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '6px'
+  },
+  formInput: {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '14px',
+    transition: 'border-color 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  formTextarea: {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '14px',
+    transition: 'border-color 0.2s ease',
+    boxSizing: 'border-box',
+    resize: 'vertical'
+  },
+  taskSpecificFields: {
+    backgroundColor: '#eff6ff',
+    padding: '16px',
+    borderRadius: '8px',
+    marginBottom: '20px'
+  },
+  goalSpecificFields: {
+    backgroundColor: '#f0fdf4',
+    padding: '16px',
+    borderRadius: '8px',
+    marginBottom: '20px'
+  },
+  goalNote: {
+    fontSize: '14px',
+    color: '#059669',
+    margin: 0,
+    fontStyle: 'italic'
+  },
+  formActions: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    padding: '24px',
+    borderTop: '1px solid #f1f5f9'
+  },
+  cancelButton: {
+    backgroundColor: 'white',
+    color: '#64748b',
+    border: '1px solid #d1d5db',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  submitButton: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    border: 'none',
+    padding: '12px 24px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease'
+  }
+};
 
 export default SoloProjectGoals;

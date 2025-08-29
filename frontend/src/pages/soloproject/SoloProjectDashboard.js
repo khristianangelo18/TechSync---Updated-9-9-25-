@@ -131,14 +131,19 @@ function SoloProjectDashboard() {
 
   // Quick actions
   const handleQuickTaskCreate = async () => {
-    try {
-      navigate(`/project/${projectId}/tasks`);
-      // Log activity
-      await logActivity('navigated to', 'Tasks page', 'project_updated');
-    } catch (error) {
-      console.error('Failed to navigate to tasks:', error);
-    }
-  };
+  try {
+    // ❌ CHANGE THIS LINE FROM:
+    // navigate(`/project/${projectId}/tasks`);
+    
+    // ✅ TO THIS LINE:
+    navigate(`/soloproject/${projectId}/goals`);
+    
+    // Log activity (keep existing code)
+    await logActivity('navigated to', 'Tasks page', 'project_updated');
+  } catch (error) {
+    console.error('Failed to navigate to tasks:', error);
+  }
+};
 
   const handleQuickGoalCreate = async () => {
     try {
