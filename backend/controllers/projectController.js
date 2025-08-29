@@ -70,34 +70,47 @@ const createProject = async (req, res) => {
         
         // If it's a string, find or create the language
         if (typeof langData === 'string') {
+          // Clean the language name first
+          const cleanLangName = langData
+            .trim()
+            .replace(/^\*\*\s*/, '')
+            .replace(/\s*\*\*$/, '')
+            .replace(/\*\*/g, '')
+            .replace(/[()[\]{}]/g, '')
+            .trim();
+
+          console.log(`ProjectController: Cleaning language "${langData}" -> "${cleanLangName}"`);
+
+          // Only search for existing languages - NEVER create new ones
           let { data: language } = await supabase
             .from('programming_languages')
             .select('id')
-            .eq('name', langData)
+            .ilike('name', cleanLangName)  // Case-insensitive search
             .single();
 
           if (!language) {
-            const { data: newLang, error: langError } = await supabase
+            // Try exact match
+            const { data: exactMatch } = await supabase
               .from('programming_languages')
-              .insert({ 
-                name: langData, 
-                is_active: true,
-                created_by: userId
-              })
-              .select()
+              .select('id')
+              .eq('name', cleanLangName)
               .single();
-
-            if (langError) {
-              console.error('Error creating language:', langError);
-              continue;
-            }
-            language = newLang;
+            
+            language = exactMatch;
           }
-          languageId = language.id;
+
+          if (language) {
+            languageId = language.id;
+            console.log(`ProjectController: Found existing language: ${cleanLangName} -> ID:${languageId}`);
+          } else {
+            console.log(`ProjectController: Language "${cleanLangName}" NOT FOUND in database - SKIPPING`);
+            continue; // Skip this language instead of creating it
+          }
         } else {
           // If it's an object with id
           languageId = langData.id || langData.language_id;
         }
+
 
         // FIXED: Add to project_languages with correct column name
         const { error: projLangError } = await supabase

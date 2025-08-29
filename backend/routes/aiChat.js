@@ -21,105 +21,84 @@ try {
 }
 
 // FIXED: Programming language mapping - EXACT match to your database
-const LANGUAGE_MAPPING = {
-  'javascript': 'JavaScript',
-  'js': 'JavaScript',
-  'node.js': 'JavaScript',
-  'nodejs': 'JavaScript', 
-  'react': 'JavaScript',
-  'vue': 'JavaScript',
-  'vue.js': 'JavaScript',
-  'angular': 'JavaScript',
-  'express': 'JavaScript',
-  'express.js': 'JavaScript',
-  'next.js': 'JavaScript',
-  'nextjs': 'JavaScript',
-  'nest.js': 'JavaScript',
-  'nestjs': 'JavaScript',
-  'react native': 'JavaScript',
-  
-  'python': 'Python',
-  'py': 'Python',
-  'django': 'Python',
-  'flask': 'Python',
-  'fastapi': 'Python',
-  
-  'java': 'Java',
-  'spring': 'Java',
-  'spring boot': 'Java',
-  'hibernate': 'Java',
-  
-  'c++': 'C++',
-  'cpp': 'C++',
-  'c plus plus': 'C++',
-  'c': 'C',
-  
-  'c#': 'C#',
-  'csharp': 'C#',
-  'c sharp': 'C#',
-  '.net': 'C#',
-  'dotnet': 'C#',
-  'asp.net': 'C#',
-  
-  'php': 'PHP',
-  'laravel': 'PHP',
-  'symfony': 'PHP',
-  'codeigniter': 'PHP',
-  
-  'ruby': 'Ruby',
-  'rails': 'Ruby',
-  'ruby on rails': 'Ruby',
-  
-  'go': 'Go',
-  'golang': 'Go',
-  'rust': 'Rust',
-  'swift': 'Swift',
-  'kotlin': 'Kotlin',
-  
-  'typescript': 'TypeScript',
-  'ts': 'TypeScript',
-  
-  'html': 'HTML',
-  'css': 'CSS',
-  'scss': 'CSS',
-  'sass': 'CSS',
-  'tailwind': 'CSS',
-  'bootstrap': 'CSS',
-  
-  'sql': 'SQL',
-  'mysql': 'SQL',
-  'postgresql': 'SQL',
-  'postgres': 'SQL',
-  'sqlite': 'SQL',
-  'mongodb': 'SQL',
-  
-  'dart': 'Dart',
-  'flutter': 'Dart',
-  'r': 'R',
-  'matlab': 'MATLAB',
-  'scala': 'Scala',
-  'perl': 'Perl',
-  'bash': 'Shell',
-  'shell': 'Shell',
-  'powershell': 'PowerShell'
-};
-
-// Helper function to normalize language names
 const normalizeProgrammingLanguage = (langName) => {
   if (!langName || typeof langName !== 'string') return null;
   
-  // Remove markdown formatting and clean
-  const cleaned = langName
+  // AGGRESSIVE cleaning - remove all markdown and formatting
+  let cleaned = langName
     .toLowerCase()
     .trim()
-    .replace(/^\*\*\s*/, '')    // Remove ** from start
-    .replace(/\s*\*\*$/, '')    // Remove ** from end
-    .replace(/[()[\]{}]/g, '')  // Remove parentheses/brackets
-    .replace(/\s+/g, ' ')       // Normalize whitespace
+    .replace(/^\*\*\s*/, '')        // Remove ** from start  
+    .replace(/\s*\*\*$/, '')        // Remove ** from end
+    .replace(/\*\*/g, '')           // Remove any remaining **
+    .replace(/[()[\]{}]/g, '')      // Remove brackets
+    .replace(/\s+/g, ' ')           // Normalize whitespace
     .trim();
-  
-  return LANGUAGE_MAPPING[cleaned] || langName.trim().replace(/^\*\*\s*/, '').replace(/\s*\*\*$/, '');
+
+  // Language mapping - map frameworks to core languages
+  const LANGUAGE_MAPPING = {
+    'javascript': 'JavaScript',
+    'js': 'JavaScript', 
+    'react': 'JavaScript',
+    'vue': 'JavaScript',
+    'angular': 'JavaScript',
+    'node': 'JavaScript',
+    'nodejs': 'JavaScript',
+    'node.js': 'JavaScript',
+    'express': 'JavaScript',
+    'next': 'JavaScript',
+    'nextjs': 'JavaScript',
+    'next.js': 'JavaScript',
+    
+    'python': 'Python',
+    'django': 'Python',
+    'flask': 'Python',
+    'fastapi': 'Python',
+    
+    'java': 'Java',
+    'spring': 'Java',
+    
+    'c++': 'C++',
+    'cpp': 'C++',
+    'c': 'C',
+    
+    'c#': 'C#',
+    'csharp': 'C#',
+    'dotnet': 'C#',
+    '.net': 'C#',
+    
+    'php': 'PHP',
+    'laravel': 'PHP',
+    
+    'ruby': 'Ruby',
+    'rails': 'Ruby',
+    
+    'go': 'Go',
+    'golang': 'Go',
+    
+    'rust': 'Rust',
+    'swift': 'Swift',
+    'kotlin': 'Kotlin',
+    'typescript': 'TypeScript',
+    'ts': 'TypeScript',
+    
+    'html': 'HTML',
+    'css': 'CSS',
+    'scss': 'CSS',
+    'sass': 'CSS',
+    
+    'sql': 'SQL',
+    'mysql': 'SQL',
+    'postgresql': 'SQL',
+    'postgres': 'SQL',
+    
+    'dart': 'Dart',
+    'flutter': 'Dart'
+  };
+
+  return LANGUAGE_MAPPING[cleaned] || cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 };
+
 
 // AI Chat endpoint
 router.post('/', auth, async (req, res) => {
@@ -253,41 +232,42 @@ router.post('/create-project', auth, async (req, res) => {
     const processedNames = new Set();
 
     if (projectData.programming_languages && Array.isArray(projectData.programming_languages)) {
+      console.log('Processing languages:', projectData.programming_languages);
+      
       for (const rawLangName of projectData.programming_languages) {
         if (!rawLangName || typeof rawLangName !== 'string') continue;
 
-        // AGGRESSIVE cleaning of language name
-        let cleanName = rawLangName
+        // Clean the language name
+        const cleanedName = rawLangName
           .trim()
           .replace(/^\*\*\s*/, '')        // Remove ** prefix
           .replace(/\s*\*\*$/, '')        // Remove ** suffix  
+          .replace(/\*\*/g, '')           // Remove all **
           .replace(/[()[\]{}]/g, '')      // Remove brackets
-          .replace(/\s+/g, ' ')           // Normalize spaces
           .trim();
 
-        console.log(`🧹 Cleaning: "${rawLangName}" -> "${cleanName}"`);
+        console.log(`Cleaning language: "${rawLangName}" -> "${cleanedName}"`);
 
         // Normalize using mapping
-        const normalizedName = normalizeProgrammingLanguage(cleanName);
-        console.log(`🔄 Normalized: "${cleanName}" -> "${normalizedName}"`);
+        const normalizedName = normalizeProgrammingLanguage(cleanedName);
+        console.log(`Normalized: "${cleanedName}" -> "${normalizedName}"`);
 
         // Skip duplicates
         if (processedNames.has(normalizedName?.toLowerCase())) {
-          console.log(`⏭️ Skipping duplicate: ${normalizedName}`);
+          console.log(`Skipping duplicate: ${normalizedName}`);
           continue;
         }
 
-        // STRICT: Find exact match in database
+        // STRICT: Only use existing languages from database
         let dbLang = langByName.get(normalizedName);
         if (!dbLang) {
           dbLang = langByLowerName.get(normalizedName?.toLowerCase());
         }
 
         if (dbLang) {
-          console.log(`✅ FOUND in database: "${normalizedName}" -> ID:${dbLang.id} Name:"${dbLang.name}"`);
+          console.log(`✓ FOUND in database: "${normalizedName}" -> ID:${dbLang.id} Name:"${dbLang.name}"`);
           
           processedNames.add(normalizedName.toLowerCase());
-          
           const isPrimary = languagesAdded.length === 0;
           
           try {
@@ -302,17 +282,21 @@ router.post('/create-project', auth, async (req, res) => {
               is_primary: isPrimary
             });
             
-            console.log(`✅ Added to project: "${dbLang.name}" (primary: ${isPrimary})`);
+            console.log(`✓ Added to project: "${dbLang.name}" (primary: ${isPrimary})`);
           } catch (linkError) {
-            console.error(`❌ Link error for "${dbLang.name}":`, linkError);
+            console.error(`Error linking language "${dbLang.name}":`, linkError);
           }
         } else {
-          // ABSOLUTELY NO NEW LANGUAGE CREATION
-          console.log(`❌ NOT FOUND in database: "${normalizedName}"`);
-          console.log('🚫 WILL NOT CREATE NEW LANGUAGE - SKIPPING');
+          // CRITICAL: NEVER CREATE NEW LANGUAGES
+          console.log(`X NOT FOUND in database: "${normalizedName}"`);
+          console.log('X SKIPPING - WILL NOT CREATE NEW LANGUAGE');
+          
+          // Log available languages for debugging
+          console.log('Available languages:', existingLanguages.slice(0, 10).map(l => l.name).join(', ') + '...');
         }
       }
     }
+
 
     // Ensure at least one language (default to JavaScript)
     if (languagesAdded.length === 0) {

@@ -1,4 +1,4 @@
-// Clean AIChatInterface.js with Preview Functionality (No Generate Button)
+// Clean AIChatInterface.js with Preview Functionality (No Generate Button) - ESLint Warnings Fixed
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { aiChatService } from '../../services/aiChatService';
@@ -94,6 +94,39 @@ What would you like to work on today?`,
     } finally {
       setCreatingProject(null);
     }
+  };
+
+    const cleanTechnologyName = (tech) => {
+    if (!tech) return tech;
+    
+    // Remove markdown formatting and normalize
+    let cleaned = tech
+      .trim()
+      .replace(/^\*\*\s*/, '')        // Remove ** from start
+      .replace(/\s*\*\*$/, '')        // Remove ** from end
+      .replace(/\*\*/g, '')           // Remove all **
+      .replace(/[()[\]{}]/g, '')      // Remove brackets
+      .replace(/\s+/g, ' ')           // Normalize spaces
+      .trim();
+
+    // Map frameworks to core languages
+    const techMap = {
+      'react': 'JavaScript',
+      'vue': 'JavaScript', 
+      'angular': 'JavaScript',
+      'node': 'JavaScript',
+      'nodejs': 'JavaScript',
+      'node.js': 'JavaScript',
+      'express': 'JavaScript',
+      'django': 'Python',
+      'flask': 'Python',
+      'spring': 'Java',
+      'laravel': 'PHP',
+      'rails': 'Ruby'
+    };
+    
+    const lowerCleaned = cleaned.toLowerCase();
+    return techMap[lowerCleaned] || cleaned;
   };
 
   // Function to extract project data from AI response - IMPROVED VERSION
@@ -350,10 +383,10 @@ What would you like to work on today?`,
       const sentences = content.split(/[.!?]+/).filter(s => s.trim());
       const description = sentences.slice(0, 2).join('.').trim() + (sentences.length ? '.' : '');
       
-      // Look for any technologies mentioned
+      // Look for any technologies mentioned - Fixed ESLint warning by using different variable name
       const techMatches = content.match(/(?:technologies|tech|using|with):\s*([^\n]+)/i);
-      const technologies = techMatches ? 
-        techMatches[1].split(/[,&+/|]/).map(t => t.trim()).filter(t => t) : 
+      const extractedTechnologies = techMatches ? 
+        techMatches[1].split(/[,&+/|]/).map(t => cleanTechnologyName(t.trim())).filter(t => t) : 
         ['JavaScript'];
       
       // Look for difficulty
@@ -373,7 +406,7 @@ What would you like to work on today?`,
                                   difficulty_level === 'medium' ? 'intermediate' :
                                   difficulty_level === 'hard' ? 'advanced' : 'expert',
         maximum_members: 1,
-        programming_languages: technologies,
+        programming_languages: extractedTechnologies,
         topics: ['Web Development']
       };
       
