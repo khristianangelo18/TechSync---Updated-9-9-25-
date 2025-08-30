@@ -156,7 +156,7 @@ router.put(
   soloProjectController.updateGoal
 );
 
-// DELETE /api/solo-projects/:projectId/goals/:goalId - Delete goal
+// DELETE /api/solo-projects/:projectId/goals/:goalId - Delete goals
 router.delete(
   '/:projectId/goals/:goalId',
   projectIdValidation,
