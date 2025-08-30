@@ -15,17 +15,12 @@ function SoloProjectSidebar() {
 
   // Solo Project navigation items - focused on individual productivity
   const soloProjectNavItems = [
-  { id: 'dashboard', label: 'Dashboard', path: `/soloproject/${projectId}/dashboard`, icon: '📊' },
-  // ❌ CHANGE THIS LINE FROM:
-  // { id: 'goals', label: 'Goals', path: `/soloproject/${projectId}/goals`, icon: '🎯' },
-  
-  // ✅ TO THIS LINE:
-  { id: 'goals', label: 'Tasks & Goals', path: `/soloproject/${projectId}/goals`, icon: '✅' },
-  
-  { id: 'info', label: 'Project Info', path: `/soloproject/${projectId}/info`, icon: '📋' },
-  { id: 'challenge', label: 'Weekly Challenge', path: `/soloproject/${projectId}/challenge`, icon: '🏆' },
-  { id: 'notes', label: 'Notes', path: `/soloproject/${projectId}/notes`, icon: '📝' }
-];
+    { id: 'dashboard', label: 'Dashboard', path: `/soloproject/${projectId}/dashboard`, icon: '📊' },
+    { id: 'goals', label: 'Tasks & Goals', path: `/soloproject/${projectId}/goals`, icon: '🎯' }, // CHANGED: label from 'Goals' to 'Tasks & Goals'
+    { id: 'info', label: 'Project Info', path: `/soloproject/${projectId}/info`, icon: '📋' },
+    { id: 'challenge', label: 'Weekly Challenge', path: `/soloproject/${projectId}/challenge`, icon: '🏆' },
+    { id: 'notes', label: 'Notes', path: `/soloproject/${projectId}/notes`, icon: '📝' }
+  ];
 
   const bottomNavItems = [
     { id: 'help', label: 'Help Center', path: `/soloproject/${projectId}/help`, icon: '❓' }

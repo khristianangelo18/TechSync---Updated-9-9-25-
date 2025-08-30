@@ -1,4 +1,4 @@
-// frontend/src/pages/soloproject/SoloProjectGoals.js - ENHANCED UNIFIED VERSION
+// frontend/src/pages/soloproject/SoloProjectGoals.js - COMPLETE WITH FIXED PROGRESS TRACKING
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import SoloProjectService from '../../services/soloProjectService';
@@ -29,7 +29,7 @@ function SoloProjectGoals() {
   const [activeTab, setActiveTab] = useState('all');
   const [editingItem, setEditingItem] = useState(null);
 
-  // Fetch goals/tasks from API
+  // FIXED: Enhanced data fetching with proper progress tracking
   useEffect(() => {
     let isMounted = true;
 
@@ -43,12 +43,26 @@ function SoloProjectGoals() {
         });
         const apiItems = res?.data?.goals || [];
         
-        // Enhance items with UI-only properties
-        const enhancedItems = apiItems.map(item => ({
-          ...item,
-          progress: item.status === 'completed' ? 100 : 0,
-          type: item.estimated_hours ? 'task' : 'goal' // Infer type based on data
-        }));
+        // Enhance items with UI-only properties and proper progress tracking
+        const enhancedItems = apiItems.map(item => {
+          // Calculate progress based on status if not explicitly set
+          let progress = item.progress || 0;
+          if (!item.progress) {
+            if (item.status === 'completed') {
+              progress = 100;
+            } else if (item.status === 'in_progress') {
+              progress = 50; // Default for in-progress items
+            } else {
+              progress = 0;
+            }
+          }
+
+          return {
+            ...item,
+            progress: progress,
+            type: item.estimated_hours ? 'task' : 'goal' // Infer type based on data
+          };
+        });
         
         if (isMounted) setItems(enhancedItems);
       } catch (err) {
@@ -119,35 +133,65 @@ function SoloProjectGoals() {
     }
   };
 
-  // Update progress locally and persist status via API
+  // FIXED: Enhanced progress tracking that prevents resets
   const updateItemProgress = async (itemId, newProgress) => {
+    // Store original item for rollback if needed
+    const originalItem = items.find(item => item.id === itemId);
+    
+    // Update progress optimistically in UI
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
-        return { ...item, progress: newProgress };
+        return { 
+          ...item, 
+          progress: newProgress,
+          // Also update status based on progress
+          status: newProgress >= 100 ? 'completed' : newProgress > 0 ? 'in_progress' : 'active'
+        };
       }
       return item;
     }));
 
-    const newStatus = newProgress >= 100 ? 'completed' : 'active';
+    // Determine the appropriate status based on progress
+    let newStatus = 'active';
+    if (newProgress >= 100) {
+      newStatus = 'completed';
+    } else if (newProgress > 0) {
+      newStatus = 'in_progress';
+    }
 
     try {
-      const res = await SoloProjectService.updateGoal(projectId, itemId, { status: newStatus });
+      // Send both progress and status to the backend
+      const updateData = { 
+        status: newStatus,
+        // If your backend supports progress field, include it
+        progress: newProgress 
+      };
+
+      const res = await SoloProjectService.updateGoal(projectId, itemId, updateData);
       const updatedItem = res?.data?.goal;
+      
       if (updatedItem) {
+        // Merge the response but preserve our progress value
         setItems(prev => prev.map(item => 
-          item.id === itemId ? { ...item, ...updatedItem } : item
+          item.id === itemId ? { 
+            ...item, 
+            ...updatedItem, 
+            progress: newProgress, // Force our progress value
+            type: item.type // Preserve the type
+          } : item
         ));
       }
     } catch (err) {
-      // Revert progress if API call fails
-      setItems(prev => prev.map(item => {
-        if (item.id === itemId) {
-          const fallbackProgress = item.status === 'completed' ? 100 : 0;
-          return { ...item, progress: fallbackProgress };
-        }
-        return item;
-      }));
-      alert(err?.response?.data?.message || 'Failed to update item');
+      console.error('Progress update failed:', err);
+      
+      // Rollback to original state if API call fails
+      if (originalItem) {
+        setItems(prev => prev.map(item => 
+          item.id === itemId ? originalItem : item
+        ));
+      }
+      
+      alert(err?.response?.data?.message || 'Failed to update progress');
     }
   };
 
@@ -254,12 +298,6 @@ function SoloProjectGoals() {
     });
   };
 
-  const getDaysUntilTarget = (targetDate) => {
-    if (!targetDate) return null;
-    const days = Math.ceil((new Date(targetDate) - new Date()) / (1000 * 60 * 60 * 24));
-    return days;
-  };
-
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high': return '#dc3545';
@@ -316,7 +354,7 @@ function SoloProjectGoals() {
     const completedItems = filteredItems.filter(i => i.status === 'completed');
     const blockedItems = filteredItems.filter(i => i.status === 'blocked');
 
-    const KanbanColumn = ({ title, items: columnItems, status }) => (
+    const KanbanColumn = ({ title, items: columnItems }) => (
       <div style={styles.kanbanColumn}>
         <div style={styles.kanbanHeader}>
           <h3 style={styles.kanbanTitle}>{title}</h3>
@@ -332,11 +370,11 @@ function SoloProjectGoals() {
 
     return (
       <div style={styles.kanbanBoard}>
-        <KanbanColumn title="To Do" items={todoItems} status="todo" />
-        <KanbanColumn title="In Progress" items={inProgressItems} status="in_progress" />
-        <KanbanColumn title="Completed" items={completedItems} status="completed" />
+        <KanbanColumn title="To Do" items={todoItems} />
+        <KanbanColumn title="In Progress" items={inProgressItems} />
+        <KanbanColumn title="Completed" items={completedItems} />
         {blockedItems.length > 0 && (
-          <KanbanColumn title="Blocked" items={blockedItems} status="blocked" />
+          <KanbanColumn title="Blocked" items={blockedItems} />
         )}
       </div>
     );
@@ -374,7 +412,7 @@ function SoloProjectGoals() {
         </p>
       )}
 
-      {/* Progress Bar for Goals */}
+      {/* FIXED: Enhanced Progress Bar for Goals */}
       {item.type === 'goal' && (
         <div style={styles.progressSection}>
           <div style={styles.progressBar}>
@@ -390,12 +428,77 @@ function SoloProjectGoals() {
               type="range"
               min="0"
               max="100"
-              step="10"
+              step="5" // Changed to 5% increments for smoother control
               value={item.progress || 0}
-              onChange={(e) => updateItemProgress(item.id, parseInt(e.target.value))}
+              onChange={(e) => {
+                const newProgress = parseInt(e.target.value);
+                // Immediate UI feedback
+                setItems(prev => prev.map(i => 
+                  i.id === item.id ? { ...i, progress: newProgress } : i
+                ));
+              }}
+              onMouseUp={(e) => {
+                // Only call API when user releases the slider
+                const newProgress = parseInt(e.target.value);
+                updateItemProgress(item.id, newProgress);
+              }}
+              onTouchEnd={(e) => {
+                // Handle touch devices
+                const newProgress = parseInt(e.target.value);
+                updateItemProgress(item.id, newProgress);
+              }}
               style={styles.progressSlider}
             />
             <span style={styles.progressText}>{item.progress || 0}%</span>
+          </div>
+          
+          {/* Quick progress buttons */}
+          <div style={styles.quickProgress}>
+            <button 
+              style={{
+                ...styles.progressButton,
+                ...(item.progress === 0 ? styles.progressButtonActive : {})
+              }}
+              onClick={() => updateItemProgress(item.id, 0)}
+            >
+              0%
+            </button>
+            <button 
+              style={{
+                ...styles.progressButton,
+                ...(item.progress === 25 ? styles.progressButtonActive : {})
+              }}
+              onClick={() => updateItemProgress(item.id, 25)}
+            >
+              25%
+            </button>
+            <button 
+              style={{
+                ...styles.progressButton,
+                ...(item.progress === 50 ? styles.progressButtonActive : {})
+              }}
+              onClick={() => updateItemProgress(item.id, 50)}
+            >
+              50%
+            </button>
+            <button 
+              style={{
+                ...styles.progressButton,
+                ...(item.progress === 75 ? styles.progressButtonActive : {})
+              }}
+              onClick={() => updateItemProgress(item.id, 75)}
+            >
+              75%
+            </button>
+            <button 
+              style={{
+                ...styles.progressButton,
+                ...(item.progress === 100 ? styles.progressButtonActive : {})
+              }}
+              onClick={() => updateItemProgress(item.id, 100)}
+            >
+              Done
+            </button>
           </div>
         </div>
       )}
@@ -589,6 +692,7 @@ function SoloProjectGoals() {
           });
         }}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
             <div style={styles.modalHeader}>
               <h2 style={styles.modalTitle}>
                 {editingItem ? 'Edit' : 'Create'} {newItem.type === 'task' ? 'Task' : 'Goal'}
@@ -599,12 +703,15 @@ function SoloProjectGoals() {
                   setShowCreateModal(false);
                   setEditingItem(null);
                 }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={editingItem ? handleUpdateItem : handleCreateItem}>
+            {/* Body with scrollable content */}
+            <div style={styles.modalBody}>
               {/* Type Toggle */}
               <div style={styles.typeToggle}>
                 <button
@@ -614,6 +721,16 @@ function SoloProjectGoals() {
                     ...(newItem.type === 'task' ? styles.typeButtonActive : {})
                   }}
                   onClick={() => setNewItem({...newItem, type: 'task'})}
+                  onMouseEnter={(e) => {
+                    if (newItem.type !== 'task') {
+                      e.target.style.backgroundColor = '#f8fafc';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (newItem.type !== 'task') {
+                      e.target.style.backgroundColor = 'white';
+                    }
+                  }}
                 >
                   📋 Task
                 </button>
@@ -624,143 +741,198 @@ function SoloProjectGoals() {
                     ...(newItem.type === 'goal' ? styles.typeButtonActive : {})
                   }}
                   onClick={() => setNewItem({...newItem, type: 'goal'})}
+                  onMouseEnter={(e) => {
+                    if (newItem.type !== 'goal') {
+                      e.target.style.backgroundColor = '#f8fafc';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (newItem.type !== 'goal') {
+                      e.target.style.backgroundColor = 'white';
+                    }
+                  }}
                 >
                   🎯 Goal
                 </button>
               </div>
 
-              {/* Common Fields */}
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Title *</label>
-                <input
-                  style={styles.formInput}
-                  type="text"
-                  value={newItem.title}
-                  onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
-                  placeholder={`Enter ${newItem.type} title`}
-                  required
-                />
-              </div>
+              {/* Form Container */}
+              <div style={styles.formContainer}>
+                <form onSubmit={editingItem ? handleUpdateItem : handleCreateItem}>
+                  {/* Title Field */}
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Title *</label>
+                    <input
+                      style={styles.formInput}
+                      type="text"
+                      value={newItem.title}
+                      onChange={(e) => setNewItem({ ...newItem, title: e.target.value })}
+                      placeholder={`Enter ${newItem.type} title`}
+                      required
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>Description</label>
-                <textarea
-                  style={styles.formTextarea}
-                  value={newItem.description}
-                  onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
-                  placeholder={`Describe your ${newItem.type}...`}
-                  rows="3"
-                />
-              </div>
+                  {/* Description Field */}
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>Description</label>
+                    <textarea
+                      style={styles.formTextarea}
+                      value={newItem.description}
+                      onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
+                      placeholder={`Describe your ${newItem.type}...`}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  </div>
 
-              <div style={styles.formRow}>
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Priority</label>
-                  <select
-                    style={styles.formInput}
-                    value={newItem.priority}
-                    onChange={(e) => setNewItem({ ...newItem, priority: e.target.value })}
-                  >
-                    <option value="low">Low Priority</option>
-                    <option value="medium">Medium Priority</option>
-                    <option value="high">High Priority</option>
-                  </select>
-                </div>
-
-                <div style={styles.formGroup}>
-                  <label style={styles.formLabel}>Category</label>
-                  <select
-                    style={styles.formInput}
-                    value={newItem.category}
-                    onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                  >
-                    <option value="learning">Learning</option>
-                    <option value="feature">Feature</option>
-                    <option value="bug_fix">Bug Fix</option>
-                    <option value="optimization">Optimization</option>
-                    <option value="documentation">Documentation</option>
-                    <option value="testing">Testing</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Task-specific Fields */}
-              {newItem.type === 'task' && (
-                <div style={styles.taskSpecificFields}>
+                  {/* Priority and Category Row */}
                   <div style={styles.formRow}>
                     <div style={styles.formGroup}>
-                      <label style={styles.formLabel}>Task Type</label>
+                      <label style={styles.formLabel}>Priority</label>
                       <select
                         style={styles.formInput}
-                        value={newItem.task_type}
-                        onChange={(e) => setNewItem({ ...newItem, task_type: e.target.value })}
+                        value={newItem.priority}
+                        onChange={(e) => setNewItem({ ...newItem, priority: e.target.value })}
                       >
-                        <option value="development">Development</option>
-                        <option value="design">Design</option>
-                        <option value="research">Research</option>
-                        <option value="planning">Planning</option>
-                        <option value="testing">Testing</option>
-                        <option value="documentation">Documentation</option>
+                        <option value="low">Low Priority</option>
+                        <option value="medium">Medium Priority</option>
+                        <option value="high">High Priority</option>
                       </select>
                     </div>
 
                     <div style={styles.formGroup}>
-                      <label style={styles.formLabel}>Estimated Hours</label>
-                      <input
+                      <label style={styles.formLabel}>Category</label>
+                      <select
                         style={styles.formInput}
-                        type="number"
-                        value={newItem.estimated_hours}
-                        onChange={(e) => setNewItem({ ...newItem, estimated_hours: e.target.value })}
-                        placeholder="0"
-                        min="0"
-                        step="0.5"
-                      />
+                        value={newItem.category}
+                        onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
+                      >
+                        <option value="learning">Learning</option>
+                        <option value="feature">Feature</option>
+                        <option value="bug_fix">Bug Fix</option>
+                        <option value="optimization">Optimization</option>
+                        <option value="documentation">Documentation</option>
+                        <option value="testing">Testing</option>
+                      </select>
                     </div>
                   </div>
-                </div>
-              )}
 
-              {/* Goal-specific Fields */}
-              {newItem.type === 'goal' && (
-                <div style={styles.goalSpecificFields}>
-                  <p style={styles.goalNote}>
-                    🎯 Goals are tracked with progress updates and focus on long-term objectives
-                  </p>
-                </div>
-              )}
+                  {/* Task-specific Fields */}
+                  {newItem.type === 'task' && (
+                    <div style={styles.taskSpecificFields}>
+                      <div style={styles.formRow}>
+                        <div style={styles.formGroup}>
+                          <label style={styles.formLabel}>Task Type</label>
+                          <select
+                            style={styles.formInput}
+                            value={newItem.task_type}
+                            onChange={(e) => setNewItem({ ...newItem, task_type: e.target.value })}
+                          >
+                            <option value="development">Development</option>
+                            <option value="design">Design</option>
+                            <option value="research">Research</option>
+                            <option value="planning">Planning</option>
+                            <option value="testing">Testing</option>
+                            <option value="documentation">Documentation</option>
+                          </select>
+                        </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.formLabel}>
-                  {newItem.type === 'task' ? 'Due Date' : 'Target Date'}
-                </label>
-                <input
-                  style={styles.formInput}
-                  type="date"
-                  value={newItem.target_date}
-                  onChange={(e) => setNewItem({ ...newItem, target_date: e.target.value })}
-                />
+                        <div style={styles.formGroup}>
+                          <label style={styles.formLabel}>Estimated Hours</label>
+                          <input
+                            style={styles.formInput}
+                            type="number"
+                            value={newItem.estimated_hours}
+                            onChange={(e) => setNewItem({ ...newItem, estimated_hours: e.target.value })}
+                            placeholder="0"
+                            min="0"
+                            step="0.5"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Goal-specific Fields */}
+                  {newItem.type === 'goal' && (
+                    <div style={styles.goalSpecificFields}>
+                      <p style={styles.goalNote}>
+                        🎯 Goals are tracked with progress updates and focus on long-term objectives
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Target Date */}
+                  <div style={styles.formGroup}>
+                    <label style={styles.formLabel}>
+                      {newItem.type === 'task' ? 'Due Date' : 'Target Date'}
+                    </label>
+                    <input
+                      style={styles.formInput}
+                      type="date"
+                      value={newItem.target_date}
+                      onChange={(e) => setNewItem({ ...newItem, target_date: e.target.value })}
+                    />
+                  </div>
+                </form>
               </div>
+            </div>
 
-              <div style={styles.formActions}>
-                <button
-                  type="button"
-                  style={styles.cancelButton}
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setEditingItem(null);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={styles.submitButton}
-                  disabled={!newItem.title.trim()}
-                >
-                  {editingItem ? 'Update' : 'Create'} {newItem.type === 'task' ? 'Task' : 'Goal'}
-                </button>
-              </div>
-            </form>
+            {/* Footer Actions */}
+            <div style={styles.formActions}>
+              <button
+                type="button"
+                style={styles.cancelButton}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setEditingItem(null);
+                }}
+                onMouseEnter={(e) => Object.assign(e.target.style, styles.cancelButtonHover)}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'white';
+                  e.target.style.borderColor = '#e2e8f0';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  ...styles.submitButton,
+                  ...(newItem.title.trim() ? {} : styles.submitButtonDisabled)
+                }}
+                onClick={editingItem ? handleUpdateItem : handleCreateItem}
+                disabled={!newItem.title.trim()}
+                onMouseEnter={(e) => {
+                  if (newItem.title.trim()) {
+                    Object.assign(e.target.style, styles.submitButtonHover);
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (newItem.title.trim()) {
+                    e.target.style.backgroundColor = '#3b82f6';
+                    e.target.style.transform = 'none';
+                    e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.1)';
+                  }
+                }}
+              >
+                {editingItem ? 'Update' : 'Create'} {newItem.type === 'task' ? 'Task' : 'Goal'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -768,7 +940,7 @@ function SoloProjectGoals() {
   );
 }
 
-// Comprehensive Styles
+// COMPLETE STYLES WITH FIXED PROGRESS TRACKING
 const styles = {
   container: {
     padding: '24px',
@@ -953,36 +1125,60 @@ const styles = {
     marginBottom: '16px'
   },
   progressBar: {
-    height: '6px',
+    height: '8px',
     backgroundColor: '#e2e8f0',
-    borderRadius: '3px',
+    borderRadius: '4px',
     overflow: 'hidden',
-    marginBottom: '8px'
+    marginBottom: '10px'
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#10b981',
-    borderRadius: '3px',
+    borderRadius: '4px',
     transition: 'width 0.3s ease'
   },
   progressControls: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px'
+    gap: '12px',
+    marginBottom: '10px'
   },
   progressSlider: {
     flex: 1,
-    height: '4px',
+    height: '6px',
     appearance: 'none',
     backgroundColor: '#e2e8f0',
-    borderRadius: '2px',
-    outline: 'none'
+    borderRadius: '3px',
+    outline: 'none',
+    cursor: 'pointer'
   },
   progressText: {
-    fontSize: '12px',
-    fontWeight: '500',
+    fontSize: '13px',
+    fontWeight: '600',
     color: '#64748b',
     minWidth: '40px'
+  },
+  // NEW: Quick progress buttons styles
+  quickProgress: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap'
+  },
+  progressButton: {
+    backgroundColor: '#f8fafc',
+    color: '#64748b',
+    border: '1px solid #e2e8f0',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontSize: '11px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  progressButtonActive: {
+    backgroundColor: '#3b82f6',
+    color: 'white',
+    borderColor: '#3b82f6'
   },
   itemMeta: {
     display: 'flex',
@@ -1031,7 +1227,8 @@ const styles = {
     borderRadius: '6px',
     fontSize: '12px',
     fontWeight: '500',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease'
   },
   deleteButton: {
     backgroundColor: '#ef4444',
@@ -1041,7 +1238,8 @@ const styles = {
     borderRadius: '6px',
     fontSize: '12px',
     fontWeight: '500',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease'
   },
   emptyState: {
     textAlign: 'center',
@@ -1082,6 +1280,8 @@ const styles = {
     marginBottom: '20px',
     textAlign: 'center'
   },
+  
+  // MODAL STYLES
   modal: {
     position: 'fixed',
     top: 0,
@@ -1092,140 +1292,198 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000
+    zIndex: 1000,
+    padding: '20px'
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: '12px',
+    borderRadius: '16px',
     width: '90%',
-    maxWidth: '500px',
+    maxWidth: '600px',
     maxHeight: '90vh',
-    overflow: 'auto'
+    overflow: 'hidden',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    display: 'flex',
+    flexDirection: 'column'
   },
   modalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '24px 24px 0 24px',
-    marginBottom: '20px'
+    padding: '32px 32px 24px 32px',
+    borderBottom: '1px solid #f1f5f9',
+    backgroundColor: '#fafafa'
   },
   modalTitle: {
-    fontSize: '24px',
-    fontWeight: '600',
+    fontSize: '28px',
+    fontWeight: '700',
     color: '#1a202c',
     margin: 0
   },
   closeButton: {
     background: 'none',
     border: 'none',
-    fontSize: '24px',
+    fontSize: '28px',
     color: '#64748b',
     cursor: 'pointer',
-    padding: '4px'
+    padding: '8px',
+    borderRadius: '8px',
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '40px',
+    height: '40px'
+  },
+  modalBody: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '0'
   },
   typeToggle: {
     display: 'flex',
-    gap: '8px',
-    marginBottom: '20px',
-    padding: '0 24px'
+    gap: '12px',
+    margin: '24px 32px',
+    padding: '6px',
+    backgroundColor: '#f8fafc',
+    borderRadius: '12px'
   },
   typeButton: {
     flex: 1,
     backgroundColor: 'white',
     color: '#64748b',
-    border: '2px solid #e2e8f0',
-    padding: '12px 16px',
+    border: '2px solid transparent',
+    padding: '16px 20px',
     borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
+    fontSize: '16px',
+    fontWeight: '600',
     cursor: 'pointer',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px'
   },
   typeButtonActive: {
     backgroundColor: '#3b82f6',
     color: 'white',
-    borderColor: '#3b82f6'
+    borderColor: '#3b82f6',
+    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1)'
+  },
+  formContainer: {
+    padding: '0 32px 24px 32px'
   },
   formGroup: {
-    marginBottom: '20px'
+    marginBottom: '24px'
   },
   formRow: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: '16px',
-    marginBottom: '20px'
+    gap: '20px',
+    marginBottom: '24px'
   },
   formLabel: {
     display: 'block',
-    fontSize: '14px',
-    fontWeight: '500',
+    fontSize: '15px',
+    fontWeight: '600',
     color: '#374151',
-    marginBottom: '6px'
+    marginBottom: '8px'
   },
   formInput: {
     width: '100%',
-    padding: '12px',
-    borderRadius: '8px',
-    border: '1px solid #d1d5db',
-    fontSize: '14px',
-    transition: 'border-color 0.2s ease',
-    boxSizing: 'border-box'
+    padding: '14px 16px',
+    borderRadius: '10px',
+    border: '2px solid #e2e8f0',
+    fontSize: '15px',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box',
+    fontFamily: 'inherit'
   },
   formTextarea: {
     width: '100%',
-    padding: '12px',
-    borderRadius: '8px',
-    border: '1px solid #d1d5db',
-    fontSize: '14px',
-    transition: 'border-color 0.2s ease',
+    padding: '14px 16px',
+    borderRadius: '10px',
+    border: '2px solid #e2e8f0',
+    fontSize: '15px',
+    transition: 'all 0.2s ease',
     boxSizing: 'border-box',
-    resize: 'vertical'
+    resize: 'vertical',
+    minHeight: '120px',
+    fontFamily: 'inherit',
+    lineHeight: '1.5'
   },
   taskSpecificFields: {
-    backgroundColor: '#eff6ff',
-    padding: '16px',
-    borderRadius: '8px',
-    marginBottom: '20px'
+    backgroundColor: '#f0f9ff',
+    padding: '24px',
+    borderRadius: '12px',
+    marginBottom: '24px',
+    border: '2px solid #e0f2fe'
   },
   goalSpecificFields: {
     backgroundColor: '#f0fdf4',
-    padding: '16px',
-    borderRadius: '8px',
-    marginBottom: '20px'
+    padding: '24px',
+    borderRadius: '12px',
+    marginBottom: '24px',
+    border: '2px solid #dcfce7'
   },
   goalNote: {
-    fontSize: '14px',
+    fontSize: '15px',
     color: '#059669',
     margin: 0,
-    fontStyle: 'italic'
+    fontStyle: 'italic',
+    lineHeight: '1.5',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
   },
   formActions: {
     display: 'flex',
-    gap: '12px',
+    gap: '16px',
     justifyContent: 'flex-end',
-    padding: '24px',
-    borderTop: '1px solid #f1f5f9'
+    padding: '24px 32px 32px 32px',
+    borderTop: '1px solid #f1f5f9',
+    backgroundColor: '#fafafa'
   },
   cancelButton: {
     backgroundColor: 'white',
     color: '#64748b',
-    border: '1px solid #d1d5db',
-    padding: '12px 24px',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer'
+    border: '2px solid #e2e8f0',
+    padding: '14px 28px',
+    borderRadius: '10px',
+    fontSize: '15px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    minWidth: '120px'
+  },
+  cancelButtonHover: {
+    backgroundColor: '#f8fafc',
+    borderColor: '#cbd5e1'
   },
   submitButton: {
     backgroundColor: '#3b82f6',
     color: 'white',
-    border: 'none',
-    padding: '12px 24px',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
+    border: '2px solid #3b82f6',
+    padding: '14px 28px',
+    borderRadius: '10px',
+    fontSize: '15px',
+    fontWeight: '600',
     cursor: 'pointer',
-    transition: 'background-color 0.2s ease'
+    transition: 'all 0.2s ease',
+    minWidth: '160px',
+    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1)'
+  },
+  submitButtonHover: {
+    backgroundColor: '#2563eb',
+    transform: 'translateY(-1px)',
+    boxShadow: '0 8px 15px -3px rgba(59, 130, 246, 0.2)'
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    borderColor: '#9ca3af',
+    cursor: 'not-allowed',
+    transform: 'none',
+    boxShadow: 'none'
   }
 };
 

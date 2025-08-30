@@ -128,7 +128,7 @@ router.post(
 router.get(
   '/:projectId/goals',
   projectIdValidation,
-  query('status').optional().isIn(['active', 'completed', 'paused']).withMessage('Invalid status filter'),
+  query('status').optional().isIn(['active', 'completed', 'paused', 'todo', 'in_progress', 'in_review', 'blocked']).withMessage('Invalid status filter'),
   query('category').optional().isIn(['learning', 'feature', 'bug_fix', 'optimization', 'documentation', 'testing']).withMessage('Invalid category filter'),
   handleValidationErrors,
   soloProjectController.getGoals
@@ -150,7 +150,7 @@ router.put(
   param('goalId').isUUID().withMessage('Goal ID must be a valid UUID'),
   body('title').optional().trim().isLength({ min: 1, max: 200 }).withMessage('Goal title must be between 1 and 200 characters'),
   body('description').optional().trim().isLength({ max: 1000 }).withMessage('Goal description must not exceed 1000 characters'),
-  body('status').optional().isIn(['active', 'completed', 'paused']).withMessage('Invalid status'),
+  body('status').optional().isIn(['active', 'completed', 'paused', 'todo', 'in_progress', 'in_review', 'blocked']).withMessage('Invalid status'),
   body('priority').optional().isIn(['low', 'medium', 'high']).withMessage('Invalid priority'),
   handleValidationErrors,
   soloProjectController.updateGoal

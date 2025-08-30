@@ -177,17 +177,35 @@ const getDashboardData = async (req, res) => {
     const dashboardData = {
       project, // FIXED: Now includes programming languages and topics
       stats: {
+        // Existing task stats
         totalTasks: allTasks.length,
         completedTasks: completed.length,
         inProgressTasks: inProgress.length,
         completionRate,
+        
+        // Existing goal stats
         totalGoals: allGoals.length,
         completedGoals: completedGoals.length,
         activeGoals: activeGoals.length,
+        
+        // NEW: Unified stats for the enhanced dashboard
+        totalItems: allTasks.length + allGoals.length,  // ← ADD: Combined total
+        completedItems: completed.length + completedGoals.length,  // ← ADD: Combined completed
+        activeItems: inProgress.length + activeGoals.length,  // ← ADD: Combined active
+        combinedCompletionRate: (allTasks.length + allGoals.length) > 0 ?  // ← ADD: Combined completion rate
+          Math.round(((completed.length + completedGoals.length) / (allTasks.length + allGoals.length)) * 100) : 0,
+        
+        // Existing time tracking
         timeSpentToday,
         streakDays
-      }
+      },
+      
+      // NEW: Add the actual tasks and goals data for the dashboard to use
+      tasks: allTasks.slice(0, 10), // ← ADD: Recent tasks for dashboard display
+      goals: allGoals.slice(0, 10)  // ← ADD: Recent goals for dashboard display
     };
+
+    
 
     console.log('✅ Dashboard data retrieved successfully with programming languages');
 
@@ -318,12 +336,12 @@ const logActivity = async (req, res) => {
 const getGoals = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { status, category, sort_by = 'created_at', sort_order = 'desc' } = req.query;
+    const { status, category, type, sort_by = 'created_at', sort_order = 'desc' } = req.query; // ← ADD type filter
     const userId = req.user.id;
 
     console.log('🎯 Getting goals for solo project:', projectId);
 
-    // Verify access
+    // Verify access (keep your existing verification code)
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
     if (!accessCheck.success) {
       return res.status(accessCheck.statusCode || 404).json({
@@ -332,7 +350,7 @@ const getGoals = async (req, res) => {
       });
     }
 
-    // Build query
+    // Build query (keep your existing query building)
     let query = supabase
       .from('solo_project_goals')
       .select('*')
@@ -341,6 +359,13 @@ const getGoals = async (req, res) => {
 
     if (status) query = query.eq('status', status);
     if (category) query = query.eq('category', category);
+    
+    // ADD: Filter by type (task vs goal)
+    if (type === 'task') {
+      query = query.not('estimated_hours', 'is', null);
+    } else if (type === 'goal') {
+      query = query.is('estimated_hours', null);
+    }
 
     const { data: goals, error: goalsError } = await query;
 
@@ -352,11 +377,19 @@ const getGoals = async (req, res) => {
       });
     }
 
+    // ADD: Enhance goals with computed properties for unified display
+    const enhancedGoals = (goals || []).map(goal => ({
+      ...goal,
+      type: goal.estimated_hours ? 'task' : 'goal', // ← ADD type detection
+      progress: goal.status === 'completed' ? 100 : 0, // ← ADD progress
+      is_overdue: goal.target_date && new Date(goal.target_date) < new Date() && goal.status !== 'completed' // ← ADD overdue check
+    }));
+
     console.log('✅ Goals retrieved successfully');
 
     res.json({
       success: true,
-      data: { goals: goals || [] }
+      data: { goals: enhancedGoals } // ← Return enhanced goals
     });
 
   } catch (error) {
@@ -371,12 +404,12 @@ const getGoals = async (req, res) => {
 const createGoal = async (req, res) => {
   try {
     const { projectId } = req.params;
-    const { title, description, priority, category, target_date } = req.body;
+    const { title, description, priority, category, target_date, estimated_hours } = req.body; // ← ADD estimated_hours
     const userId = req.user.id;
 
     console.log('🎯 Creating goal for solo project:', projectId);
 
-    // Verify access
+    // Verify access (keep your existing verification code)
     const accessCheck = await verifySoloProjectAccess(projectId, userId);
     if (!accessCheck.success) {
       return res.status(accessCheck.statusCode || 404).json({
@@ -385,18 +418,26 @@ const createGoal = async (req, res) => {
       });
     }
 
-    // Create goal
+    // ENHANCED: Create goal with optional task-like fields
+    const goalData = {
+      project_id: projectId,
+      user_id: userId,  // ← IMPORTANT: Add this if it was missing
+      title,
+      description,
+      priority: priority || 'medium',
+      category: category || 'general',
+      target_date,
+      status: 'active'
+    };
+
+    // ADD: Support for task-like goals
+    if (estimated_hours && parseInt(estimated_hours) > 0) {
+      goalData.estimated_hours = parseInt(estimated_hours);
+    }
+
     const { data: goal, error: goalError } = await supabase
       .from('solo_project_goals')
-      .insert({
-        project_id: projectId,
-        title,
-        description,
-        priority: priority || 'medium',
-        category: category || 'general',
-        target_date,
-        status: 'active'
-      })
+      .insert(goalData)
       .select()
       .single();
 
