@@ -1,11 +1,15 @@
-// frontend/src/App.js - COMPLETE VERSION WITH SOLO PROJECT WORKSPACE
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Layout from './pages/Layout';
 import ProjectLayout from './pages/ProjectLayout';
+import LandingPage from './pages/LandingPage';
+import DevelopersPage from './pages/DevelopersPage';
+import Features from './pages/Features';
+import AboutPage from './pages/AboutPage';
 import Login from './pages/Login';
 import Onboarding from './pages/Onboarding';
 import Dashboard from './pages/Dashboard';
@@ -17,76 +21,286 @@ import ManageUsers from './pages/ManageUsers';
 import ProjectJoinPage from './pages/ProjectJoinPage';
 import TaskDetail from './pages/project/TaskDetail';
 import GitHubOAuthCallback from './components/GitHubOAuthCallback';
-import { projectService } from './services/projectService';
 
-// Regular Project workspace components
+// Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
 import ProjectTasks from './pages/project/ProjectTasks';
 import ProjectChats from './pages/project/ProjectChats';
 import ProjectFiles from './pages/project/ProjectFiles';
 import ProjectMembers from './pages/project/ProjectMembers';
+import About from './pages/AboutPage';
 
-// Solo Project workspace components
-import SoloProjectLayout from './pages/soloproject/SoloProjectLayout';
-import SoloProjectDashboard from './pages/soloproject/SoloProjectDashboard';
-import SoloProjectGoals from './pages/soloproject/SoloProjectGoals';
-import SoloProjectInfo from './pages/soloproject/SoloProjectInfo';
-import SoloWeeklyChallenge from './pages/soloproject/SoloWeeklyChallenge';
-import SoloProjectNotes from './pages/soloproject/SoloProjectNotes';
+// ScrollToTop Component
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
 
 // Placeholder components for missing pages
-import Friends from './pages/Friends';
+const Friends = () => <div style={{ padding: '30px' }}>Friends feature coming soon...</div>;
 const Learns = () => <div style={{ padding: '30px' }}>Learning resources coming soon...</div>;
 const Help = () => <div style={{ padding: '30px' }}>Help center coming soon...</div>;
 
-// Project Router Component - determines if project should use solo or team workspace
-const ProjectRouter = () => {
-  const { projectId } = useParams();
-  const [project, setProject] = useState(null);
-  const [loading, setLoading] = useState(true);
+// Themed Loading Component
+const ThemedLoadingScreen = () => {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#0F1116',
+      color: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.5;
+            }
+          }
+          
+          @keyframes rotate {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+          
+          .loading-spinner {
+            animation: rotate 2s linear infinite;
+          }
+          
+          .loading-text {
+            animation: pulse 1.5s ease-in-out infinite;
+          }
+        `}
+      </style>
 
-  useEffect(() => {
-    const fetchProject = async () => {
-      try {
-        const response = await projectService.getProjectById(projectId);
-        if (response.success) {
-          setProject(response.data.project);
-        }
-      } catch (error) {
-        console.error('Error fetching project:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      {/* Background Elements - same as landing page */}
+      <svg 
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 0
+        }}
+        viewBox="0 0 1440 1024"
+        preserveAspectRatio="none"
+      >
+        <path
+          d="M0,400 Q200,300 400,350 T800,320 Q1000,280 1200,340 L1440,360 L1440,1024 L0,1024 Z"
+          fill="rgba(255,255,255,0.02)"
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="1"
+          opacity={0.02}
+        />
+        <path
+          d="M0,600 Q300,500 600,550 T1200,520 L1440,540 L1440,1024 L0,1024 Z"
+          fill="rgba(255,255,255,0.02)"
+          stroke="rgba(255,255,255,0.05)"
+          strokeWidth="1"
+          opacity={0.015}
+        />
+      </svg>
 
-    if (projectId) {
-      fetchProject();
-    }
-  }, [projectId]);
-
-  if (loading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        <h2>Loading project...</h2>
+      {/* Code symbols background */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+        <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            position: 'absolute',
+            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            fontStyle: 'normal',
+            fontWeight: 900,
+            fontSize: '24px',
+            lineHeight: '29px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+            left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+          }}>&#60;/&#62;</div>
+        </div>
       </div>
-    );
-  }
 
-  // Check if this is a solo project (1/1 members)
-  const isSoloProject = project && project.maximum_members === 1 && project.current_members === 1;
+      {/* Main Loading Content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        textAlign: 'center'
+      }}>
+        {/* Logo */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+            borderRadius: '6px',
+            transform: 'rotate(45deg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }} className="loading-spinner">
+            <div style={{
+              width: '24px',
+              height: '24px',
+              background: 'white',
+              borderRadius: '3px',
+              transform: 'rotate(-45deg)'
+            }} />
+          </div>
+          <span style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
+            letterSpacing: '-0.025em'
+          }}>TechSync</span>
+        </div>
 
-  if (isSoloProject) {
-    // Redirect to solo project dashboard
-    return <Navigate to={`/soloproject/${projectId}/dashboard`} replace />;
-  } else {
-    // Redirect to regular project dashboard
-    return <Navigate to={`/project/${projectId}/dashboard`} replace />;
-  }
+        {/* Loading Text */}
+        <h2 style={{
+          fontSize: '1.5rem',
+          fontWeight: '500',
+          color: '#d1d5db',
+          margin: '0 0 1rem 0'
+        }} className="loading-text">
+          Loading...
+        </h2>
+
+        {/* Progress Bar */}
+        <div style={{
+          width: '200px',
+          height: '4px',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '2px',
+          margin: '0 auto',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '100%',
+            backgroundColor: '#60a5fa',
+            borderRadius: '2px',
+            animation: 'slideProgress 1.5s ease-in-out infinite',
+            background: 'linear-gradient(to right, #60a5fa, #3b82f6)'
+          }} />
+        </div>
+
+        <style>
+          {`
+            @keyframes slideProgress {
+              0% {
+                transform: translateX(-100px);
+              }
+              50% {
+                transform: translateX(140px);
+              }
+              100% {
+                transform: translateX(-100px);
+              }
+            }
+          `}
+        </style>
+      </div>
+    </div>
+  );
 };
 
 // Protected Route Component
@@ -94,16 +308,7 @@ const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading, user } = useAuth();
   
   if (loading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        <h2>Loading...</h2>
-      </div>
-    );
+    return <ThemedLoadingScreen />;
   }
   
   if (!isAuthenticated) {
@@ -118,26 +323,17 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
-// Public Route Component
+// Public Route Component - UPDATED
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading, user } = useAuth();
   
   if (loading) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
-        <h2>Loading...</h2>
-      </div>
-    );
+    return <ThemedLoadingScreen />;
   }
   
   // If authenticated and doesn't need onboarding, redirect to dashboard
   if (isAuthenticated && !user?.needsOnboarding) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   // If authenticated but needs onboarding, allow access to onboarding
@@ -154,9 +350,42 @@ function App() {
       <NotificationProvider>
         <ChatProvider>
           <Router>
+            <ScrollToTop />
             <div className="App">
               <Routes>
-                {/* Public Routes */}
+                {/* Landing Page Route - Shows to non-authenticated users */}
+                <Route 
+                  path="/" 
+                  element={
+                    <PublicRoute>
+                      <LandingPage />
+                    </PublicRoute>
+                  } 
+                />
+                <Route 
+                  path="/developerspage" 
+                  element={
+                    <PublicRoute>
+                      <DevelopersPage />
+                    </PublicRoute>
+                  } 
+                />
+                <Route 
+                  path="/features" 
+                  element={
+                    <PublicRoute>
+                      <Features />
+                    </PublicRoute>
+                  } 
+                />
+                <Route 
+                  path="/aboutpage" 
+                  element={
+                    <PublicRoute>
+                      <AboutPage />
+                    </PublicRoute>
+                  } 
+                />
                 <Route 
                   path="/login" 
                   element={
@@ -223,84 +452,7 @@ function App() {
                   } 
                 />
 
-                {/* Project Router - determines if project should use solo or team workspace */}
-                <Route 
-                  path="/project/:projectId" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectRouter />
-                    </ProtectedRoute>
-                  } 
-                />
-
-                {/* Solo Project Workspace Routes with SoloProjectLayout */}
-                <Route 
-                  path="/soloproject/:projectId/dashboard" 
-                  element={
-                    <ProtectedRoute>
-                      <SoloProjectLayout>
-                        <SoloProjectDashboard />
-                      </SoloProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-
-                <Route 
-                  path="/soloproject/:projectId/goals" 
-                  element={
-                    <ProtectedRoute>
-                      <SoloProjectLayout>
-                        <SoloProjectGoals />
-                      </SoloProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-
-                <Route 
-                  path="/soloproject/:projectId/info" 
-                  element={
-                    <ProtectedRoute>
-                      <SoloProjectLayout>
-                        <SoloProjectInfo />
-                      </SoloProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-
-                <Route 
-                  path="/soloproject/:projectId/challenge" 
-                  element={
-                    <ProtectedRoute>
-                      <SoloProjectLayout>
-                        <SoloWeeklyChallenge />
-                      </SoloProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-
-                <Route 
-                  path="/soloproject/:projectId/notes" 
-                  element={
-                    <ProtectedRoute>
-                      <SoloProjectLayout>
-                        <SoloProjectNotes />
-                      </SoloProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-
-                <Route 
-                  path="/soloproject/:projectId/help" 
-                  element={
-                    <ProtectedRoute>
-                      <SoloProjectLayout>
-                        <Help />
-                      </SoloProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-
-                {/* Regular Project Workspace Routes with ProjectLayout */}
+                {/* Project Workspace Routes with ProjectLayout */}
                 <Route 
                   path="/project/:projectId/dashboard" 
                   element={
@@ -318,17 +470,6 @@ function App() {
                     <ProtectedRoute>
                       <ProjectLayout>
                         <ProjectTasks />
-                      </ProjectLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-
-                <Route 
-                  path="/project/:projectId/tasks/:taskId" 
-                  element={
-                    <ProtectedRoute>
-                      <ProjectLayout>
-                        <TaskDetail />
                       </ProjectLayout>
                     </ProtectedRoute>
                   } 
@@ -377,10 +518,16 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
-                
-                {/* Main App Routes with Regular Layout */}
+                              
+                {/* Redirect /project/:id to /project/:id/dashboard */}
                 <Route 
-                  path="/" 
+                  path="/project/:projectId" 
+                  element={<Navigate to="dashboard" replace />} 
+                />
+                
+                {/* Dashboard route for authenticated users */}
+                <Route 
+                  path="/dashboard" 
                   element={
                     <ProtectedRoute>
                       <Layout>

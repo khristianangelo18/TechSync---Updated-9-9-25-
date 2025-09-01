@@ -68,9 +68,16 @@ function Sidebar() {
     setShowUserMenu(false);
   };
 
-  const handleLogout = () => {
-    logout();
-    setShowUserMenu(false);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setShowUserMenu(false);
+      navigate('/', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      setShowUserMenu(false);
+      navigate('/', { replace: true });
+    }
   };
 
   // Close menu when clicking outside
