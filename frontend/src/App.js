@@ -28,7 +28,10 @@ import ProjectTasks from './pages/project/ProjectTasks';
 import ProjectChats from './pages/project/ProjectChats';
 import ProjectFiles from './pages/project/ProjectFiles';
 import ProjectMembers from './pages/project/ProjectMembers';
-import About from './pages/AboutPage';
+
+// friends
+
+import Friends from './pages/Friends';
 
 // ScrollToTop Component
 const ScrollToTop = () => {
@@ -42,7 +45,6 @@ const ScrollToTop = () => {
 };
 
 // Placeholder components for missing pages
-const Friends = () => <div style={{ padding: '30px' }}>Friends feature coming soon...</div>;
 const Learns = () => <div style={{ padding: '30px' }}>Learning resources coming soon...</div>;
 const Help = () => <div style={{ padding: '30px' }}>Help center coming soon...</div>;
 

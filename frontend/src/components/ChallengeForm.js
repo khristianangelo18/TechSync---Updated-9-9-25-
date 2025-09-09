@@ -1,6 +1,7 @@
-// frontend/src/components/ChallengeForm.js
+// frontend/src/components/ChallengeForm.js - ALIGNED WITH DARK THEME
 import React, { useState, useEffect } from 'react';
 import ChallengeAPI from '../services/challengeAPI';
+import { Plus, Trash2, Code } from 'lucide-react';
 
 const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
   const [formData, setFormData] = useState({
@@ -199,121 +200,166 @@ const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
 
   const styles = {
     container: {
-      maxWidth: '800px',
+      maxWidth: '900px',
       margin: '0 auto',
-      padding: '20px',
-      fontFamily: 'Arial, sans-serif'
+      padding: '0',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     },
     form: {
-      backgroundColor: '#f9f9f9',
-      padding: '30px',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+      background: 'rgba(26, 28, 32, 0.8)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      padding: '32px',
+      color: 'white'
     },
     title: {
       textAlign: 'center',
-      color: '#333',
-      marginBottom: '30px'
+      color: 'white',
+      marginBottom: '32px',
+      fontSize: '24px',
+      fontWeight: 'bold',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '12px'
     },
     formGroup: {
-      marginBottom: '20px'
+      marginBottom: '24px'
     },
     label: {
       display: 'block',
-      marginBottom: '5px',
-      fontWeight: 'bold',
-      color: '#555'
+      marginBottom: '8px',
+      fontWeight: '600',
+      color: '#d1d5db',
+      fontSize: '14px'
     },
     input: {
       width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)',
+      transition: 'all 0.3s ease',
+      outline: 'none',
       boxSizing: 'border-box'
     },
     textarea: {
       width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
       minHeight: '100px',
       resize: 'vertical',
-      fontFamily: 'Monaco, Consolas, monospace',
+      fontFamily: 'JetBrains Mono, Monaco, Consolas, monospace',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)',
+      transition: 'all 0.3s ease',
+      outline: 'none',
       boxSizing: 'border-box'
     },
     select: {
       width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)',
+      transition: 'all 0.3s ease',
+      outline: 'none',
+      cursor: 'pointer',
+      appearance: 'none',
+      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e")`,
+      backgroundRepeat: 'no-repeat',
+      backgroundPosition: 'right 12px center',
+      backgroundSize: '16px',
+      paddingRight: '40px',
       boxSizing: 'border-box'
     },
     testCaseContainer: {
-      border: '1px solid #e0e0e0',
-      borderRadius: '4px',
-      padding: '15px',
-      marginBottom: '10px',
-      backgroundColor: '#fafafa'
+      border: '1px solid rgba(255, 255, 255, 0.15)',
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '16px',
+      background: 'rgba(255, 255, 255, 0.03)',
+      backdropFilter: 'blur(8px)'
     },
     testCaseHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '10px'
+      marginBottom: '16px'
     },
-    button: {
-      backgroundColor: '#007bff',
+    testCaseTitle: {
+      fontSize: '16px',
+      fontWeight: '600',
+      color: '#e5e7eb',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    addButton: {
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
       color: 'white',
-      padding: '10px 20px',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      marginRight: '10px'
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      padding: '10px 16px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px'
     },
-    buttonSecondary: {
-      backgroundColor: '#6c757d',
+    removeButton: {
+      backgroundColor: '#ef4444',
       color: 'white',
-      padding: '5px 10px',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px'
-    },
-    buttonDanger: {
-      backgroundColor: '#dc3545',
-      color: 'white',
-      padding: '5px 10px',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      fontSize: '12px'
+      fontSize: '12px',
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      padding: '6px 12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '4px'
     },
     submitButton: {
-      backgroundColor: '#28a745',
+      background: 'linear-gradient(to right, #22c55e, #16a34a)',
       color: 'white',
-      padding: '12px 30px',
+      padding: '14px 32px',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '16px',
+      fontWeight: '600',
       width: '100%',
       marginTop: '20px',
-      opacity: loading ? 0.7 : 1
+      opacity: loading ? 0.7 : 1,
+      transition: 'all 0.3s ease',
+      boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
     },
     cancelButton: {
-      backgroundColor: '#6c757d',
-      color: 'white',
-      padding: '12px 30px',
-      border: 'none',
-      borderRadius: '4px',
-      cursor: 'pointer',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#cbd5e1',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      padding: '14px 32px',
       fontSize: '16px',
+      fontWeight: '600',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
       width: '100%',
-      marginTop: '10px'
+      marginTop: '12px'
     },
     row: {
       display: 'grid',
@@ -321,19 +367,55 @@ const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
       gap: '20px'
     },
     error: {
-      color: '#dc3545',
-      backgroundColor: '#f8d7da',
-      border: '1px solid #f5c6cb',
-      borderRadius: '4px',
-      padding: '10px',
-      marginBottom: '20px'
+      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))',
+      color: '#fca5a5',
+      border: '1px solid rgba(239, 68, 68, 0.3)',
+      borderRadius: '12px',
+      padding: '16px 20px',
+      marginBottom: '24px',
+      backdropFilter: 'blur(8px)',
+      fontSize: '14px'
     }
   };
 
   return (
     <div style={styles.container}>
+      {/* Global styles for select options and focus states */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          select option {
+            background-color: #1a1c20 !important;
+            color: white !important;
+            padding: 8px 12px !important;
+            border: none !important;
+            font-size: 14px !important;
+          }
+          
+          select option:hover {
+            background-color: #2563eb !important;
+            color: white !important;
+          }
+          
+          select:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+          }
+          
+          input:focus, textarea:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+          }
+          
+          input::placeholder, textarea::placeholder {
+            color: #9ca3af !important;
+            opacity: 1 !important;
+          }
+        `
+      }} />
+      
       <div style={styles.form}>
         <h2 style={styles.title}>
+          <Code size={24} style={{ color: '#3b82f6' }} />
           {initialData ? 'Edit' : 'Create New'} Coding Challenge
         </h2>
         
@@ -455,13 +537,25 @@ const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
           {testCaseFields.map((testCase, index) => (
             <div key={index} style={styles.testCaseContainer}>
               <div style={styles.testCaseHeader}>
-                <strong>Test Case {index + 1}</strong>
+                <div style={styles.testCaseTitle}>
+                  <Code size={16} style={{ color: '#3b82f6' }} />
+                  Test Case {index + 1}
+                </div>
                 {testCaseFields.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeTestCase(index)}
-                    style={styles.buttonDanger}
+                    style={styles.removeButton}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#dc2626';
+                      e.target.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#ef4444';
+                      e.target.style.transform = 'translateY(0)';
+                    }}
                   >
+                    <Trash2 size={12} />
                     Remove
                   </button>
                 )}
@@ -472,7 +566,7 @@ const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
                   <textarea
                     value={testCase.input}
                     onChange={(e) => handleTestCaseChange(index, 'input', e.target.value)}
-                    style={{...styles.textarea, minHeight: '60px'}}
+                    style={{...styles.textarea, minHeight: '80px'}}
                     placeholder='{"nums": [1, 2, 3], "target": 4}'
                   />
                 </div>
@@ -481,7 +575,7 @@ const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
                   <textarea
                     value={testCase.expected_output}
                     onChange={(e) => handleTestCaseChange(index, 'expected_output', e.target.value)}
-                    style={{...styles.textarea, minHeight: '60px'}}
+                    style={{...styles.textarea, minHeight: '80px'}}
                     placeholder='[0, 2]'
                   />
                 </div>
@@ -492,8 +586,17 @@ const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
           <button
             type="button"
             onClick={addTestCase}
-            style={styles.buttonSecondary}
+            style={styles.addButton}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+            }}
           >
+            <Plus size={16} />
             Add Test Case
           </button>
         </div>
@@ -502,12 +605,35 @@ const ChallengeForm = ({ onSuccess, onCancel, initialData = null }) => {
           onClick={handleSubmit} 
           style={styles.submitButton}
           disabled={loading}
+          onMouseEnter={(e) => {
+            if (!loading) {
+              e.target.style.transform = 'translateY(-1px)';
+              e.target.style.boxShadow = '0 6px 16px rgba(34, 197, 94, 0.4)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!loading) {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.3)';
+            }
+          }}
         >
           {loading ? 'Saving...' : (initialData ? 'Update Challenge' : 'Create Challenge')}
         </button>
 
         {onCancel && (
-          <button onClick={onCancel} style={styles.cancelButton}>
+          <button 
+            onClick={onCancel} 
+            style={styles.cancelButton}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.transform = 'translateY(0)';
+            }}
+          >
             Cancel
           </button>
         )}

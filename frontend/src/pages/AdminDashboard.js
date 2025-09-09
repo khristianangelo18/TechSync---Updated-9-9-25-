@@ -1,8 +1,9 @@
-// frontend/src/pages/AdminDashboard.js
+// frontend/src/pages/AdminDashboard.js - ALIGNED WITH DASHBOARD THEME
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import AdminAPI from '../services/adminAPI'; // Add this import
+import AdminAPI from '../services/adminAPI';
+import { Shield, Users, Folder, Puzzle, UserPlus, Settings, BarChart3, FileText } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -56,8 +57,21 @@ const AdminDashboard = () => {
     }
   };
 
-  const StatCard = ({ title, value, icon, color = '#007bff' }) => (
-    <div style={{ ...styles.statCard, borderLeft: `4px solid ${color}` }}>
+  const StatCard = ({ title, value, icon, color = '#3b82f6' }) => (
+    <div 
+      style={{ 
+        ...styles.statCard, 
+        borderLeft: `4px solid ${color}` 
+      }}
+      onMouseEnter={(e) => {
+        e.target.style.transform = 'translateY(-2px)';
+        e.target.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.3)';
+      }}
+      onMouseLeave={(e) => {
+        e.target.style.transform = 'translateY(0)';
+        e.target.style.boxShadow = 'none';
+      }}
+    >
       <div style={styles.statHeader}>
         <span style={styles.statIcon}>{icon}</span>
         <h3 style={styles.statTitle}>{title}</h3>
@@ -89,36 +103,71 @@ const AdminDashboard = () => {
 
   const styles = {
     container: {
-      padding: '30px',
-      backgroundColor: '#f8f9fa',
-      minHeight: '100vh'
+      minHeight: 'calc(100vh - 40px)',
+      backgroundColor: '#0F1116',
+      color: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '20px',
+      paddingLeft: '270px',
+      marginLeft: '-150px'
+    },
+    backgroundSymbols: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 1,
+      pointerEvents: 'none'
+    },
+    codeSymbol: {
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none'
     },
     header: {
-      marginBottom: '30px'
+      position: 'relative',
+      zIndex: 10,
+      marginBottom: '30px',
+      padding: '0 0 20px 0',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
     title: {
-      fontSize: '32px',
+      fontSize: '28px',
       fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 10px 0'
+      color: 'white',
+      margin: '0 0 10px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
     },
     subtitle: {
       fontSize: '16px',
-      color: '#666',
+      color: '#d1d5db',
       margin: 0
     },
     statsGrid: {
+      position: 'relative',
+      zIndex: 10,
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
       gap: '20px',
       marginBottom: '30px'
     },
     statCard: {
-      backgroundColor: 'white',
-      padding: '20px',
-      borderRadius: '8px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      transition: 'transform 0.2s ease'
+      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08))',
+      border: '1px solid rgba(59, 130, 246, 0.25)',
+      backdropFilter: 'blur(20px)',
+      padding: '24px',
+      borderRadius: '16px',
+      transition: 'all 0.3s ease'
     },
     statHeader: {
       display: 'flex',
@@ -132,7 +181,7 @@ const AdminDashboard = () => {
     statTitle: {
       fontSize: '16px',
       fontWeight: '500',
-      color: '#666',
+      color: '#d1d5db',
       margin: 0
     },
     statValue: {
@@ -141,23 +190,26 @@ const AdminDashboard = () => {
       margin: 0
     },
     contentGrid: {
+      position: 'relative',
+      zIndex: 10,
       display: 'grid',
       gridTemplateColumns: '2fr 1fr',
       gap: '30px'
     },
     section: {
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '25px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      background: 'rgba(26, 28, 32, 0.8)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      padding: '24px'
     },
     sectionTitle: {
       fontSize: '20px',
       fontWeight: '600',
-      color: '#333',
+      color: 'white',
       marginBottom: '20px',
       paddingBottom: '10px',
-      borderBottom: '2px solid #e9ecef'
+      borderBottom: '2px solid rgba(255, 255, 255, 0.1)'
     },
     quickActions: {
       display: 'grid',
@@ -166,22 +218,25 @@ const AdminDashboard = () => {
       marginBottom: '30px'
     },
     actionButton: {
-      backgroundColor: '#007bff',
+      backgroundColor: '#3b82f6',
       color: 'white',
       padding: '12px 20px',
       border: 'none',
-      borderRadius: '6px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: '500',
-      transition: 'background-color 0.2s ease',
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
       textAlign: 'center',
       textDecoration: 'none',
-      display: 'block'
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px'
     },
     activityItem: {
       padding: '12px 0',
-      borderBottom: '1px solid #e9ecef'
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
     activityHeader: {
       display: 'flex',
@@ -191,135 +246,458 @@ const AdminDashboard = () => {
     },
     activityUser: {
       fontWeight: '600',
-      color: '#333'
+      color: 'white'
     },
     activityTime: {
       fontSize: '12px',
-      color: '#666'
+      color: '#9ca3af'
     },
     activityAction: {
       fontSize: '14px',
-      color: '#495057'
+      color: '#d1d5db'
     },
     activityResource: {
-      color: '#6c757d',
+      color: '#9ca3af',
       fontSize: '12px'
     },
     loading: {
+      position: 'relative',
+      zIndex: 10,
       textAlign: 'center',
       padding: '60px',
       fontSize: '18px',
-      color: '#666'
+      color: '#9ca3af'
     },
-    error: {
-      color: '#dc3545',
-      backgroundColor: '#f8d7da',
-      border: '1px solid #f5c6cb',
-      borderRadius: '4px',
-      padding: '15px',
+    errorContainer: {
+      position: 'relative',
+      zIndex: 10,
+      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))',
+      color: '#f87171',
+      border: '1px solid rgba(239, 68, 68, 0.3)',
+      borderRadius: '16px',
+      padding: '20px',
       marginBottom: '20px',
-      textAlign: 'center'
+      textAlign: 'center',
+      backdropFilter: 'blur(20px)'
     },
     unauthorized: {
+      position: 'relative',
+      zIndex: 10,
       textAlign: 'center',
       padding: '60px',
-      backgroundColor: 'white',
-      borderRadius: '8px',
+      background: 'rgba(26, 28, 32, 0.8)',
+      borderRadius: '16px',
       margin: '50px auto',
       maxWidth: '500px',
-      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      backdropFilter: 'blur(20px)'
     },
     retryButton: {
-      backgroundColor: '#007bff',
+      backgroundColor: '#3b82f6',
       color: 'white',
-      padding: '10px 20px',
+      padding: '12px 24px',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      marginTop: '10px'
+      fontWeight: '600',
+      marginTop: '15px',
+      transition: 'all 0.3s ease'
+    },
+    systemStatus: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '16px'
+    },
+    statusItem: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '12px 0',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+    },
+    statusLabel: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#d1d5db'
+    },
+    statusValue: {
+      fontSize: '14px',
+      fontWeight: '600',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    statusOnline: {
+      color: '#22c55e'
+    },
+    statusOffline: {
+      color: '#6b7280'
     }
   };
 
   // Check authorization after hooks are called
   if (user?.role !== 'admin' && user?.role !== 'moderator') {
     return (
-      <div style={styles.unauthorized}>
-        <h2>Unauthorized Access</h2>
-        <p>You don't have permission to access this page.</p>
+      <div style={styles.container}>
+        {/* Background Code Symbols - identical to Dashboard */}
+        <div style={styles.backgroundSymbols}>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+          }}>&#60;/&#62;</div>
+        </div>
+
+        <div style={styles.unauthorized}>
+          <h2>Unauthorized Access</h2>
+          <p>You don't have permission to access this page.</p>
+        </div>
       </div>
     );
   }
 
   if (loading) {
-    return <div style={styles.loading}>Loading admin dashboard...</div>;
+    return (
+      <div style={styles.container}>
+        {/* Background Code Symbols - identical to Dashboard */}
+        <div style={styles.backgroundSymbols}>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+          }}>&#60;/&#62;</div>
+        </div>
+
+        <div style={styles.loading}>Loading admin dashboard...</div>
+      </div>
+    );
   }
 
   return (
     <div style={styles.container}>
+      {/* Background Code Symbols - identical to Dashboard */}
+      <div style={styles.backgroundSymbols}>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+        }}>&#60;/&#62;</div>
+      </div>
+
+      {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>
-          🛡️ Admin Dashboard
+          <Shield size={28} style={{ color: '#3b82f6' }} />
+          Admin Dashboard
         </h1>
         <p style={styles.subtitle}>
           Welcome back, {user?.full_name || user?.username}! Here's what's happening on your platform.
         </p>
       </div>
 
+      {/* Error Message */}
       {error && (
-        <div style={styles.error}>
+        <div style={styles.errorContainer}>
           {error}
           <br />
           <button 
             style={styles.retryButton}
             onClick={fetchDashboardData}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#2563eb';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#3b82f6';
+              e.target.style.transform = 'translateY(0)';
+            }}
           >
             Retry
           </button>
         </div>
       )}
 
+      {/* Stats Grid */}
       {stats && (
         <div style={styles.statsGrid}>
           <StatCard
             title="Total Users"
             value={stats.totalUsers?.toLocaleString() || '0'}
-            icon="👥"
-            color="#28a745"
+            icon={<Users size={20} />}
+            color="#22c55e"
           />
           <StatCard
             title="Active Projects"
             value={stats.activeProjects?.toLocaleString() || '0'}
-            icon="📁"
-            color="#007bff"
+            icon={<Folder size={20} />}
+            color="#3b82f6"
           />
           <StatCard
             title="Total Challenges"
             value={stats.totalChallenges?.toLocaleString() || '0'}
-            icon="🧩"
-            color="#17a2b8"
+            icon={<Puzzle size={20} />}
+            color="#06b6d4"
           />
           <StatCard
             title="New Users (30d)"
             value={stats.recentRegistrations?.toLocaleString() || '0'}
-            icon="🆕"
-            color="#ffc107"
+            icon={<UserPlus size={20} />}
+            color="#f59e0b"
           />
           <StatCard
             title="Suspended Users"
             value={stats.suspendedUsers?.toLocaleString() || '0'}
-            icon="🚫"
-            color="#dc3545"
+            icon={<Users size={20} />}
+            color="#ef4444"
           />
           <StatCard
             title="Total Projects"
             value={stats.totalProjects?.toLocaleString() || '0'}
-            icon="📊"
-            color="#6f42c1"
+            icon={<BarChart3 size={20} />}
+            color="#8b5cf6"
           />
         </div>
       )}
 
+      {/* Content Grid */}
       <div style={styles.contentGrid}>
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Quick Actions</h2>
@@ -327,23 +705,87 @@ const AdminDashboard = () => {
             <button 
               style={styles.actionButton}
               onClick={() => navigate('/admin/users')}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#2563eb';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#3b82f6';
+                e.target.style.transform = 'translateY(0)';
+              }}
             >
-              👥 Manage Users
+              <Users size={16} />
+              Manage Users
             </button>
-            <button style={styles.actionButton}>
-              📁 Manage Projects
+            <button 
+              style={styles.actionButton}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#2563eb';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#3b82f6';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <Folder size={16} />
+              Manage Projects
             </button>
-            <button style={styles.actionButton}>
-              🧩 Manage Challenges
+            <button 
+              style={styles.actionButton}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#2563eb';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#3b82f6';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <Puzzle size={16} />
+              Manage Challenges
             </button>
-            <button style={styles.actionButton}>
-              ⚙️ System Settings
+            <button 
+              style={styles.actionButton}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#2563eb';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#3b82f6';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <Settings size={16} />
+              System Settings
             </button>
-            <button style={styles.actionButton}>
-              📊 View Reports
+            <button 
+              style={styles.actionButton}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#2563eb';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#3b82f6';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <BarChart3 size={16} />
+              View Reports
             </button>
-            <button style={styles.actionButton}>
-              📋 Activity Logs
+            <button 
+              style={styles.actionButton}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#2563eb';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#3b82f6';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              <FileText size={16} />
+              Activity Logs
             </button>
           </div>
 
@@ -355,7 +797,7 @@ const AdminDashboard = () => {
               ))}
             </div>
           ) : (
-            <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
+            <p style={{ color: '#9ca3af', textAlign: 'center', padding: '20px' }}>
               No recent admin activity
             </p>
           )}
@@ -363,22 +805,30 @@ const AdminDashboard = () => {
 
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>System Status</h2>
-          <div>
-            <div style={{ marginBottom: '15px' }}>
-              <strong>System Status:</strong>
-              <span style={{ color: '#28a745', marginLeft: '10px' }}>🟢 Online</span>
+          <div style={styles.systemStatus}>
+            <div style={styles.statusItem}>
+              <span style={styles.statusLabel}>System Status:</span>
+              <span style={{...styles.statusValue, ...styles.statusOnline}}>
+                🟢 Online
+              </span>
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Database:</strong>
-              <span style={{ color: '#28a745', marginLeft: '10px' }}>🟢 Connected</span>
+            <div style={styles.statusItem}>
+              <span style={styles.statusLabel}>Database:</span>
+              <span style={{...styles.statusValue, ...styles.statusOnline}}>
+                🟢 Connected
+              </span>
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <strong>User Registration:</strong>
-              <span style={{ color: '#28a745', marginLeft: '10px' }}>🟢 Enabled</span>
+            <div style={styles.statusItem}>
+              <span style={styles.statusLabel}>User Registration:</span>
+              <span style={{...styles.statusValue, ...styles.statusOnline}}>
+                🟢 Enabled
+              </span>
             </div>
-            <div style={{ marginBottom: '15px' }}>
-              <strong>Maintenance Mode:</strong>
-              <span style={{ color: '#6c757d', marginLeft: '10px' }}>⚫ Disabled</span>
+            <div style={styles.statusItem}>
+              <span style={styles.statusLabel}>Maintenance Mode:</span>
+              <span style={{...styles.statusValue, ...styles.statusOffline}}>
+                ⚫ Disabled
+              </span>
             </div>
           </div>
         </div>

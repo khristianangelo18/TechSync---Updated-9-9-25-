@@ -2,6 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { projectService } from '../services/projectService';
+import { 
+  ArrowLeft, 
+  BarChart3, 
+  CheckSquare, 
+  MessageCircle, 
+  FolderOpen, 
+  Users, 
+  HelpCircle, 
+  User, 
+  LogOut,
+  ExternalLink 
+} from 'lucide-react';
 
 function ProjectSidebar() {
   const navigate = useNavigate();
@@ -14,15 +26,15 @@ function ProjectSidebar() {
 
   // Project navigation items
   const projectNavItems = [
-    { id: 'dashboard', label: 'Dashboard', path: `/project/${projectId}/dashboard`, icon: '📊' },
-    { id: 'tasks', label: 'Tasks', path: `/project/${projectId}/tasks`, icon: '✅' },
-    { id: 'chats', label: 'Chats', path: `/project/${projectId}/chats`, icon: '💬' },
-    { id: 'files', label: 'Files', path: `/project/${projectId}/files`, icon: '📁' },
-    { id: 'members', label: 'Members', path: `/project/${projectId}/members`, icon: '👥' }
+    { id: 'dashboard', label: 'Dashboard', path: `/project/${projectId}/dashboard`, icon: BarChart3 },
+    { id: 'tasks', label: 'Tasks', path: `/project/${projectId}/tasks`, icon: CheckSquare },
+    { id: 'chats', label: 'Chats', path: `/project/${projectId}/chats`, icon: MessageCircle },
+    { id: 'files', label: 'Files', path: `/project/${projectId}/files`, icon: FolderOpen },
+    { id: 'members', label: 'Members', path: `/project/${projectId}/members`, icon: Users }
   ];
 
   const bottomNavItems = [
-    { id: 'help', label: 'Help Center', path: `/project/${projectId}/help`, icon: '❓' }
+    { id: 'help', label: 'Help Center', path: `/project/${projectId}/help`, icon: HelpCircle }
   ];
 
   // Fetch project details
@@ -95,55 +107,92 @@ function ProjectSidebar() {
     sidebar: {
       width: '250px',
       height: '100vh',
-      backgroundColor: '#f8f9fa',
-      borderRight: '1px solid #dee2e6',
+      backgroundColor: '#0F1116',
+      borderRight: '1px solid rgba(255, 255, 255, 0.1)',
       display: 'flex',
       flexDirection: 'column',
       position: 'fixed',
       left: 0,
       top: 0,
-      zIndex: 1000
+      zIndex: 1000,
+      overflow: 'hidden'
+    },
+    backgroundSymbols: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 1,
+      pointerEvents: 'none'
+    },
+    codeSymbol: {
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '20px',
+      lineHeight: '24px',
+      userSelect: 'none',
+      pointerEvents: 'none'
     },
     header: {
-      padding: '20px',
-      borderBottom: '1px solid #dee2e6',
-      backgroundColor: 'white'
+      position: 'relative',
+      zIndex: 10,
+      padding: '24px 20px',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      background: 'rgba(26, 28, 32, 0.95)',
+      backdropFilter: 'blur(20px)'
     },
     projectInfo: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px'
+      gap: '12px'
     },
     backButton: {
-      background: 'none',
-      border: 'none',
+      background: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
       cursor: 'pointer',
-      padding: '4px',
-      borderRadius: '4px',
-      transition: 'background-color 0.2s ease'
+      padding: '8px',
+      borderRadius: '8px',
+      transition: 'all 0.3s ease',
+      color: '#9ca3af',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backdropFilter: 'blur(8px)'
     },
     backButtonHover: {
-      backgroundColor: '#e9ecef'
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: 'white',
+      transform: 'translateY(-1px)'
+    },
+    projectDetails: {
+      flex: 1,
+      minWidth: 0
     },
     projectTitle: {
       fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#333',
+      fontWeight: '700',
+      color: 'white',
       margin: 0,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
+      whiteSpace: 'nowrap',
+      lineHeight: 1.2
     },
     projectBadge: {
-      backgroundColor: '#007bff',
-      color: 'white',
-      padding: '4px 8px',
+      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      color: '#60a5fa',
+      padding: '4px 12px',
       borderRadius: '12px',
       fontSize: '11px',
-      fontWeight: 'bold',
-      textTransform: 'uppercase'
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      marginTop: '8px',
+      display: 'inline-block',
+      border: '1px solid rgba(59, 130, 246, 0.3)'
     },
     nav: {
+      position: 'relative',
+      zIndex: 10,
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
@@ -155,39 +204,52 @@ function ProjectSidebar() {
       flexDirection: 'column'
     },
     navItem: {
+      position: 'relative',
       display: 'flex',
       alignItems: 'center',
       padding: '12px 20px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
+      transition: 'all 0.3s ease',
       textDecoration: 'none',
-      color: '#333',
+      color: '#d1d5db',
       borderRadius: '0',
-      margin: '0 10px',
-      marginBottom: '2px'
+      margin: '0 12px',
+      marginBottom: '4px',
+      backdropFilter: 'blur(8px)'
     },
     navItemActive: {
-      backgroundColor: '#007bff',
-      color: 'white',
-      borderRadius: '8px'
+      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      color: '#60a5fa',
+      borderRadius: '12px',
+      transform: 'translateX(4px)',
+      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
+      border: '1px solid rgba(59, 130, 246, 0.3)'
     },
     navItemHover: {
-      backgroundColor: '#e9ecef',
-      borderRadius: '8px'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: '12px',
+      transform: 'translateX(2px)'
     },
     navIcon: {
       marginRight: '12px',
-      fontSize: '16px'
+      width: '20px',
+      height: '20px'
     },
     navLabel: {
       fontSize: '14px',
       fontWeight: '500'
     },
+    bottomNav: {
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      paddingTop: '20px'
+    },
     userSection: {
-      padding: '20px',
-      borderTop: '1px solid #dee2e6',
-      backgroundColor: 'white',
-      position: 'relative'
+      position: 'relative',
+      zIndex: 10,
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      padding: '20px 16px',
+      background: 'rgba(26, 28, 32, 0.95)',
+      backdropFilter: 'blur(20px)'
     },
     userInfo: {
       display: 'flex',
@@ -198,88 +260,105 @@ function ProjectSidebar() {
       display: 'flex',
       alignItems: 'center',
       flex: 1,
-      cursor: 'pointer', // Make profile clickable
-      padding: '4px',
-      borderRadius: '6px',
-      transition: 'all 0.2s ease'
+      cursor: 'pointer',
+      padding: '10px 12px',
+      borderRadius: '12px',
+      transition: 'all 0.3s ease',
+      backdropFilter: 'blur(8px)'
     },
     userDetailsHover: {
-      backgroundColor: '#f8f9fa'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      transform: 'translateY(-1px)'
     },
     userAvatar: {
-      width: '32px',
-      height: '32px',
+      width: '36px',
+      height: '36px',
       borderRadius: '50%',
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: '10px',
-      fontSize: '14px',
+      marginRight: '12px',
+      fontSize: '16px',
       fontWeight: 'bold',
-      color: 'white'
+      color: 'white',
+      flexShrink: 0,
+      border: '2px solid rgba(96, 165, 250, 0.3)'
     },
     userName: {
       fontSize: '14px',
-      fontWeight: '500',
-      color: '#333'
+      fontWeight: '600',
+      color: 'white',
+      lineHeight: 1.2
     },
     threeDotsButton: {
-      background: 'none',
-      border: 'none',
-      color: '#6c757d',
+      background: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      color: '#9ca3af',
       fontSize: '16px',
       cursor: 'pointer',
-      padding: '4px 6px',
-      borderRadius: '4px',
-      transition: 'all 0.2s ease'
+      padding: '6px 8px',
+      borderRadius: '8px',
+      transition: 'all 0.3s ease',
+      backdropFilter: 'blur(8px)'
     },
     threeDotsButtonHover: {
-      backgroundColor: '#e9ecef',
-      color: '#333'
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: 'white',
+      transform: 'translateY(-1px)'
     },
     userMenu: {
       position: 'absolute',
       bottom: '100%',
       left: '20px',
       right: '20px',
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      backgroundColor: '#1a1c20',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
       zIndex: 1001,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      backdropFilter: 'blur(20px)'
     },
     menuItem: {
       display: 'flex',
       alignItems: 'center',
-      padding: '12px 16px',
+      padding: '14px 16px',
       cursor: 'pointer',
-      transition: 'background-color 0.2s ease',
+      transition: 'all 0.3s ease',
       fontSize: '14px',
-      color: '#333',
-      borderBottom: '1px solid #f1f3f4'
+      color: '#d1d5db',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
     },
     menuItemLast: {
       borderBottom: 'none'
     },
     menuItemHover: {
-      backgroundColor: '#f8f9fa'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white'
     },
     exitMenuItem: {
-      color: '#007bff'
+      color: '#60a5fa'
     },
     exitMenuItemHover: {
-      backgroundColor: '#e3f2fd'
+      backgroundColor: 'rgba(59, 130, 246, 0.1)'
     },
     logoutMenuItem: {
-      color: '#dc3545'
+      color: '#f87171'
     },
     logoutMenuItemHover: {
-      backgroundColor: '#fde8e8'
+      backgroundColor: 'rgba(239, 68, 68, 0.1)'
     },
     menuItemIcon: {
-      marginRight: '8px',
+      marginRight: '10px',
+      width: '16px',
+      height: '16px'
+    },
+    loading: {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#9ca3af',
       fontSize: '14px'
     }
   };
@@ -287,8 +366,43 @@ function ProjectSidebar() {
   if (loading) {
     return (
       <div style={styles.sidebar}>
+        {/* Background Code Symbols */}
+        <div style={styles.backgroundSymbols}>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '25%', top: '15%', color: '#2E3344', transform: 'rotate(-15deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '75%', top: '30%', color: '#ABB5CE', transform: 'rotate(20deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '15%', top: '45%', color: '#6C758E', transform: 'rotate(-25deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '85%', top: '60%', color: '#292A2E', transform: 'rotate(30deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '35%', top: '75%', color: '#3A4158', transform: 'rotate(-10deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '65%', top: '85%', color: '#5A6B8C', transform: 'rotate(15deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '10%', top: '25%', color: '#4F5A7A', transform: 'rotate(35deg)'
+          }}>&#60;/&#62;</div>
+          <div style={{
+            ...styles.codeSymbol,
+            left: '90%', top: '40%', color: '#8A94B8', transform: 'rotate(-20deg)'
+          }}>&#60;/&#62;</div>
+        </div>
         <div style={styles.header}>
-          <div style={{ textAlign: 'center', color: '#666' }}>Loading...</div>
+          <div style={styles.loading}>Loading project...</div>
         </div>
       </div>
     );
@@ -296,6 +410,42 @@ function ProjectSidebar() {
 
   return (
     <div style={styles.sidebar}>
+      {/* Background Code Symbols */}
+      <div style={styles.backgroundSymbols}>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '25%', top: '15%', color: '#2E3344', transform: 'rotate(-15deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '75%', top: '30%', color: '#ABB5CE', transform: 'rotate(20deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '15%', top: '45%', color: '#6C758E', transform: 'rotate(-25deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '85%', top: '60%', color: '#292A2E', transform: 'rotate(30deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '35%', top: '75%', color: '#3A4158', transform: 'rotate(-10deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '65%', top: '85%', color: '#5A6B8C', transform: 'rotate(15deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '10%', top: '25%', color: '#4F5A7A', transform: 'rotate(35deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '90%', top: '40%', color: '#8A94B8', transform: 'rotate(-20deg)'
+        }}>&#60;/&#62;</div>
+      </div>
+
       {/* Project Header */}
       <div style={styles.header}>
         <div style={styles.projectInfo}>
@@ -306,21 +456,28 @@ function ProjectSidebar() {
               Object.assign(e.target.style, styles.backButtonHover);
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              e.target.style.color = '#9ca3af';
+              e.target.style.transform = 'translateY(0)';
             }}
           >
-            ←
+            <ArrowLeft size={16} />
           </button>
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={styles.projectDetails}>
             <h1 style={styles.projectTitle}>
               {project?.title || 'Project Workspace'}
             </h1>
             {project?.status && (
               <div style={{
                 ...styles.projectBadge,
-                backgroundColor: project.status === 'active' ? '#28a745' : 
-                               project.status === 'completed' ? '#007bff' : '#6c757d',
-                marginTop: '8px'
+                backgroundColor: project.status === 'active' ? 'rgba(34, 197, 94, 0.15)' : 
+                               project.status === 'completed' ? 'rgba(59, 130, 246, 0.15)' : 
+                               'rgba(107, 114, 128, 0.15)',
+                color: project.status === 'active' ? '#22c55e' : 
+                       project.status === 'completed' ? '#60a5fa' : '#9ca3af',
+                borderColor: project.status === 'active' ? 'rgba(34, 197, 94, 0.3)' : 
+                            project.status === 'completed' ? 'rgba(59, 130, 246, 0.3)' : 
+                            'rgba(107, 114, 128, 0.3)'
               }}>
                 {project.status}
               </div>
@@ -334,6 +491,7 @@ function ProjectSidebar() {
         <div style={styles.navSection}>
           {projectNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
+            const IconComponent = item.icon;
             return (
               <div
                 key={item.id}
@@ -351,10 +509,11 @@ function ProjectSidebar() {
                   if (!isActiveItem) {
                     e.target.style.backgroundColor = 'transparent';
                     e.target.style.borderRadius = '0';
+                    e.target.style.transform = 'translateX(0)';
                   }
                 }}
               >
-                <span style={styles.navIcon}>{item.icon}</span>
+                <IconComponent size={20} style={styles.navIcon} />
                 <span style={styles.navLabel}>{item.label}</span>
               </div>
             );
@@ -362,9 +521,10 @@ function ProjectSidebar() {
         </div>
 
         {/* Bottom Navigation - Help Center */}
-        <div style={styles.navSection}>
+        <div style={{ ...styles.navSection, ...styles.bottomNav }}>
           {bottomNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
+            const IconComponent = item.icon;
             return (
               <div
                 key={item.id}
@@ -382,10 +542,11 @@ function ProjectSidebar() {
                   if (!isActiveItem) {
                     e.target.style.backgroundColor = 'transparent';
                     e.target.style.borderRadius = '0';
+                    e.target.style.transform = 'translateX(0)';
                   }
                 }}
               >
-                <span style={styles.navIcon}>{item.icon}</span>
+                <IconComponent size={20} style={styles.navIcon} />
                 <span style={styles.navLabel}>{item.label}</span>
               </div>
             );
@@ -404,6 +565,7 @@ function ProjectSidebar() {
             }}
             onMouseLeave={(e) => {
               e.target.style.backgroundColor = 'transparent';
+              e.target.style.transform = 'translateY(0)';
             }}
           >
             <div style={styles.userAvatar}>
@@ -421,8 +583,9 @@ function ProjectSidebar() {
               Object.assign(e.target.style, styles.threeDotsButtonHover);
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = '#6c757d';
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              e.target.style.color = '#9ca3af';
+              e.target.style.transform = 'translateY(0)';
             }}
           >
             ⋮
@@ -439,10 +602,11 @@ function ProjectSidebar() {
                 Object.assign(e.target.style, styles.menuItemHover);
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#d1d5db';
               }}
             >
-              <span style={styles.menuItemIcon}>👤</span>
+              <User size={16} style={styles.menuItemIcon} />
               View Profile
             </div>
             <div 
@@ -455,10 +619,11 @@ function ProjectSidebar() {
                 Object.assign(e.target.style, styles.exitMenuItemHover);
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#60a5fa';
               }}
             >
-              <span style={styles.menuItemIcon}>🚪</span>
+              <ExternalLink size={16} style={styles.menuItemIcon} />
               Exit Project Workspace
             </div>
             <div 
@@ -472,10 +637,11 @@ function ProjectSidebar() {
                 Object.assign(e.target.style, styles.logoutMenuItemHover);
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'white';
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#f87171';
               }}
             >
-              <span style={styles.menuItemIcon}>🚪</span>
+              <LogOut size={16} style={styles.menuItemIcon} />
               Logout
             </div>
           </div>

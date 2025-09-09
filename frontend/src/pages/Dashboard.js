@@ -1,4 +1,4 @@
-// frontend/src/pages/Dashboard.js - MINIMAL AI CHAT INTEGRATION
+// frontend/src/pages/Dashboard.js - COMPLETE VERSION WITH CUSTOM SCROLLBAR
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,25 +7,23 @@ import { useNotifications } from '../contexts/NotificationContext';
 import SkillMatchingAPI from '../services/skillMatchingAPI';
 import CreateProject from './CreateProject';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
-import AIChatInterface from '../components/AIChat/AIChatInterface'; // NEW: Only addition
+import AIChatInterface from '../components/AIChat/AIChatInterface';
+import { Plus, Bell, Rocket, Code, Users, BookOpen, HelpCircle, LockKeyhole } from 'lucide-react';
 
-// Enhanced Project Card Component (FULLY PRESERVED with all original features)
-// Enhanced Project Card Component (FULLY PRESERVED with all original features)
-// Enhanced Project Card Component (FULLY PRESERVED with all original features)
-// Enhanced Project Card Component (FULLY PRESERVED with all original features)
+// Enhanced Project Card Component with subtle themed colors
 const EnhancedProjectCard = ({
   project,
   styles,
   getDifficultyStyle,
   handleProjectClick,
-  handleJoinProject
+  handleJoinProject,
+  colorVariant
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const [showScoreModal, setShowScoreModal] = useState(false);
 
-  // Define when a project is "locked" (needs a boost to match)
-  const LOCK_THRESHOLD = 70; // Adjust as needed
+  const LOCK_THRESHOLD = 70;
   const isLocked = Boolean(
     project?.matchFactors?.needsBoost ??
     (
@@ -34,7 +32,6 @@ const EnhancedProjectCard = ({
     )
   );
 
-  // Close score modal on ESC
   useEffect(() => {
     const onKeyDown = (e) => {
       if (e.key === 'Escape') setShowScoreModal(false);
@@ -45,24 +42,12 @@ const EnhancedProjectCard = ({
     }
   }, [showScoreModal]);
 
-  // Optional: prevent background scroll while modal is open
   useEffect(() => {
     if (!showScoreModal) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [showScoreModal]);
-
-  // DEBUG
-  useEffect(() => {
-    if (project) {
-      console.log('🎯 Project Card - Project data:', project.title);
-      console.log('🎯 Project Card - Match factors:', project.matchFactors);
-      console.log('🎯 Project Card - Highlights:', project.matchFactors?.highlights);
-      console.log('🎯 Project Card - Suggestions:', project.matchFactors?.suggestions);
-      console.log('🔒 Locked:', isLocked);
-    }
-  }, [project, isLocked]);
 
   const mf = project.matchFactors || {};
   const factors = [
@@ -73,38 +58,39 @@ const EnhancedProjectCard = ({
 
   const modalTitleId = `score-modal-title-${project.projectId || project.id || 'proj'}`;
 
+  // Get color variant styles
+  const cardColorStyles = styles.projectCardVariants[colorVariant] || styles.projectCardVariants.slate;
+
   return (
     <div
       style={{
         ...styles.projectCard,
-        // Don’t apply hover transform while modal is open
-        ...((isHovered && !showScoreModal) ? styles.projectCardHover : {}),
+        ...cardColorStyles.base,
+        ...((isHovered && !showScoreModal) ? cardColorStyles.hover : {}),
         cursor: isLocked ? 'not-allowed' : 'pointer',
         opacity: isLocked ? 0.98 : 1
       }}
       onMouseEnter={() => { if (!showScoreModal) setIsHovered(true); }}
       onMouseLeave={() => { if (!showScoreModal) setIsHovered(false); }}
       onClick={() => {
-        if (isLocked) return; // prevent navigation if locked
+        if (isLocked) return;
         handleProjectClick(project);
       }}
       aria-disabled={isLocked}
     >
-      {/* Big blue lock overlay on hover if locked */}
       {isHovered && isLocked && !showScoreModal && (
         <div style={styles.lockOverlay}>
-          <span style={styles.lockIcon}>🔒</span>
+          <LockKeyhole size={56} color="#3b82f6" />
         </div>
       )}
 
-      {/* Match score pill - clickable to open modal */}
       <div 
-        style={{ ...styles.matchScore, cursor: 'pointer' }}
+        style={{ ...styles.matchScore, ...cardColorStyles.matchScore, cursor: 'pointer' }}
         onMouseEnter={() => { if (!showScoreModal) setShowTooltip(true); }}
         onMouseLeave={() => setShowTooltip(false)}
         title="Click to see why this matches you"
         onClick={(e) => {
-          e.stopPropagation(); // don't trigger card click
+          e.stopPropagation();
           setShowScoreModal(true);
         }}
         onKeyDown={(e) => {
@@ -120,153 +106,90 @@ const EnhancedProjectCard = ({
       >
         {Math.round(project.score || 0)}% match
         
-        {/* Tooltip on hover */}
         {showTooltip && (mf?.highlights?.length > 0 || mf?.suggestions?.length > 0) && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: 8,
-            backgroundColor: '#333',
-            color: 'white',
-            padding: '8px 12px',
-            borderRadius: 6,
-            fontSize: 12,
-            zIndex: 10,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-            maxWidth: 220,
-            whiteSpace: 'normal'
-          }}>
+          <div style={styles.tooltip}>
             {mf?.highlights?.length > 0 ? 
               mf.highlights.slice(0, 2).join(', ') :
               'Match details loading...'
             }
-            <div style={{
-              position: 'absolute',
-              top: -4,
-              right: 8,
-              width: 0,
-              height: 0,
-              borderLeft: '4px solid transparent',
-              borderRight: '4px solid transparent',
-              borderBottom: '4px solid #333'
-            }} />
+            <div style={styles.tooltipArrow} />
           </div>
         )}
       </div>
       
-      {/* Highlight chips */}
       {mf?.highlights && mf.highlights.length > 0 && (
-        <div style={{
-          marginBottom: '8px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '4px'
-        }}>
+        <div style={styles.highlightsContainer}>
           {mf.highlights.slice(0, 2).map((highlight, idx) => (
-            <span key={idx} style={{
-              backgroundColor: '#e3f2fd',
-              color: '#1976d2',
-              padding: '2px 8px',
-              borderRadius: '12px',
-              fontSize: '11px',
-              fontWeight: '500',
-              border: '1px solid #bbdefb'
-            }}>
+            <span key={idx} style={{...styles.highlightChip, ...cardColorStyles.highlightChip}}>
               ✨ {highlight}
             </span>
           ))}
         </div>
       )}
       
-      {/* Project title and description */}
       <h4 style={styles.projectTitle}>{project.title}</h4>
       <p style={styles.projectDescription}>
         {project.description}
       </p>
       
-      {/* Improvement suggestions */}
-      {mf?.suggestions && mf.suggestions.length > 0 && (
-        <div style={{
-          marginBottom: '12px',
-          padding: '8px',
-          backgroundColor: '#fff3cd',
-          borderRadius: '4px',
-          border: '1px solid #ffeaa7'
-        }}>
-          <div style={{
-            fontSize: '11px',
-            fontWeight: 'bold',
-            color: '#856404',
-            marginBottom: '4px'
-          }}>
-            💡 To boost your match:
-          </div>
-          {mf.suggestions.slice(0, 1).map((suggestion, idx) => (
-            <div key={idx} style={{
-              fontSize: '11px',
-              color: '#856404',
-              lineHeight: '1.3'
-            }}>
-              {suggestion}
+      <div style={styles.cardFooter}>
+        {mf?.suggestions && mf.suggestions.length > 0 && (
+          <div style={styles.suggestionsContainer}>
+            <div style={styles.suggestionsTitle}>
+              💡 To boost your match:
             </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Project metadata */}
-      <div style={styles.projectMeta}>
-        <span style={getDifficultyStyle(project.difficulty_level)}>
-          {project.difficulty_level?.toUpperCase() || 'MEDIUM'}
-        </span>
-        <span style={styles.memberCount}>
-          {project.current_members || 0}/{project.maximum_members || 10} members
-        </span>
-      </div>
-      
-      {/* Technologies */}
-      {project.technologies && project.technologies.length > 0 && (
-        <div style={styles.tagsContainer}>
-          {project.technologies.slice(0, 3).map((tech, techIndex) => (
-            <span key={techIndex} style={styles.tag}>
-              {tech}
-            </span>
-          ))}
-          {project.technologies.length > 3 && (
-            <span style={styles.tag}>
-              +{project.technologies.length - 3} more
-            </span>
-          )}
-        </div>
-      )}
-      
-      {/* Join button (disabled if locked) */}
-      <button
-        style={{
-          ...styles.joinButton,
-          ...(isLocked ? styles.joinButtonDisabled : {})
-        }}
-        disabled={isLocked}
-        onClick={(e) => {
-          if (isLocked) {
-            e.stopPropagation();
-            return;
-          }
-          handleJoinProject(project, e);
-        }}
-        onMouseEnter={(e) => {
-          if (isLocked) return;
-          e.target.style.backgroundColor = '#0056b3';
-        }}
-        onMouseLeave={(e) => {
-          if (isLocked) return;
-          e.target.style.backgroundColor = '#007bff';
-        }}
-      >
-        {isLocked ? 'Locked' : 'Join Project'}
-      </button>
+            {mf.suggestions.slice(0, 1).map((suggestion, idx) => (
+              <div key={idx} style={styles.suggestionText}>
+                {suggestion}
+              </div>
+            ))}
+          </div>
+        )}
 
-      {/* Match Details Modal via Portal */}
+        <div style={styles.projectMeta}>
+          <span style={getDifficultyStyle(project.difficulty_level)}>
+            {project.difficulty_level?.toUpperCase() || 'MEDIUM'}
+          </span>
+          <span style={styles.memberCount}>
+            {project.current_members || 0}/{project.maximum_members || 10} members
+          </span>
+        </div>
+
+        {project.technologies && project.technologies.length > 0 && (
+          <div style={styles.tagsContainer}>
+            {project.technologies.slice(0, 3).map((tech, techIndex) => (
+              <span key={techIndex} style={styles.tag}>
+                {tech}
+              </span>
+            ))}
+            {project.technologies.length > 3 && (
+              <span style={styles.tag}>
+                +{project.technologies.length - 3} more
+              </span>
+            )}
+          </div>
+        )}
+
+        <button
+          style={{
+            ...styles.joinButton,
+            ...cardColorStyles.joinButton,
+            ...(isLocked ? styles.joinButtonDisabled : {})
+          }}
+          disabled={isLocked}
+          onClick={(e) => {
+            if (isLocked) {
+              e.stopPropagation();
+              return;
+            }
+            handleJoinProject(project, e);
+          }}
+        >
+          {isLocked ? 'Locked' : 'Join Project'}
+        </button>
+      </div>
+
+
       {showScoreModal && createPortal(
         <div style={styles.modal} onClick={() => setShowScoreModal(false)}>
           <div
@@ -276,20 +199,18 @@ const EnhancedProjectCard = ({
             aria-modal="true"
             aria-labelledby={modalTitleId}
           >
-            {/* Header */}
             <div style={styles.scoreModalHeader}>
               <div>
                 <div id={modalTitleId} style={styles.scoreModalTitle}>
                   Match details
                 </div>
-                <div style={{ color: '#666', fontSize: '13px' }}>{project.title}</div>
+                <div style={{ color: '#9ca3af', fontSize: '13px' }}>{project.title}</div>
               </div>
               <div style={styles.scorePill}>{Math.round(project.score || 0)}%</div>
             </div>
 
-            {/* Highlights */}
             <div style={styles.scoreModalSection}>
-              <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+              <div style={styles.modalSectionTitle}>
                 Why this matches you
               </div>
               {mf?.highlights?.length ? (
@@ -299,14 +220,13 @@ const EnhancedProjectCard = ({
                   ))}
                 </div>
               ) : (
-                <div style={{ fontSize: '12px', color: '#888' }}>Match details loading...</div>
+                <div style={{ fontSize: '12px', color: '#9ca3af' }}>Match details loading...</div>
               )}
             </div>
 
-            {/* Suggestions */}
             {!!mf?.suggestions?.length && (
               <div style={styles.scoreModalSection}>
-                <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+                <div style={styles.modalSectionTitle}>
                   To boost your match
                 </div>
                 <ul style={styles.list}>
@@ -317,9 +237,8 @@ const EnhancedProjectCard = ({
               </div>
             )}
 
-            {/* Factor breakdown */}
             <div style={styles.scoreModalSection}>
-              <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
+              <div style={styles.modalSectionTitle}>
                 Breakdown
               </div>
               {factors.map((f) => (
@@ -337,79 +256,12 @@ const EnhancedProjectCard = ({
                     />
                   </div>
                   {f.note && (
-                    <div style={{ fontSize: '11px', color: '#777', marginTop: 4 }}>{f.note}</div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: 4 }}>{f.note}</div>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Languages */}
-            {(mf.languageFit?.topMatches?.length || mf.languageFit?.gaps?.length) ? (
-              <div style={styles.scoreModalSection}>
-                <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
-                  Languages
-                </div>
-                {!!mf.languageFit?.topMatches?.length && (
-                  <>
-                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Matched</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                      {mf.languageFit.topMatches.map((m, i) => (
-                        <span key={i} style={styles.chip}>
-                          ✅ {m.name}{m.is_primary ? ' ⭐' : ''}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {!!mf.languageFit?.gaps?.length && (
-                  <>
-                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Gaps</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {mf.languageFit.gaps.map((g, i) => (
-                        <span key={i} style={styles.chipWarning}>
-                          ⚠️ {g.name} {g.status === 'missing' ? '(missing)' : '(below)'}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : null}
-
-            {/* Topics */}
-            {(mf.topicCoverage?.matches?.length || mf.topicCoverage?.missing?.length) ? (
-              <div style={styles.scoreModalSection}>
-                <div style={{ fontSize: '13px', color: '#333', fontWeight: 600, marginBottom: 8 }}>
-                  Topics
-                </div>
-                {!!mf.topicCoverage?.matches?.length && (
-                  <>
-                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Covered</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                      {mf.topicCoverage.matches.map((t, i) => (
-                        <span key={i} style={styles.chip}>
-                          ✅ {t.name}{t.is_primary ? ' ⭐' : ''}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-                {!!mf.topicCoverage?.missing?.length && (
-                  <>
-                    <div style={{ fontSize: '12px', color: '#555', marginBottom: 6 }}>Missing</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                      {mf.topicCoverage.missing.map((t, i) => (
-                        <span key={i} style={styles.chipWarning}>
-                          ⚠️ {t.name}{t.is_primary ? ' (primary)' : ''}
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : null}
-
-            {/* Footer */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
               <button
                 style={styles.closeButtonPrimary}
@@ -426,6 +278,251 @@ const EnhancedProjectCard = ({
   );
 };
 
+// Background symbols component - ALIGNED WITH FRIENDS AND PROJECTS
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
+
 function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -434,25 +531,106 @@ function Dashboard() {
   const [recommendedProjects, setRecommendedProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [loadingRecommendations, setLoadingRecommendations] = useState(true);
-  
-  // Tab state for toggle functionality
-  const [activeTab, setActiveTab] = useState('recommended'); // 'recommended' or 'forYou'
-  
-  // Filter and Sort States (preserved from original)
+  const [activeTab, setActiveTab] = useState('recommended');
   const [sortBy, setSortBy] = useState('match');
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterLanguage, setFilterLanguage] = useState('all');
   const [filterDifficulty, setFilterDifficulty] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // NEW STATE: For AI chat project preview modal at dashboard level
+  const [showAIProjectPreview, setShowAIProjectPreview] = useState(false);
+  const [aiPreviewProject, setAiPreviewProject] = useState(null);
 
-  // Real notifications from context (preserved)
   const { 
     unreadCount, 
     notifications, 
     fetchNotifications 
   } = useNotifications();
 
-  // Fetch recommended projects when component mounts (with debugging)
+  // Subtle color variants for project cards - aligned with dark theme
+  const colorVariants = ['slate', 'zinc', 'neutral', 'stone', 'gray', 'blue'];
+
+  // Custom scrollbar styles for the project preview modal
+  const customScrollbarStyles = `
+    /* Custom scrollbar for the project preview modal */
+    .project-preview-modal {
+      /* For Webkit browsers (Chrome, Safari, Edge) */
+      scrollbar-width: thin;
+      scrollbar-color: rgba(59, 130, 246, 0.6) rgba(255, 255, 255, 0.05);
+    }
+
+    .project-preview-modal::-webkit-scrollbar {
+      width: 12px;
+      height: 12px;
+    }
+
+    .project-preview-modal::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      margin: 8px 0;
+      border: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .project-preview-modal::-webkit-scrollbar-thumb {
+      background: linear-gradient(
+        135deg, 
+        rgba(59, 130, 246, 0.8) 0%, 
+        rgba(37, 99, 235, 0.9) 50%,
+        rgba(29, 78, 216, 1) 100%
+      );
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 
+        0 2px 8px rgba(59, 130, 246, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .project-preview-modal::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(
+        135deg, 
+        rgba(59, 130, 246, 1) 0%, 
+        rgba(37, 99, 235, 1) 50%,
+        rgba(29, 78, 216, 1) 100%
+      );
+      box-shadow: 
+        0 4px 16px rgba(59, 130, 246, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transform: scaleY(1.1);
+    }
+
+    .project-preview-modal::-webkit-scrollbar-thumb:active {
+      background: linear-gradient(
+        135deg, 
+        rgba(37, 99, 235, 1) 0%, 
+        rgba(29, 78, 216, 1) 50%,
+        rgba(30, 64, 175, 1) 100%
+      );
+      box-shadow: 
+        0 2px 8px rgba(59, 130, 246, 0.4),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .project-preview-modal::-webkit-scrollbar-corner {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+    }
+
+    /* Additional styling for smooth scrolling */
+    .project-preview-modal {
+      scroll-behavior: smooth;
+    }
+
+    /* For Firefox */
+    @supports (scrollbar-width: thin) {
+      .project-preview-modal {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(59, 130, 246, 0.8) rgba(255, 255, 255, 0.05);
+      }
+    }
+  `;
+
   useEffect(() => {
     const fetchRecommendations = async () => {
       if (!user?.id) return;
@@ -461,14 +639,6 @@ function Dashboard() {
         setLoadingRecommendations(true);
         const response = await SkillMatchingAPI.getEnhancedRecommendations(user.id);
         const recommendations = response.data.recommendations;
-        
-        // DEBUG: Log the first project to see if matchFactors exist
-        if (recommendations?.length > 0) {
-          console.log('🔍 First project data:', recommendations[0]);
-          console.log('🔍 Match factors:', recommendations[0].matchFactors);
-          console.log('🔍 Highlights:', recommendations[0].matchFactors?.highlights);
-          console.log('🔍 Suggestions:', recommendations[0].matchFactors?.suggestions);
-        }
         
         setRecommendedProjects(recommendations.slice(0, 12));
         setFilteredProjects(recommendations.slice(0, 12));
@@ -484,11 +654,20 @@ function Dashboard() {
     fetchRecommendations();
   }, [user?.id]);
 
-  // Filter and Sort Effect (preserved)
+  // NEW: Listen for AI chat project preview events
+  useEffect(() => {
+    const handleAIProjectPreview = (event) => {
+      setAiPreviewProject(event.detail.project);
+      setShowAIProjectPreview(true);
+    };
+
+    window.addEventListener('aiProjectPreview', handleAIProjectPreview);
+    return () => window.removeEventListener('aiProjectPreview', handleAIProjectPreview);
+  }, []);
+
   useEffect(() => {
     let filtered = [...recommendedProjects];
 
-    // Apply language filter
     if (filterLanguage !== 'all') {
       filtered = filtered.filter(project => 
         project.technologies?.some(tech => 
@@ -497,14 +676,12 @@ function Dashboard() {
       );
     }
 
-    // Apply difficulty filter
     if (filterDifficulty !== 'all') {
       filtered = filtered.filter(project => 
         project.difficulty_level?.toLowerCase() === filterDifficulty.toLowerCase()
       );
     }
 
-    // Apply sorting
     filtered.sort((a, b) => {
       let aValue, bValue;
       
@@ -540,7 +717,6 @@ function Dashboard() {
     setFilteredProjects(filtered);
   }, [recommendedProjects, sortBy, sortOrder, filterLanguage, filterDifficulty]);
 
-  // Get unique languages from projects (preserved)
   const getAvailableLanguages = () => {
     const languages = new Set();
     recommendedProjects.forEach(project => {
@@ -549,7 +725,6 @@ function Dashboard() {
     return Array.from(languages).sort();
   };
 
-  // Handle sort change (preserved)
   const handleSortChange = (newSortBy) => {
     if (sortBy === newSortBy) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -559,7 +734,6 @@ function Dashboard() {
     }
   };
 
-  // Reset filters (preserved)
   const resetFilters = () => {
     setSortBy('match');
     setSortOrder('desc');
@@ -569,22 +743,21 @@ function Dashboard() {
 
   const getDifficultyStyle = (difficulty) => {
     const colors = {
-      easy: '#28a745',
-      medium: '#ffc107', 
-      hard: '#dc3545'
+      easy: '#22c55e',
+      medium: '#f59e0b', 
+      hard: '#ef4444'
     };
     
     return {
       backgroundColor: colors[difficulty?.toLowerCase()] || colors.medium,
       color: 'white',
-      padding: '2px 8px',
-      borderRadius: '12px',
+      padding: '4px 12px',
+      borderRadius: '16px',
       fontSize: '11px',
       fontWeight: 'bold'
     };
   };
 
-  // Close dropdowns when clicking outside (preserved)
   useEffect(() => {
     const handleClickOutside = () => {
       setShowNotifications(false);
@@ -596,7 +769,6 @@ function Dashboard() {
     }
   }, [showNotifications]);
 
-  // Event handlers (preserved)
   const handleCreateClick = () => {
     setShowCreateProject(true);
   };
@@ -609,26 +781,16 @@ function Dashboard() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('🔔 Dashboard: Notification bell clicked!');
-    console.log('🔔 Dashboard: Current showNotifications:', showNotifications);
-    console.log('🔔 Dashboard: Unread count:', unreadCount);
-    console.log('🔔 Dashboard: Notifications length:', notifications.length);
-    
     const newState = !showNotifications;
     setShowNotifications(newState);
     
-    console.log('🔔 Dashboard: Setting showNotifications to:', newState);
-    
-    // Fetch notifications when opening dropdown if empty
     if (newState && notifications.length === 0) {
-      console.log('🔔 Dashboard: Fetching notifications...');
       fetchNotifications();
     }
   };
 
   const handleProjectClick = async (project) => {
     try {
-      // Update recommendation feedback
       await SkillMatchingAPI.updateRecommendationFeedback(
         project.recommendationId,
         'viewed',
@@ -636,22 +798,17 @@ function Dashboard() {
         project.projectId
       );
       
-      // Navigate to project details or join page
       navigate(`/projects/${project.projectId}`);
     } catch (error) {
       console.error('Error updating recommendation feedback:', error);
-      // Still navigate even if feedback update fails
       navigate(`/projects/${project.projectId}`);
     }
   };
 
   const handleJoinProject = async (project, event) => {
-    event.stopPropagation(); // Prevent triggering the card click
+    event.stopPropagation();
 
     try {
-      console.log('🚀 Navigating to project challenge:', project);
-      
-      // Update recommendation feedback for analytics
       try {
         await SkillMatchingAPI.updateRecommendationFeedback(
           project.recommendationId,
@@ -659,37 +816,38 @@ function Dashboard() {
           null,
           project.projectId
         );
-        console.log('✅ Updated recommendation feedback');
       } catch (feedbackError) {
-        console.warn('⚠️ Failed to update recommendation feedback:', feedbackError);
-        // Continue with navigation even if feedback fails
+        console.warn('Failed to update recommendation feedback:', feedbackError);
       }
       
-      // Navigate directly to the challenge/join page
-      console.log('🎯 Navigating to:', `/projects/${project.projectId}/join`);
       navigate(`/projects/${project.projectId}/join`);
       
     } catch (error) {
       console.error('Error joining project:', error);
-      // Show user feedback about the error if needed
     }
   };
 
-  // ALL ORIGINAL STYLES PRESERVED
   const styles = {
     container: {
-      maxWidth: '1200px',
-      margin: '0 auto',
+      minHeight: 'calc(100vh - 40px)',
+      backgroundColor: '#0F1116',
+      color: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: '20px',
-      fontFamily: 'Arial, sans-serif'
+      paddingLeft: '270px',
+      marginLeft: '-150px'
     },
     header: {
+      position: 'relative',
+      zIndex: 10,
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: '30px',
       padding: '0 0 20px 0',
-      borderBottom: '1px solid #e9ecef'
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
     headerLeft: {
       display: 'flex',
@@ -699,7 +857,7 @@ function Dashboard() {
     title: {
       fontSize: '28px',
       fontWeight: 'bold',
-      color: '#333',
+      color: 'white',
       margin: 0
     },
     headerActions: {
@@ -708,39 +866,45 @@ function Dashboard() {
       gap: '15px'
     },
     createButton: {
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
       color: 'white',
       border: 'none',
-      padding: '10px 20px',
-      borderRadius: '6px',
+      padding: '12px 24px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: '500',
-      transition: 'background-color 0.2s ease',
-      ':hover': {
-        backgroundColor: '#0056b3'
-      }
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
     },
     notificationContainer: {
       position: 'relative'
     },
     notificationButton: {
-      backgroundColor: 'transparent',
-      border: '2px solid #dee2e6',
-      borderRadius: '6px',
-      padding: '8px 12px',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      padding: '10px 14px',
       cursor: 'pointer',
       fontSize: '16px',
       position: 'relative',
-      transition: 'all 0.2s ease'
+      transition: 'all 0.3s ease',
+      color: 'white',
+      backdropFilter: 'blur(8px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     },
     notificationBadge: {
       position: 'absolute',
       top: '-2px',
       right: '-2px',
-      width: '18px',
-      height: '18px',
-      backgroundColor: '#dc3545',
+      width: '20px',
+      height: '20px',
+      backgroundColor: '#ef4444',
       color: 'white',
       borderRadius: '50%',
       fontSize: '10px',
@@ -755,181 +919,409 @@ function Dashboard() {
       left: 0,
       width: '100%',
       height: '100%',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 2000
     },
     modalContent: {
-      backgroundColor: 'white',
-      borderRadius: '8px',
+      backgroundColor: '#1a1c20',
+      borderRadius: '12px',
       padding: '0',
       maxWidth: '90%',
       maxHeight: '90%',
-      overflow: 'auto'
+      overflow: 'auto',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
     },
-    welcomeCard: {
-      backgroundColor: '#f8f9fa',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px',
+    welcomeSection: {
+      position: 'relative',
+      zIndex: 10,
       marginBottom: '30px'
     },
-    
-    // Tab Navigation Styles
+    welcomeTitle: {
+      fontSize: '32px',
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    welcomeDescription: {
+      color: '#d1d5db',
+      fontSize: '16px',
+      lineHeight: '1.6',
+      margin: 0
+    },
     tabNavigation: {
-      backgroundColor: 'white',
-      border: 'none',
-      borderRadius: '8px',
-      marginBottom: '20px',
-      overflow: 'hidden'
+      position: 'relative',
+      zIndex: 10,
+      marginBottom: '20px'
     },
     tabHeader: {
       display: 'flex',
-      borderBottom: '1px solid #dee2e6'
-    },
-    tabButton: {
-      flex: 1,
-      padding: '15px 20px',
-      border: 'none',
-      backgroundColor: 'transparent',
-      cursor: 'pointer',
-      fontSize: '16px',
-      fontWeight: '500',
-      color: '#666',
-      transition: 'all 0.2s ease',
-      borderBottom: '3px solid transparent',
-      position: 'relative'
-    },
-    activeTabButton: {
-      color: '#007bff',
-      borderBottom: '3px solid #007bff'
-    },
-    tabContent: {
-      padding: '20px'
-    },
-    
-    // Preserved Profile Section Styles
-    profileSection: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px',
+      gap: '12px',
       marginBottom: '20px'
     },
+    tabButton: {
+      padding: '10px 20px',
+      borderRadius: '8px',
+      border: 'none',
+      cursor: 'pointer',
+      fontWeight: '600',
+      fontSize: '14px',
+      transition: 'all 0.2s ease',
+      backgroundColor: 'transparent',
+      color: '#E8EDF9'
+    },
+    tabContent: {
+      position: 'relative',
+      zIndex: 10
+    },
     sectionTitle: {
-      color: '#333',
+      color: 'white',
       marginBottom: '15px',
-      fontSize: '18px',
-      fontWeight: 'bold'
+      fontSize: '24px',
+      fontWeight: 'bold',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    sectionDescription: {
+      color: '#d1d5db',
+      marginBottom: '20px',
+      fontSize: '14px',
+      lineHeight: '1.6'
     },
     recommendationsGrid: {
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-      gap: '20px',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+      gap: '24px',
       marginTop: '20px'
     },
     projectCard: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px',
+      borderRadius: '16px',
+      padding: '24px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      position: 'relative'
+      transition: 'all 0.3s ease',
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '420px'
     },
-    projectCardHover: {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-      border: '1px solid #007bff'
+    projectCardVariants: {
+      slate: {
+        base: {
+          background: 'linear-gradient(135deg, rgba(51, 65, 85, 0.12), rgba(30, 41, 59, 0.08))',
+          border: '1px solid rgba(51, 65, 85, 0.25)',
+          backdropFilter: 'blur(20px)'
+        },
+        hover: {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 12px 30px rgba(51, 65, 85, 0.25)',
+          border: '1px solid rgba(51, 65, 85, 0.4)',
+          background: 'linear-gradient(135deg, rgba(51, 65, 85, 0.18), rgba(30, 41, 59, 0.12))'
+        },
+        matchScore: {
+          background: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+        },
+        highlightChip: {
+          backgroundColor: 'rgba(51, 65, 85, 0.2)',
+          color: '#94a3b8',
+          border: '1px solid rgba(51, 65, 85, 0.35)'
+        },
+        joinButton: {
+          backgroundColor: '#3b82f6'
+        },
+        joinButtonHover: '#2563eb'
+      },
+      zinc: {
+        base: {
+          background: 'linear-gradient(135deg, rgba(63, 63, 70, 0.12), rgba(39, 39, 42, 0.08))',
+          border: '1px solid rgba(63, 63, 70, 0.25)',
+          backdropFilter: 'blur(20px)'
+        },
+        hover: {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 12px 30px rgba(63, 63, 70, 0.25)',
+          border: '1px solid rgba(63, 63, 70, 0.4)',
+          background: 'linear-gradient(135deg, rgba(63, 63, 70, 0.18), rgba(39, 39, 42, 0.12))'
+        },
+        matchScore: {
+          background: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+        },
+        highlightChip: {
+          backgroundColor: 'rgba(63, 63, 70, 0.2)',
+          color: '#a1a1aa',
+          border: '1px solid rgba(63, 63, 70, 0.35)'
+        },
+        joinButton: {
+          backgroundColor: '#3b82f6'
+        },
+        joinButtonHover: '#2563eb'
+      },
+      neutral: {
+        base: {
+          background: 'linear-gradient(135deg, rgba(64, 64, 64, 0.12), rgba(38, 38, 38, 0.08))',
+          border: '1px solid rgba(64, 64, 64, 0.25)',
+          backdropFilter: 'blur(20px)'
+        },
+        hover: {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 12px 30px rgba(64, 64, 64, 0.25)',
+          border: '1px solid rgba(64, 64, 64, 0.4)',
+          background: 'linear-gradient(135deg, rgba(64, 64, 64, 0.18), rgba(38, 38, 38, 0.12))'
+        },
+        matchScore: {
+          background: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+        },
+        highlightChip: {
+          backgroundColor: 'rgba(64, 64, 64, 0.2)',
+          color: '#a3a3a3',
+          border: '1px solid rgba(64, 64, 64, 0.35)'
+        },
+        joinButton: {
+          backgroundColor: '#3b82f6'
+        },
+        joinButtonHover: '#2563eb'
+      },
+      stone: {
+        base: {
+          background: 'linear-gradient(135deg, rgba(68, 64, 60, 0.12), rgba(41, 37, 36, 0.08))',
+          border: '1px solid rgba(68, 64, 60, 0.25)',
+          backdropFilter: 'blur(20px)'
+        },
+        hover: {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 12px 30px rgba(68, 64, 60, 0.25)',
+          border: '1px solid rgba(68, 64, 60, 0.4)',
+          background: 'linear-gradient(135deg, rgba(68, 64, 60, 0.18), rgba(41, 37, 36, 0.12))'
+        },
+        matchScore: {
+          background: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+        },
+        highlightChip: {
+          backgroundColor: 'rgba(68, 64, 60, 0.2)',
+          color: '#a8a29e',
+          border: '1px solid rgba(68, 64, 60, 0.35)'
+        },
+        joinButton: {
+          backgroundColor: '#3b82f6'
+        },
+        joinButtonHover: '#2563eb'
+      },
+      gray: {
+        base: {
+          background: 'linear-gradient(135deg, rgba(55, 65, 81, 0.12), rgba(31, 41, 55, 0.08))',
+          border: '1px solid rgba(55, 65, 81, 0.25)',
+          backdropFilter: 'blur(20px)'
+        },
+        hover: {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 12px 30px rgba(55, 65, 81, 0.25)',
+          border: '1px solid rgba(55, 65, 81, 0.4)',
+          background: 'linear-gradient(135deg, rgba(55, 65, 81, 0.18), rgba(31, 41, 55, 0.12))'
+        },
+        matchScore: {
+          background: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+        },
+        highlightChip: {
+          backgroundColor: 'rgba(55, 65, 81, 0.2)',
+          color: '#9ca3af',
+          border: '1px solid rgba(55, 65, 81, 0.35)'
+        },
+        joinButton: {
+          backgroundColor: '#3b82f6'
+        },
+        joinButtonHover: '#2563eb'
+      },
+      blue: {
+        base: {
+          background: 'linear-gradient(135deg, rgba(64, 64, 64, 0.12), rgba(38, 38, 38, 0.08))',
+          border: '1px solid rgba(64, 64, 64, 0.25)',
+          backdropFilter: 'blur(20px)'
+        },
+        hover: {
+          transform: 'translateY(-4px)',
+          boxShadow: '0 12px 30px rgba(64, 64, 64, 0.25)',
+          border: '1px solid rgba(64, 64, 64, 0.4)',
+          background: 'linear-gradient(135deg, rgba(64, 64, 64, 0.18), rgba(38, 38, 38, 0.12))'
+        },
+        matchScore: {
+          background: 'linear-gradient(135deg, #3b82f6, #2563eb)'
+        },
+        highlightChip: {
+          backgroundColor: 'rgba(64, 64, 64, 0.2)',
+          color: '#a3a3a3',
+          border: '1px solid rgba(64, 64, 64, 0.35)'
+        },
+        joinButton: {
+          backgroundColor: '#3b82f6'
+        },
+        joinButtonHover: '#2563eb'
+      }
     },
     matchScore: {
       position: 'absolute',
-      top: '15px',
-      right: '15px',
-      backgroundColor: '#007bff',
+      top: '20px',
+      right: '20px',
       color: 'white',
-      padding: '4px 8px',
-      borderRadius: '12px',
+      padding: '6px 12px',
+      borderRadius: '16px',
       fontSize: '12px',
       fontWeight: 'bold'
     },
+    tooltip: {
+      position: 'absolute',
+      top: '100%',
+      right: 0,
+      marginTop: 8,
+      backgroundColor: '#374151',
+      color: 'white',
+      padding: '8px 12px',
+      borderRadius: 6,
+      fontSize: 12,
+      zIndex: 10,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+      maxWidth: 220,
+      whiteSpace: 'normal'
+    },
+    tooltipArrow: {
+      position: 'absolute',
+      top: -4,
+      right: 8,
+      width: 0,
+      height: 0,
+      borderLeft: '4px solid transparent',
+      borderRight: '4px solid transparent',
+      borderBottom: '4px solid #374151'
+    },
+    highlightsContainer: {
+      marginBottom: '12px',
+      display: 'flex',
+      flexDirection: 'column',   // 👈 stack vertically
+      gap: '6px'
+    },
+    highlightChip: {
+      padding: '6px 12px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: '500',
+      minWidth: '140px',   // 👈 ensures consistent base width
+      alignSelf: 'flex-start'
+    },
+    cardFooter: {
+      marginTop: 'auto',   // pushes footer to bottom
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    },
     projectTitle: {
-      fontSize: '16px',
+      fontSize: '18px',
       fontWeight: 'bold',
-      color: '#333',
+      color: 'white',
       marginBottom: '8px',
-      paddingRight: '60px' // Make room for match score
+      paddingRight: '80px',
+      lineHeight: '1.3'
     },
     projectDescription: {
-      color: '#666',
+      color: '#d1d5db',
       fontSize: '14px',
-      lineHeight: '1.4',
-      marginBottom: '12px',
+      lineHeight: '1.5',
+      marginBottom: '16px',
       display: '-webkit-box',
       WebkitLineClamp: 3,
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden'
     },
+    suggestionsContainer: {
+      marginBottom: '16px',
+      padding: '12px',
+      backgroundColor: 'rgba(251, 191, 36, 0.1)',
+      borderRadius: '8px',
+      border: '1px solid rgba(251, 191, 36, 0.2)'
+    },
+    suggestionsTitle: {
+      fontSize: '11px',
+      fontWeight: 'bold',
+      color: '#fbbf24',
+      marginBottom: '4px'
+    },
+    suggestionText: {
+      fontSize: '11px',
+      color: '#fde68a',
+      lineHeight: '1.4'
+    },
     projectMeta: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: '12px',
+      marginBottom: '16px',
       fontSize: '12px'
     },
     memberCount: {
-      color: '#666',
+      color: '#9ca3af',
       fontSize: '12px'
     },
     tagsContainer: {
       display: 'flex',
       flexWrap: 'wrap',
       gap: '6px',
-      marginBottom: '15px'
+      marginBottom: '20px'
     },
     tag: {
-      backgroundColor: '#e9ecef',
-      color: '#495057',
-      padding: '3px 8px',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#d1d5db',
+      padding: '4px 10px',
       borderRadius: '12px',
       fontSize: '11px',
-      fontWeight: '500'
+      fontWeight: '500',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
     },
     joinButton: {
       width: '100%',
-      backgroundColor: '#007bff',
       color: 'white',
       border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
+      padding: '12px 20px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: '500',
-      transition: 'background-color 0.2s ease'
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      marginTop: 'auto'
+    },
+    joinButtonDisabled: {
+      background: 'rgba(107, 114, 128, 0.5)',
+      color: '#9ca3af',
+      cursor: 'not-allowed'
     },
     loadingSpinner: {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       height: '200px',
-      color: '#666'
+      color: '#9ca3af',
+      fontSize: '16px'
     },
     emptyState: {
       textAlign: 'center',
-      color: '#666',
+      color: '#9ca3af',
       fontSize: '14px',
-      padding: '40px 20px'
+      padding: '60px 20px',
+      background: 'rgba(26, 28, 32, 0.8)',
+      borderRadius: '16px',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
     },
-    
-    // Filter and Sort Styles (preserved)
     filterSection: {
-      backgroundColor: '#f8f9fa',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '16px',
-      marginBottom: '20px'
+      position: 'relative',
+      zIndex: 10,
+      background: 'rgba(26, 28, 32, 0.8)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '24px'
     },
     filterHeader: {
       display: 'flex',
@@ -939,37 +1331,39 @@ function Dashboard() {
     },
     filterToggle: {
       backgroundColor: 'transparent',
-      border: '1px solid #007bff',
-      color: '#007bff',
-      padding: '6px 12px',
-      borderRadius: '4px',
+      border: '1px solid #3b82f6',
+      color: '#3b82f6',
+      padding: '8px 16px',
+      borderRadius: '6px',
       cursor: 'pointer',
       fontSize: '13px',
-      fontWeight: '500',
-      transition: 'all 0.2s ease'
+      fontWeight: '600',
+      transition: 'all 0.3s ease'
     },
     filterControls: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-      gap: '16px',
-      marginBottom: '16px'
+      gap: '20px',
+      marginBottom: '20px'
     },
     filterGroup: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '4px'
+      gap: '6px'
     },
     filterLabel: {
       fontSize: '12px',
-      fontWeight: '500',
-      color: '#333'
+      fontWeight: '600',
+      color: '#d1d5db'
     },
     filterSelect: {
-      padding: '6px 8px',
-      border: '1px solid #dee2e6',
-      borderRadius: '4px',
+      padding: '8px 12px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '6px',
       fontSize: '13px',
-      backgroundColor: 'white'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)'
     },
     sortButtons: {
       display: 'flex',
@@ -977,283 +1371,104 @@ function Dashboard() {
       flexWrap: 'wrap'
     },
     sortButton: {
-      padding: '4px 8px',
-      border: '1px solid #dee2e6',
-      borderRadius: '4px',
+      padding: '6px 12px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '6px',
       fontSize: '12px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      backgroundColor: 'white'
+      transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: '#d1d5db'
     },
     sortButtonActive: {
-      backgroundColor: '#007bff',
+      backgroundColor: '#3b82f6',
       color: 'white',
-      borderColor: '#007bff'
+      borderColor: '#3b82f6'
     },
     resultsCount: {
       fontSize: '14px',
-      color: '#666',
+      color: '#9ca3af',
       textAlign: 'center',
-      marginTop: '10px',
-      paddingTop: '10px',
-      borderTop: '1px solid #e9ecef'
+      marginTop: '12px',
+      paddingTop: '12px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)'
     },
     resetButton: {
-      padding: '6px 12px',
-      backgroundColor: '#6c757d',
+      padding: '8px 16px',
+      backgroundColor: '#6b7280',
       color: 'white',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '6px',
       fontSize: '12px',
       cursor: 'pointer',
-      fontWeight: '500'
+      fontWeight: '600',
+      transition: 'all 0.3s ease'
     },
-
-    // For You Tab Styles (preserved)
-    forYouGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-      gap: '20px',
-      marginTop: '20px'
-    },
-    forYouSection: {
-      backgroundColor: '#f8f9fa',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px'
-    },
-    forYouSectionTitle: {
-      fontSize: '16px',
-      fontWeight: 'bold',
-      color: '#333',
-      marginBottom: '8px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    },
-    forYouSectionDesc: {
-      color: '#666',
-      fontSize: '14px',
-      marginBottom: '15px',
-      lineHeight: '1.4'
-    },
-
-    // Trending Projects Styles (preserved)
-    trendingList: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px'
-    },
-    trendingItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '12px',
-      backgroundColor: 'white',
-      borderRadius: '6px',
-      border: '1px solid #e9ecef',
-      transition: 'all 0.2s ease',
-      cursor: 'pointer'
-    },
-    trendingRank: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: '24px',
-      height: '24px',
-      backgroundColor: '#007bff',
-      color: 'white',
-      borderRadius: '50%',
-      fontSize: '12px',
-      fontWeight: 'bold'
-    },
-    trendingInfo: {
-      flex: 1,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '2px'
-    },
-    trendingMeta: {
-      fontSize: '12px',
-      color: '#666'
-    },
-    trendingMembers: {
-      fontSize: '12px',
-      color: '#28a745',
-      fontWeight: '500'
-    },
-
-    // Learning Resources Styles (preserved)
-    learningList: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px'
-    },
-    learningItem: {
-      display: 'flex',
-      alignItems: 'flex-start',
-      gap: '12px',
-      padding: '12px',
-      backgroundColor: 'white',
-      borderRadius: '6px',
-      border: '1px solid #e9ecef',
-      transition: 'all 0.2s ease',
-      cursor: 'pointer'
-    },
-    learningIcon: {
-      fontSize: '24px',
-      minWidth: '24px'
-    },
-    learningContent: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px'
-    },
-    learningDesc: {
-      fontSize: '12px',
-      color: '#666',
-      lineHeight: '1.3'
-    },
-
-    // Career Insights Styles (preserved)
-    insightsList: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '15px'
-    },
-    insightItem: {
-      padding: '15px',
-      backgroundColor: 'white',
-      borderRadius: '6px',
-      border: '1px solid #e9ecef'
-    },
-    insightHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '8px'
-    },
-    insightTitle: {
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#333'
-    },
-    insightTrend: {
-      fontSize: '12px',
-      fontWeight: '500',
-      color: '#28a745'
-    },
-    insightDesc: {
-      fontSize: '13px',
-      color: '#666',
-      lineHeight: '1.4',
-      margin: 0
-    },
-
-    // Quick Actions Styles (preserved)
-    quickActionsList: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '10px'
-    },
-    quickActionButton: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      padding: '12px',
-      backgroundColor: 'white',
-      border: '1px solid #e9ecef',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease',
-      textAlign: 'left'
-    },
-    quickActionIcon: {
-      fontSize: '20px',
-      minWidth: '20px'
-    },
-    quickActionContent: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '2px'
-    },
-
-    // NEW: AI Chat Section Styles (only addition)
-    aiChatSection: {
-      gridColumn: '1 / -1', // Span full width
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px'
-    },
-
     lockOverlay: {
       position: 'absolute',
       inset: 0,
-      backgroundColor: 'rgba(255,255,255,0.85)',
+      backgroundColor: 'rgba(26, 28, 32, 0.85)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      borderRadius: '8px',
+      borderRadius: '16px',
       zIndex: 5,
-      pointerEvents: 'none' // purely visual; clicks are blocked via logic
-    },
-    lockIcon: {
-      fontSize: '56px',
-      color: '#007bff',
-      lineHeight: 1
-    },
-    joinButtonDisabled: {
-      backgroundColor: '#cfd8e3',
-      color: '#6c757d',
-      cursor: 'not-allowed'
+      pointerEvents: 'none'
     },
     scoreModalContent: {
       maxWidth: '680px',
       width: '92%',
-      padding: '20px',
-      borderRadius: '8px'
+      padding: '24px',
+      borderRadius: '12px',
+      backgroundColor: '#1a1c20',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
     },
     scoreModalHeader: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      borderBottom: '1px solid #e9ecef',
-      paddingBottom: '10px',
-      marginBottom: '12px'
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      paddingBottom: '12px',
+      marginBottom: '16px'
     },
     scoreModalTitle: {
       fontSize: '18px',
       fontWeight: 'bold',
-      color: '#333'
+      color: 'white'
     },
     scorePill: {
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
       color: 'white',
-      borderRadius: '999px',
-      padding: '8px 12px',
+      borderRadius: '20px',
+      padding: '8px 16px',
       fontWeight: 'bold',
-      minWidth: '64px',
+      minWidth: '70px',
       textAlign: 'center'
     },
     scoreModalSection: {
-      margin: '14px 0'
+      margin: '16px 0'
+    },
+    modalSectionTitle: {
+      fontSize: '14px',
+      color: 'white',
+      fontWeight: 600,
+      marginBottom: 10
     },
     chip: {
-      backgroundColor: '#e3f2fd',
-      color: '#1976d2',
-      padding: '4px 10px',
+      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      color: '#93c5fd',
+      padding: '4px 12px',
       borderRadius: '12px',
       fontSize: '12px',
-      border: '1px solid #bbdefb'
+      border: '1px solid rgba(59, 130, 246, 0.3)'
     },
     chipWarning: {
-      backgroundColor: '#fff3cd',
-      color: '#856404',
-      padding: '4px 10px',
+      backgroundColor: 'rgba(251, 191, 36, 0.15)',
+      color: '#fbbf24',
+      padding: '4px 12px',
       borderRadius: '12px',
       fontSize: '12px',
-      border: '1px solid #ffeaa7'
+      border: '1px solid rgba(251, 191, 36, 0.3)'
     },
     list: {
       margin: 0,
@@ -1261,28 +1476,29 @@ function Dashboard() {
     },
     listItem: {
       fontSize: '13px',
-      color: '#444',
+      color: '#d1d5db',
       marginBottom: '6px'
     },
     factorRow: {
-      marginBottom: '10px'
+      marginBottom: '12px'
     },
     factorLabel: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
       fontSize: '12px',
-      color: '#333',
+      color: '#d1d5db',
       marginBottom: '6px'
     },
     factorScore: {
-      fontWeight: 600
+      fontWeight: 600,
+      color: 'white'
     },
     progressTrack: {
       position: 'relative',
       width: '100%',
       height: '8px',
-      backgroundColor: '#f1f3f5',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       borderRadius: '6px',
       overflow: 'hidden'
     },
@@ -1291,312 +1507,791 @@ function Dashboard() {
       left: 0,
       top: 0,
       bottom: 0,
-      backgroundColor: '#007bff'
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)'
     },
     closeButtonPrimary: {
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
       color: 'white',
       border: 'none',
-      padding: '8px 14px',
-      borderRadius: '6px',
+      padding: '10px 20px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: '500'
+      fontWeight: '600'
     }
   };
 
   return (
-    <div style={styles.container}>
-      {/* Header Section (COMPLETELY PRESERVED) */}
-      <header style={styles.header}>
-        <div style={styles.headerLeft}>
-          <h1 style={styles.title}>Dashboard</h1>
-        </div>
-        <div style={styles.headerActions}>
-          <button
-            style={styles.createButton}
-            onClick={handleCreateClick}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#0056b3';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#007bff';
-            }}
-          >
-            + Create Project
-          </button>
-          
-          <div style={styles.notificationContainer}>
-            <button 
-              style={{
-                ...styles.notificationButton,
-                color: unreadCount > 0 ? '#3498db' : '#6c757d'
-              }} 
-              onClick={handleNotificationClick}
+    <>
+      {/* Add custom scrollbar styles */}
+      <style dangerouslySetInnerHTML={{ __html: customScrollbarStyles }} />
+      
+      <div style={styles.container}>
+        {/* Background Code Symbols - Now consistent across tabs */}
+        <BackgroundSymbols />
+
+        {/* Header Section */}
+        <header style={styles.header}>
+          <div style={styles.headerLeft}>
+            <h1 style={styles.title}>Dashboard</h1>
+          </div>
+          <div style={styles.headerActions}>
+            <button
+              style={styles.createButton}
+              onClick={handleCreateClick}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+              }}
             >
-              🔔
-              {unreadCount > 0 && (
-                <span style={styles.notificationBadge}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
-              )}
+              <Plus size={18} />
+              Create Project
             </button>
             
-            {showNotifications && (
-              <div 
-                className="notification-dropdown"
+            <div style={styles.notificationContainer}>
+              <button 
                 style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  marginTop: '5px',
-                  zIndex: 1000
+                  ...styles.notificationButton,
+                  color: unreadCount > 0 ? '#60a5fa' : '#9ca3af'
+                }} 
+                onClick={handleNotificationClick}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                  e.target.style.transform = 'translateY(-2px)';
                 }}
-                onClick={(e) => e.stopPropagation()}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
               >
-                <NotificationDropdown onClose={() => setShowNotifications(false)} />
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span style={styles.notificationBadge}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div 
+                  className="notification-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: '5px',
+                    zIndex: 1000
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <NotificationDropdown onClose={() => setShowNotifications(false)} />
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Create Project Modal */}
+        {showCreateProject && (
+          <div style={styles.modal} onClick={handleCloseCreate}>
+            <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+              <CreateProject onClose={handleCloseCreate} />
+            </div>
+          </div>
+        )}
+
+        {/* Welcome Section */}
+        <div style={styles.welcomeSection}>
+          <h2 style={styles.welcomeTitle}>
+            <Rocket size={28} style={{ color: '#3b82f6' }} />
+            Welcome Back, {user?.username || 'User'}!
+          </h2>
+          <p style={styles.welcomeDescription}>
+            Ready to start or continue working on your projects? Check out our personalized recommendations below.
+          </p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={styles.tabNavigation}>
+          <div style={styles.tabHeader}>
+            <button
+              style={{
+                ...styles.tabButton,
+                backgroundColor: activeTab === 'recommended' ? '#1a1d24' : 'transparent',
+                color: '#E8EDF9'
+              }}
+              onClick={() => setActiveTab('recommended')}
+            >
+              For You
+            </button>
+
+            <button
+              style={{
+                ...styles.tabButton,
+                backgroundColor: activeTab === 'forYou' ? '#1a1d24' : 'transparent',
+                color: '#E8EDF9'
+              }}
+              onClick={() => setActiveTab('forYou')}
+            >
+              Solo Projects
+            </button>
+          </div>
+
+          <div style={styles.tabContent}>
+            {/* RECOMMENDED PROJECTS TAB */}
+            {activeTab === 'recommended' && (
+              <div>
+                <h3 style={styles.sectionTitle}>
+                  <Code size={24} style={{ color: '#3b82f6' }} />
+                  Recommended Projects
+                </h3>
+                <p style={styles.sectionDescription}>
+                  Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, here are some projects you might like.
+                </p>
+
+                {/* Filter and Sort Section */}
+                {!loadingRecommendations && recommendedProjects.length > 0 && (
+                  <div style={styles.filterSection}>
+                    <div style={styles.filterHeader}>
+                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: 'white' }}>
+                        Filter & Sort Projects
+                      </h4>
+                      <button
+                        style={styles.filterToggle}
+                        onClick={() => setShowFilters(!showFilters)}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = '#3b82f6';
+                          e.target.style.color = 'white';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = 'transparent';
+                          e.target.style.color = '#3b82f6';
+                        }}
+                      >
+                        {showFilters ? 'Hide Filters' : 'Show Filters'}
+                      </button>
+                    </div>
+
+                    {showFilters && (
+                      <>
+                        <div style={styles.filterControls}>
+                          {/* Language Filter */}
+                          <div style={styles.filterGroup}>
+                            <label style={styles.filterLabel}>Filter by Language</label>
+                            <select
+                              style={styles.filterSelect}
+                              value={filterLanguage}
+                              onChange={(e) => setFilterLanguage(e.target.value)}
+                            >
+                              <option value="all">All Languages</option>
+                              {getAvailableLanguages().map(lang => (
+                                <option key={lang} value={lang}>{lang}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Difficulty Filter */}
+                          <div style={styles.filterGroup}>
+                            <label style={styles.filterLabel}>Filter by Difficulty</label>
+                            <select
+                              style={styles.filterSelect}
+                              value={filterDifficulty}
+                              onChange={(e) => setFilterDifficulty(e.target.value)}
+                            >
+                              <option value="all">All Difficulties</option>
+                              <option value="easy">Easy</option>
+                              <option value="medium">Medium</option>
+                              <option value="hard">Hard</option>
+                            </select>
+                          </div>
+
+                          {/* Sort Options */}
+                          <div style={styles.filterGroup}>
+                            <label style={styles.filterLabel}>Sort by</label>
+                            <div style={styles.sortButtons}>
+                              <button
+                                style={{
+                                  ...styles.sortButton,
+                                  ...(sortBy === 'match' ? styles.sortButtonActive : {})
+                                }}
+                                onClick={() => handleSortChange('match')}
+                              >
+                                Match Rate {sortBy === 'match' && (sortOrder === 'desc' ? '↓' : '↑')}
+                              </button>
+                              <button
+                                style={{
+                                  ...styles.sortButton,
+                                  ...(sortBy === 'difficulty' ? styles.sortButtonActive : {})
+                                }}
+                                onClick={() => handleSortChange('difficulty')}
+                              >
+                                Difficulty {sortBy === 'difficulty' && (sortOrder === 'desc' ? '↓' : '↑')}
+                              </button>
+                              <button
+                                style={{
+                                  ...styles.sortButton,
+                                  ...(sortBy === 'members' ? styles.sortButtonActive : {})
+                                }}
+                                onClick={() => handleSortChange('members')}
+                              >
+                                Team Size {sortBy === 'members' && (sortOrder === 'desc' ? '↓' : '↑')}
+                              </button>
+                              <button
+                                style={{
+                                  ...styles.sortButton,
+                                  ...(sortBy === 'title' ? styles.sortButtonActive : {})
+                                }}
+                                onClick={() => handleSortChange('title')}
+                              >
+                                Title {sortBy === 'title' && (sortOrder === 'desc' ? '↓' : '↑')}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Reset Button */}
+                        <div style={{ textAlign: 'right' }}>
+                          <button
+                            style={styles.resetButton}
+                            onClick={resetFilters}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = '#4b5563';
+                              e.target.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = '#6b7280';
+                              e.target.style.transform = 'translateY(0)';
+                            }}
+                          >
+                            Reset Filters
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Results Count */}
+                    <div style={styles.resultsCount}>
+                      Showing {filteredProjects.length} of {recommendedProjects.length} projects
+                      {(filterLanguage !== 'all' || filterDifficulty !== 'all') && (
+                        <span style={{ color: '#60a5fa', fontWeight: '500' }}> (filtered)</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Project Grid */}
+                {loadingRecommendations ? (
+                  <div style={styles.loadingSpinner}>
+                    Loading personalized recommendations...
+                  </div>
+                ) : filteredProjects.length > 0 ? (
+                  <div style={styles.recommendationsGrid}>
+                    {filteredProjects.map((project, index) => (
+                      <EnhancedProjectCard
+                        key={project.projectId || project.id || index}
+                        project={project}
+                        styles={styles}
+                        getDifficultyStyle={getDifficultyStyle}
+                        handleProjectClick={handleProjectClick}
+                        handleJoinProject={handleJoinProject}
+                        colorVariant={colorVariants[index % colorVariants.length]}
+                      />
+                    ))}
+                  </div>
+                ) : recommendedProjects.length > 0 ? (
+                  <div style={styles.emptyState}>
+                    No projects match your current filters.
+                    <br />
+                    <button
+                      style={{
+                        ...styles.resetButton,
+                        marginTop: '12px'
+                      }}
+                      onClick={resetFilters}
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+                ) : (
+                  <div style={styles.emptyState}>
+                    No project recommendations available yet.
+                    Complete more of your profile to get personalized recommendations!
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* FOR YOU TAB - SOLO PROJECT WITH AI CHAT */}
+            {activeTab === 'forYou' && (
+              <div>
+                <h3 style={styles.sectionTitle}>
+                  <BookOpen size={24} style={{ color: '#10b981' }} />
+                  Solo Project
+                </h3>
+                <p style={styles.sectionDescription}>
+                  Sync is your personal AI-powered workspace for generating and planning coding projects.
+                </p>
+
+                {/* AI Chat Interface */}
+                <div style={{
+                  position: 'relative',
+                  zIndex: 10,
+                  background: 'rgba(26, 28, 32, 0.95)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '16px',
+                  padding: '24px'
+                }}>
+                  <AIChatInterface />
+                </div>
               </div>
             )}
           </div>
         </div>
-      </header>
 
-      {/* Create Project Modal (COMPLETELY PRESERVED) */}
-      {showCreateProject && (
-        <div style={styles.modal} onClick={handleCloseCreate}>
-          <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <CreateProject onClose={handleCloseCreate} />
-          </div>
-        </div>
-      )}
+        {/* AI Project Preview Modal at Dashboard Level with Custom Scrollbar */}
+        {showAIProjectPreview && aiPreviewProject && createPortal(
+          <div style={{
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            zIndex: 2500, 
+            backdropFilter: 'blur(2px)'
+          }}>
+            <div 
+              className="project-preview-modal"
+              style={{
+                background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.96), rgba(15, 17, 22, 0.94))',
+                borderRadius: '20px', 
+                padding: '32px', 
+                maxWidth: '800px', 
+                width: '90%',
+                maxHeight: '90vh', 
+                overflowY: 'auto',
+                boxShadow: '0 30px 100px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(59, 130, 246, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.15)', 
+                color: 'white',
+                backdropFilter: 'blur(15px)'
+              }}
+            >
+              <div style={{
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'flex-start',
+                marginBottom: '28px', 
+                paddingBottom: '20px',
+                borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <h2 style={{
+                  fontSize: '28px', 
+                  fontWeight: '700', 
+                  color: 'white', 
+                  margin: 0,
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px'
+                }}>
+                  <Code size={26} style={{ color: '#3b82f6' }} />
+                  Project Preview
+                </h2>
+                <button
+                  style={{
+                    padding: '12px', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    border: 'none', 
+                    fontSize: '24px', 
+                    cursor: 'pointer',
+                    color: '#94a3b8', 
+                    borderRadius: '12px',
+                    width: '48px', 
+                    height: '48px',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onClick={() => {
+                    setShowAIProjectPreview(false);
+                    setAiPreviewProject(null);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                    e.target.style.color = '#ef4444';
+                    e.target.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.color = '#94a3b8';
+                    e.target.style.transform = 'scale(1)';
+                  }}
+                >
+                  ×
+                </button>
+              </div>
 
-      {/* Welcome Section (COMPLETELY PRESERVED) */}
-      <div style={styles.welcomeCard}>
-        <h2>🎉 Welcome Back!</h2>
-        <p>
-          Great to see you back! Ready to start or continue working on your projects? 
-          Check out our personalized recommendations below.
-        </p>
-      </div>
+              <div style={{ marginBottom: '28px' }}>
+                <h3 style={{
+                  fontSize: '24px', 
+                  fontWeight: '700', 
+                  color: 'white',
+                  margin: '0 0 20px 0', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px'
+                }}>
+                  <Rocket size={20} style={{ color: '#10b981' }} />
+                  {aiPreviewProject.title}
+                </h3>
+              </div>
 
-      {/* Tab Navigation (COMPLETELY PRESERVED) */}
-      <div style={styles.tabNavigation}>
-        <div style={styles.tabHeader}>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'recommended' ? styles.activeTabButton : {})
-            }}
-            onClick={() => setActiveTab('recommended')}
-           
-          >
-            🚀 Recommended Projects
-          </button>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'forYou' ? styles.activeTabButton : {})
-            }}
-            onClick={() => setActiveTab('forYou')}
-            
-          >
-            ✨ Solo Project
-          </button>
-        </div>
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: 'white',
+                  marginBottom: '16px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px'
+                }}>
+                  📄 Description
+                </h4>
+                <p style={{ 
+                  fontSize: '15px', 
+                  lineHeight: '1.7', 
+                  color: '#cbd5e1',
+                  margin: 0 
+                }}>
+                  {aiPreviewProject.description}
+                </p>
+              </div>
 
-        <div style={styles.tabContent}>
-          {/* RECOMMENDED PROJECTS TAB (COMPLETELY PRESERVED) */}
-          {activeTab === 'recommended' && (
-            <div>
-              <h3 style={styles.sectionTitle}>🚀 Recommended Projects</h3>
-              <p style={{ color: '#666', marginBottom: '15px' }}>
-                Based on your skills in {user?.programming_languages?.slice(0, 2).map(l => l.programming_languages?.name || l.name).join(', ')} and your interest in {user?.topics?.slice(0, 2).map(t => t.topics?.name || t.name).join(', ')}, here are some projects you might like.
-              </p>
-
-              {/* Filter and Sort Section (COMPLETELY PRESERVED) */}
-              {!loadingRecommendations && recommendedProjects.length > 0 && (
-                <div style={styles.filterSection}>
-                  <div style={styles.filterHeader}>
-                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
-                      Filter & Sort Projects
-                    </h4>
-                    <button
-                      style={styles.filterToggle}
-                      onClick={() => setShowFilters(!showFilters)}
-                      onMouseEnter={(e) => {
-                        e.target.style.backgroundColor = '#007bff';
-                        e.target.style.color = 'white';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.backgroundColor = 'transparent';
-                        e.target.style.color = '#007bff';
-                      }}
-                    >
-                      {showFilters ? 'Hide Filters' : 'Show Filters'}
-                    </button>
-                  </div>
-
-                  {showFilters && (
-                    <>
-                      <div style={styles.filterControls}>
-                        {/* Language Filter */}
-                        <div style={styles.filterGroup}>
-                          <label style={styles.filterLabel}>Filter by Language</label>
-                          <select
-                            style={styles.filterSelect}
-                            value={filterLanguage}
-                            onChange={(e) => setFilterLanguage(e.target.value)}
-                          >
-                            <option value="all">All Languages</option>
-                            {getAvailableLanguages().map(lang => (
-                              <option key={lang} value={lang}>{lang}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Difficulty Filter */}
-                        <div style={styles.filterGroup}>
-                          <label style={styles.filterLabel}>Filter by Difficulty</label>
-                          <select
-                            style={styles.filterSelect}
-                            value={filterDifficulty}
-                            onChange={(e) => setFilterDifficulty(e.target.value)}
-                          >
-                            <option value="all">All Difficulties</option>
-                            <option value="easy">Easy</option>
-                            <option value="medium">Medium</option>
-                            <option value="hard">Hard</option>
-                          </select>
-                        </div>
-
-                        {/* Sort Options */}
-                        <div style={styles.filterGroup}>
-                          <label style={styles.filterLabel}>Sort by</label>
-                          <div style={styles.sortButtons}>
-                            <button
-                              style={{
-                                ...styles.sortButton,
-                                ...(sortBy === 'match' ? styles.sortButtonActive : {})
-                              }}
-                              onClick={() => handleSortChange('match')}
-                            >
-                              Match Rate {sortBy === 'match' && (sortOrder === 'desc' ? '↓' : '↑')}
-                            </button>
-                            <button
-                              style={{
-                                ...styles.sortButton,
-                                ...(sortBy === 'difficulty' ? styles.sortButtonActive : {})
-                              }}
-                              onClick={() => handleSortChange('difficulty')}
-                            >
-                              Difficulty {sortBy === 'difficulty' && (sortOrder === 'desc' ? '↓' : '↑')}
-                            </button>
-                            <button
-                              style={{
-                                ...styles.sortButton,
-                                ...(sortBy === 'members' ? styles.sortButtonActive : {})
-                              }}
-                              onClick={() => handleSortChange('members')}
-                            >
-                              Team Size {sortBy === 'members' && (sortOrder === 'desc' ? '↓' : '↑')}
-                            </button>
-                            <button
-                              style={{
-                                ...styles.sortButton,
-                                ...(sortBy === 'title' ? styles.sortButtonActive : {})
-                              }}
-                              onClick={() => handleSortChange('title')}
-                            >
-                              Title {sortBy === 'title' && (sortOrder === 'desc' ? '↓' : '↑')}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Reset Button */}
-                      <div style={{ textAlign: 'right' }}>
-                        <button
-                          style={styles.resetButton}
-                          onClick={resetFilters}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = '#5a6268';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = '#6c757d';
-                          }}
-                        >
-                          Reset Filters
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Results Count */}
-                  <div style={styles.resultsCount}>
-                    Showing {filteredProjects.length} of {recommendedProjects.length} projects
-                    {(filterLanguage !== 'all' || filterDifficulty !== 'all') && (
-                      <span style={{ color: '#007bff', fontWeight: '500' }}> (filtered)</span>
-                    )}
+              {aiPreviewProject.detailed_description && (
+                <div style={{ marginBottom: '28px' }}>
+                  <h4 style={{
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: 'white',
+                    marginBottom: '16px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px'
+                  }}>
+                    📋 Project Details
+                  </h4>
+                  <div style={{
+                    fontSize: '14px', 
+                    lineHeight: '1.6', 
+                    color: '#94a3b8',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                    padding: '20px',
+                    borderRadius: '12px', 
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    whiteSpace: 'pre-line', 
+                    backdropFilter: 'blur(8px)'
+                  }}>
+                    {aiPreviewProject.detailed_description}
                   </div>
                 </div>
               )}
 
-              {/* Project Grid (COMPLETELY PRESERVED) */}
-              {loadingRecommendations ? (
-                <div style={styles.loadingSpinner}>
-                  Loading personalized recommendations...
+              <div style={{ marginBottom: '28px' }}>
+                <h4 style={{
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: 'white',
+                  marginBottom: '16px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '10px'
+                }}>
+                  ⚙️ Project Settings
+                </h4>
+                <div style={{
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: '20px', 
+                  marginBottom: '20px'
+                }}>
+                  <div style={{
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px', 
+                    padding: '16px',
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <span style={{
+                      fontSize: '12px', 
+                      fontWeight: '600', 
+                      color: '#64748b',
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.5px'
+                    }}>
+                      Difficulty Level
+                    </span>
+                    <span style={{
+                      fontSize: '15px', 
+                      fontWeight: '600', 
+                      color: 'white',
+                      padding: '6px 14px', 
+                      borderRadius: '16px',
+                      textTransform: 'capitalize',
+                      backgroundColor: aiPreviewProject.difficulty_level === 'easy' ? '#10b981' : 
+                                     aiPreviewProject.difficulty_level === 'medium' ? '#f59e0b' :
+                                     aiPreviewProject.difficulty_level === 'hard' ? '#ef4444' : '#8b5cf6',
+                      textAlign: 'center',
+                      display: 'inline-block'
+                    }}>
+                      {aiPreviewProject.difficulty_level || 'Medium'}
+                    </span>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px', 
+                    padding: '16px',
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <span style={{
+                      fontSize: '12px', 
+                      fontWeight: '600', 
+                      color: '#64748b',
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.5px'
+                    }}>
+                      Experience Level
+                    </span>
+                    <span style={{ 
+                      fontSize: '15px', 
+                      fontWeight: '600', 
+                      color: 'white' 
+                    }}>
+                      {aiPreviewProject.required_experience_level || 'Intermediate'}
+                    </span>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px', 
+                    padding: '16px',
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <span style={{
+                      fontSize: '12px', 
+                      fontWeight: '600', 
+                      color: '#64748b',
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.5px'
+                    }}>
+                      Max Members
+                    </span>
+                    <span style={{ 
+                      fontSize: '15px', 
+                      fontWeight: '600', 
+                      color: 'white' 
+                    }}>
+                      {aiPreviewProject.maximum_members || 'Unlimited'}
+                    </span>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    gap: '8px', 
+                    padding: '16px',
+                    background: 'rgba(255, 255, 255, 0.03)', 
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255, 255, 255, 0.08)'
+                  }}>
+                    <span style={{
+                      fontSize: '12px', 
+                      fontWeight: '600', 
+                      color: '#64748b',
+                      textTransform: 'uppercase', 
+                      letterSpacing: '0.5px'
+                    }}>
+                      Estimated Duration
+                    </span>
+                    <span style={{ 
+                      fontSize: '15px', 
+                      fontWeight: '600', 
+                      color: 'white' 
+                    }}>
+                      {aiPreviewProject.estimated_duration_weeks ? 
+                        `${aiPreviewProject.estimated_duration_weeks} weeks` : 'Not specified'}
+                    </span>
+                  </div>
                 </div>
-              ) : filteredProjects.length > 0 ? (
-                <div style={styles.recommendationsGrid}>
-                  {filteredProjects.map((project, index) => (
-                    <EnhancedProjectCard
-                      key={project.projectId || project.id || index}
-                      project={project}
-                      styles={styles}
-                      getDifficultyStyle={getDifficultyStyle}
-                      handleProjectClick={handleProjectClick}
-                      handleJoinProject={handleJoinProject}
-                    />
-                  ))}
-                </div>
-              ) : recommendedProjects.length > 0 ? (
-                <div style={styles.emptyState}>
-                  No projects match your current filters.
-                  <br />
-                  <button
-                    style={{
-                      ...styles.resetButton,
-                      marginTop: '10px'
-                    }}
-                    onClick={resetFilters}
-                  >
-                    Reset Filters
-                  </button>
-                </div>
-              ) : (
-                <div style={styles.emptyState}>
-                  No project recommendations available yet.
-                  Complete more of your profile to get personalized recommendations!
+              </div>
+
+              {aiPreviewProject.programming_languages && aiPreviewProject.programming_languages.length > 0 && (
+                <div style={{ marginBottom: '28px' }}>
+                  <h4 style={{
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: 'white',
+                    marginBottom: '16px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px'
+                  }}>
+                    💻 Technologies
+                  </h4>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '10px' 
+                  }}>
+                    {aiPreviewProject.programming_languages.map((lang, index) => (
+                      <span key={index} style={{
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1))',
+                        color: '#93c5fd', 
+                        fontSize: '13px', 
+                        fontWeight: '500',
+                        borderRadius: '20px', 
+                        border: '1px solid rgba(59, 130, 246, 0.3)'
+                      }}>
+                        {lang}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* FOR YOU TAB - SOLO PROJECT WITH AI CHAT ONLY */}
-          {activeTab === 'forYou' && (
-            <div>
-              <h3 style={styles.sectionTitle}>✨ Solo Project</h3>
-              <p style={{ color: '#666', marginBottom: '15px' }}>
-                Sync is your personal AI-powered workspace for generating and planning coding projects.
-              </p>
+              {aiPreviewProject.topics && aiPreviewProject.topics.length > 0 && (
+                <div style={{ marginBottom: '28px' }}>
+                  <h4 style={{
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: 'white',
+                    marginBottom: '16px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px'
+                  }}>
+                    🏷️ Topics
+                  </h4>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: '10px' 
+                  }}>
+                    {aiPreviewProject.topics.map((topic, index) => (
+                      <span key={index} style={{
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.15), rgba(124, 58, 237, 0.1))',
+                        color: '#c4b5fd', 
+                        fontSize: '13px', 
+                        fontWeight: '500',
+                        borderRadius: '20px', 
+                        border: '1px solid rgba(147, 51, 234, 0.3)'
+                      }}>
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-              {/* AI Chat Interface - Direct without extra containers */}
-              <AIChatInterface />
+              <div style={{
+                display: 'flex', 
+                gap: '16px', 
+                justifyContent: 'flex-end',
+                marginTop: '32px', 
+                paddingTop: '24px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
+                <button
+                  style={{
+                    padding: '12px 24px', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: '#cbd5e1', 
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '12px', 
+                    fontSize: '14px', 
+                    fontWeight: '500', 
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onClick={() => {
+                    setShowAIProjectPreview(false);
+                    setAiPreviewProject(null);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  style={{
+                    padding: '12px 28px', 
+                    background: 'linear-gradient(135deg, #10b981, #059669)',
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '12px',
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '8px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onClick={() => {
+                    // Trigger the AI chat's project creation
+                    window.dispatchEvent(new CustomEvent('createAIProject', { 
+                      detail: { project: aiPreviewProject } 
+                    }));
+                    setShowAIProjectPreview(false);
+                    setAiPreviewProject(null);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#059669';
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 12px 30px rgba(16, 185, 129, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#10b981';
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.3)';
+                  }}
+                >
+                  <Rocket size={16} />
+                  Create This Project
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>,
+          document.body
+        )}
       </div>
-    </div>
+    </>
   );
 }
 

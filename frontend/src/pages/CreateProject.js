@@ -1,4 +1,4 @@
-// frontend/src/pages/CreateProject.js
+// frontend/src/pages/CreateProject.js - UPDATED WITH DASHBOARD THEME ALIGNMENT
 import React, { useState, useEffect } from 'react';
 import { projectService } from '../services/projectService';
 import { suggestionsService } from '../services/suggestionsService';
@@ -70,50 +70,57 @@ function MultiSelectInput({ label, selectedItems, onSelectionChange, suggestions
 
   const styles = {
     container: {
-      marginBottom: '15px'
+      marginBottom: '20px'
     },
     label: {
       display: 'block',
-      marginBottom: '5px',
-      fontWeight: 'bold',
-      color: '#333'
+      marginBottom: '8px',
+      fontWeight: '600',
+      color: '#E8EDF9',
+      fontSize: '14px'
     },
     inputContainer: {
       position: 'relative'
     },
     input: {
       width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
       boxSizing: 'border-box',
       outline: 'none',
-      transition: 'border-color 0.2s ease'
+      transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)'
     },
     inputFocused: {
-      borderColor: '#007bff',
-      boxShadow: '0 0 0 2px rgba(0, 123, 255, 0.25)'
+      borderColor: '#3b82f6',
+      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
+      backgroundColor: 'rgba(255, 255, 255, 0.08)'
     },
     selectedItems: {
       display: 'flex',
       flexWrap: 'wrap',
       gap: '8px',
-      marginTop: '8px',
+      marginTop: '12px',
       marginBottom: '8px',
       minHeight: selectedItems.length > 0 ? 'auto' : '0'
     },
     selectedItem: {
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
       color: 'white',
-      padding: '6px 12px',
+      padding: '8px 14px',
       borderRadius: '20px',
       fontSize: '13px',
+      fontWeight: '500',
       display: 'flex',
       alignItems: 'center',
-      gap: '6px',
+      gap: '8px',
       maxWidth: '200px',
-      overflow: 'hidden'
+      overflow: 'hidden',
+      boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)'
     },
     selectedItemText: {
       whiteSpace: 'nowrap',
@@ -121,57 +128,59 @@ function MultiSelectInput({ label, selectedItems, onSelectionChange, suggestions
       textOverflow: 'ellipsis'
     },
     removeButton: {
-      background: 'none',
+      background: 'rgba(255, 255, 255, 0.2)',
       border: 'none',
       color: 'white',
       cursor: 'pointer',
-      fontSize: '16px',
+      fontSize: '14px',
       padding: '0',
-      marginLeft: '4px',
       borderRadius: '50%',
-      width: '16px',
-      height: '16px',
+      width: '18px',
+      height: '18px',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      transition: 'background 0.2s ease'
     },
     suggestions: {
       position: 'absolute',
       top: '100%',
       left: 0,
       right: 0,
-      backgroundColor: 'white',
-      border: '1px solid #ddd',
+      backgroundColor: 'rgba(26, 28, 32, 0.95)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
       borderTop: 'none',
-      borderRadius: '0 0 4px 4px',
+      borderRadius: '0 0 8px 8px',
       maxHeight: '200px',
       overflowY: 'auto',
       zIndex: 1000,
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      backdropFilter: 'blur(20px)',
+      boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)'
     },
     suggestion: {
-      padding: '10px 12px',
+      padding: '12px 16px',
       cursor: 'pointer',
-      borderBottom: '1px solid #f0f0f0',
-      transition: 'background-color 0.1s ease'
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      transition: 'background-color 0.2s ease'
     },
     suggestionFocused: {
-      backgroundColor: '#007bff',
-      color: 'white'
+      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      color: '#93c5fd'
     },
     suggestionName: {
       fontWeight: '500',
-      fontSize: '14px'
+      fontSize: '14px',
+      color: '#E8EDF9'
     },
     suggestionDescription: {
       fontSize: '12px',
-      color: '#666',
+      color: '#9ca3af',
       marginTop: '2px'
     },
     itemCount: {
       fontSize: '12px',
-      color: '#666',
-      marginTop: '4px'
+      color: '#9ca3af',
+      marginTop: '6px'
     }
   };
 
@@ -228,6 +237,8 @@ function MultiSelectInput({ label, selectedItems, onSelectionChange, suggestions
                 style={styles.removeButton}
                 onClick={() => handleRemoveItem(item)}
                 title="Remove"
+                onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
+                onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
               >
                 ×
               </button>
@@ -342,52 +353,57 @@ function CreateProject({ onClose }) {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.35)', /* darker since no blur */
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 1000
+      zIndex: 2000
     },
     modal: {
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      padding: '30px',
+      backgroundColor: '#1a1c20', /* solid background */
+      borderRadius: '16px',
+      padding: '32px',
       width: '90%',
-      maxWidth: '600px',
+      maxWidth: '650px',
       maxHeight: '90vh',
       overflowY: 'auto',
-      position: 'relative'
+      position: 'relative',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
     },
     closeButton: {
       position: 'absolute',
-      top: '15px',
-      right: '15px',
-      background: 'none',
-      border: 'none',
-      fontSize: '24px',
+      top: '20px',
+      right: '20px',
+      background: 'rgba(255, 255, 255, 0.1)',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      fontSize: '20px',
       cursor: 'pointer',
-      color: '#999',
-      padding: '5px',
+      color: '#9ca3af',
+      padding: '8px',
       borderRadius: '50%',
-      width: '35px',
-      height: '35px',
+      width: '36px',
+      height: '36px',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'center'
+      justifyContent: 'center',
+      transition: 'all 0.3s ease',
+      backdropFilter: 'blur(8px)'
     },
     header: {
       textAlign: 'center',
-      marginBottom: '30px'
+      marginBottom: '32px'
     },
     title: {
-      margin: '0 0 20px 0',
-      color: '#333',
-      fontSize: '24px'
+      margin: '0 0 24px 0',
+      color: '#E8EDF9',
+      fontSize: '28px',
+      fontWeight: 'bold'
     },
     form: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '20px'
+      gap: '24px'
     },
     inputGroup: {
       display: 'flex',
@@ -395,147 +411,217 @@ function CreateProject({ onClose }) {
     },
     label: {
       marginBottom: '8px',
-      fontWeight: 'bold',
-      color: '#333'
+      fontWeight: '600',
+      color: '#E8EDF9',
+      fontSize: '14px'
     },
     input: {
-      padding: '12px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
-      transition: 'border-color 0.2s ease'
+      transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)',
+      outline: 'none'
     },
     textarea: {
-      padding: '12px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
       minHeight: '120px',
       resize: 'vertical',
-      fontFamily: 'inherit'
+      fontFamily: 'inherit',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)',
+      outline: 'none',
+      transition: 'all 0.3s ease'
     },
     select: {
-      padding: '12px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
-      backgroundColor: 'white'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)',
+      outline: 'none',
+      transition: 'all 0.3s ease'
     },
     buttonContainer: {
       display: 'flex',
       justifyContent: 'space-between',
-      marginTop: '30px',
-      gap: '15px'
+      marginTop: '32px',
+      gap: '16px'
     },
     button: {
       padding: '12px 24px',
       border: 'none',
-      borderRadius: '4px',
+      borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '16px',
-      fontWeight: '500',
-      transition: 'all 0.2s ease',
-      minWidth: '100px'
+      fontSize: '14px',
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      minWidth: '120px'
     },
     primaryButton: {
-      backgroundColor: '#007bff',
-      color: 'white'
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
+      color: 'white',
+      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
     },
     secondaryButton: {
-      backgroundColor: '#6c757d',
-      color: 'white'
+      width: '80px',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#E8EDF9',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      backdropFilter: 'blur(8px)'
     },
     disabledButton: {
-      backgroundColor: '#e9ecef',
-      color: '#6c757d',
-      cursor: 'not-allowed'
+      backgroundColor: 'rgba(107, 114, 128, 0.3)',
+      color: '#6b7280',
+      cursor: 'not-allowed',
+      boxShadow: 'none'
     },
     errorContainer: {
-      backgroundColor: '#f8d7da',
-      color: '#721c24',
-      padding: '12px',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      border: '1px solid #f5c6cb'
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      color: '#fca5a5',
+      padding: '16px',
+      borderRadius: '8px',
+      marginBottom: '24px',
+      border: '1px solid rgba(239, 68, 68, 0.3)',
+      backdropFilter: 'blur(8px)'
     },
     progressBar: {
       width: '100%',
       height: '4px',
-      backgroundColor: '#e9ecef',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       borderRadius: '2px',
-      marginBottom: '20px',
+      marginBottom: '24px',
       overflow: 'hidden'
     },
     progressFill: {
       height: '100%',
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
       transition: 'width 0.3s ease',
       width: `${(currentStep / 3) * 100}%`
     },
     stepIndicator: {
       display: 'flex',
       justifyContent: 'space-between',
-      marginBottom: '20px'
+      marginBottom: '24px'
     },
     stepItem: {
       display: 'flex',
       alignItems: 'center',
       fontSize: '14px',
-      color: '#6c757d'
+      color: '#9ca3af'
     },
     stepNumber: {
-      width: '24px',
-      height: '24px',
+      width: '28px',
+      height: '28px',
       borderRadius: '50%',
-      backgroundColor: '#e9ecef',
-      color: '#6c757d',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#9ca3af',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: '8px',
+      marginRight: '10px',
       fontSize: '12px',
-      fontWeight: 'bold'
+      fontWeight: 'bold',
+      border: '1px solid rgba(255, 255, 255, 0.2)'
     },
     stepNumberActive: {
-      backgroundColor: '#007bff',
-      color: 'white'
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
+      color: 'white',
+      borderColor: '#3b82f6'
     },
     stepNumberCompleted: {
-      backgroundColor: '#28a745',
-      color: 'white'
+      background: 'linear-gradient(to right, #10b981, #059669)',
+      color: 'white',
+      borderColor: '#10b981'
     },
     termsContainer: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '15px'
+      gap: '16px'
     },
     termsItem: {
       display: 'flex',
       alignItems: 'flex-start',
-      gap: '10px',
-      padding: '15px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      gap: '12px',
+      padding: '20px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '12px',
       cursor: 'pointer',
-      transition: 'border-color 0.2s ease'
+      transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+      backdropFilter: 'blur(8px)'
     },
     termsItemSelected: {
-      borderColor: '#007bff',
-      backgroundColor: '#f8f9fa'
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
     },
     radio: {
-      marginTop: '2px'
+      marginTop: '3px',
+      accentColor: '#3b82f6'
     },
     termsText: {
       flex: 1
     },
     termsTitle: {
-      fontWeight: 'bold',
-      marginBottom: '5px'
+      fontWeight: '600',
+      marginBottom: '6px',
+      color: '#E8EDF9'
     },
     termsDescription: {
       fontSize: '14px',
-      color: '#666'
+      color: '#9ca3af',
+      lineHeight: '1.5'
+    },
+    summaryContainer: {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      padding: '24px',
+      borderRadius: '12px',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      backdropFilter: 'blur(8px)'
+    },
+    summaryTitle: {
+      margin: '0 0 20px 0',
+      color: '#E8EDF9',
+      fontSize: '18px',
+      fontWeight: '600'
+    },
+    summaryItem: {
+      marginBottom: '16px'
+    },
+    summaryLabel: {
+      fontWeight: '600',
+      color: '#E8EDF9',
+      marginBottom: '4px'
+    },
+    summaryValue: {
+      color: '#9ca3af',
+      fontSize: '14px',
+      lineHeight: '1.5'
+    },
+    agreementContainer: {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      padding: '20px',
+      borderRadius: '8px',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      fontSize: '14px',
+      color: '#9ca3af',
+      backdropFilter: 'blur(8px)'
+    },
+    characterCount: {
+      fontSize: '12px',
+      color: '#6b7280',
+      marginTop: '6px'
     }
   };
 
@@ -544,7 +630,20 @@ function CreateProject({ onClose }) {
     return (
       <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div style={styles.modal}>
-          <button style={styles.closeButton} onClick={onClose}>×</button>
+          <button 
+            style={styles.closeButton} 
+            onClick={onClose}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              e.target.style.color = '#E8EDF9';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.color = '#9ca3af';
+            }}
+          >
+            ×
+          </button>
           
           <div style={styles.header}>
             <div style={styles.progressBar}>
@@ -584,11 +683,25 @@ function CreateProject({ onClose }) {
               <label style={styles.label}>Project Title *</label>
               <input
                 type="text"
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ':focus': {
+                    borderColor: '#3b82f6',
+                    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
+                  }
+                }}
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
                 placeholder="Enter a compelling project title"
                 maxLength="100"
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
@@ -600,10 +713,18 @@ function CreateProject({ onClose }) {
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 placeholder="Provide a brief overview of your project (2-3 sentences)"
                 maxLength="500"
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
-              <small style={{ color: '#666', marginTop: '5px' }}>
+              <div style={styles.characterCount}>
                 {formData.description.length}/500 characters
-              </small>
+              </div>
             </div>
 
             <div style={styles.inputGroup}>
@@ -614,15 +735,34 @@ function CreateProject({ onClose }) {
                 onChange={(e) => handleInputChange('detailed_description', e.target.value)}
                 placeholder="Provide more details about your project goals, features, and requirements"
                 maxLength="2000"
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
-              <small style={{ color: '#666', marginTop: '5px' }}>
+              <div style={styles.characterCount}>
                 {formData.detailed_description.length}/2000 characters
-              </small>
+              </div>
             </div>
           </div>
 
           <div style={styles.buttonContainer}>
-            <button style={{...styles.button, ...styles.secondaryButton}} onClick={onClose}>
+            <button 
+              style={styles.secondaryButton} 
+              onClick={onClose}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
               Cancel
             </button>
             <button
@@ -633,6 +773,18 @@ function CreateProject({ onClose }) {
               }}
               onClick={handleNext}
               disabled={!formData.title.trim() || !formData.description.trim()}
+              onMouseEnter={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                }
+              }}
             >
               Continue
             </button>
@@ -647,7 +799,20 @@ function CreateProject({ onClose }) {
     return (
       <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div style={styles.modal}>
-          <button style={styles.closeButton} onClick={onClose}>×</button>
+          <button 
+            style={styles.closeButton} 
+            onClick={onClose}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              e.target.style.color = '#E8EDF9';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.color = '#9ca3af';
+            }}
+          >
+            ×
+          </button>
           
           <div style={styles.header}>
             <div style={styles.progressBar}>
@@ -705,6 +870,14 @@ function CreateProject({ onClose }) {
                 style={styles.select}
                 value={formData.required_experience_level}
                 onChange={(e) => handleInputChange('required_experience_level', e.target.value)}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               >
                 <option value="">Select experience level</option>
                 <option value="beginner">Beginner</option>
@@ -724,6 +897,14 @@ function CreateProject({ onClose }) {
                 value={formData.maximum_members}
                 onChange={(e) => handleInputChange('maximum_members', e.target.value)}
                 placeholder="Maximum team size (1-50)"
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
@@ -737,6 +918,14 @@ function CreateProject({ onClose }) {
                 value={formData.estimated_duration_weeks}
                 onChange={(e) => handleInputChange('estimated_duration_weeks', e.target.value)}
                 placeholder="How many weeks will this project take?"
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
@@ -746,6 +935,14 @@ function CreateProject({ onClose }) {
                 style={styles.select}
                 value={formData.difficulty_level}
                 onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               >
                 <option value="">Select difficulty</option>
                 <option value="easy">Easy</option>
@@ -763,6 +960,14 @@ function CreateProject({ onClose }) {
                 value={formData.github_repo_url}
                 onChange={(e) => handleInputChange('github_repo_url', e.target.value)}
                 placeholder="https://github.com/username/repository"
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
@@ -773,12 +978,31 @@ function CreateProject({ onClose }) {
                 style={styles.input}
                 value={formData.deadline}
                 onChange={(e) => handleInputChange('deadline', e.target.value)}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
           </div>
 
           <div style={styles.buttonContainer}>
-            <button style={{...styles.button, ...styles.secondaryButton}} onClick={handleBack}>
+            <button 
+              style={styles.secondaryButton} 
+              onClick={handleBack}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
               Back
             </button>
             <button
@@ -789,6 +1013,18 @@ function CreateProject({ onClose }) {
               }}
               onClick={handleNext}
               disabled={formData.selectedTopics.length === 0 || formData.selectedLanguages.length === 0}
+              onMouseEnter={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                }
+              }}
             >
               Continue
             </button>
@@ -803,7 +1039,20 @@ function CreateProject({ onClose }) {
     return (
       <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
         <div style={styles.modal}>
-          <button style={styles.closeButton} onClick={onClose}>×</button>
+          <button 
+            style={styles.closeButton} 
+            onClick={onClose}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              e.target.style.color = '#E8EDF9';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.color = '#9ca3af';
+            }}
+          >
+            ×
+          </button>
           
           <div style={styles.header}>
             <div style={styles.progressBar}>
@@ -839,69 +1088,75 @@ function CreateProject({ onClose }) {
           )}
 
           <div style={styles.form}>
-            <div style={{
-              backgroundColor: '#f8f9fa',
-              padding: '20px',
-              borderRadius: '8px',
-              border: '1px solid #e9ecef'
-            }}>
-              <h3 style={{ margin: '0 0 15px 0', color: '#333' }}>Project Summary</h3>
+            <div style={styles.summaryContainer}>
+              <h3 style={styles.summaryTitle}>Project Summary</h3>
               
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Title:</strong> {formData.title}
+              <div style={styles.summaryItem}>
+                <div style={styles.summaryLabel}>Title:</div>
+                <div style={styles.summaryValue}>{formData.title}</div>
               </div>
               
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Description:</strong> {formData.description}
+              <div style={styles.summaryItem}>
+                <div style={styles.summaryLabel}>Description:</div>
+                <div style={styles.summaryValue}>{formData.description}</div>
               </div>
               
               {formData.detailed_description && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Detailed Description:</strong> {formData.detailed_description}
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Detailed Description:</div>
+                  <div style={styles.summaryValue}>{formData.detailed_description}</div>
                 </div>
               )}
               
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Topics:</strong> {formData.selectedTopics.map(t => t.name).join(', ')}
+              <div style={styles.summaryItem}>
+                <div style={styles.summaryLabel}>Topics:</div>
+                <div style={styles.summaryValue}>{formData.selectedTopics.map(t => t.name).join(', ')}</div>
               </div>
               
-              <div style={{ marginBottom: '15px' }}>
-                <strong>Programming Languages:</strong> {formData.selectedLanguages.map(l => l.name).join(', ')}
+              <div style={styles.summaryItem}>
+                <div style={styles.summaryLabel}>Programming Languages:</div>
+                <div style={styles.summaryValue}>{formData.selectedLanguages.map(l => l.name).join(', ')}</div>
               </div>
               
               {formData.required_experience_level && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Required Experience:</strong> {formData.required_experience_level}
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Required Experience:</div>
+                  <div style={styles.summaryValue}>{formData.required_experience_level}</div>
                 </div>
               )}
               
               {formData.maximum_members && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Maximum Members:</strong> {formData.maximum_members}
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Maximum Members:</div>
+                  <div style={styles.summaryValue}>{formData.maximum_members}</div>
                 </div>
               )}
               
               {formData.estimated_duration_weeks && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Estimated Duration:</strong> {formData.estimated_duration_weeks} weeks
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Estimated Duration:</div>
+                  <div style={styles.summaryValue}>{formData.estimated_duration_weeks} weeks</div>
                 </div>
               )}
               
               {formData.difficulty_level && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Difficulty Level:</strong> {formData.difficulty_level}
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Difficulty Level:</div>
+                  <div style={styles.summaryValue}>{formData.difficulty_level}</div>
                 </div>
               )}
               
               {formData.github_repo_url && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>GitHub Repository:</strong> {formData.github_repo_url}
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>GitHub Repository:</div>
+                  <div style={styles.summaryValue}>{formData.github_repo_url}</div>
                 </div>
               )}
               
               {formData.deadline && (
-                <div style={{ marginBottom: '15px' }}>
-                  <strong>Deadline:</strong> {new Date(formData.deadline).toLocaleDateString()}
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Deadline:</div>
+                  <div style={styles.summaryValue}>{new Date(formData.deadline).toLocaleDateString()}</div>
                 </div>
               )}
             </div>
@@ -984,15 +1239,8 @@ function CreateProject({ onClose }) {
               </div>
             </div>
 
-            <div style={{
-              backgroundColor: '#f8f9fa',
-              padding: '15px',
-              borderRadius: '4px',
-              border: '1px solid #e9ecef',
-              fontSize: '14px',
-              color: '#666'
-            }}>
-              <p style={{ margin: '0 0 10px 0' }}>
+            <div style={styles.agreementContainer}>
+              <p style={{ margin: '0 0 12px 0' }}>
                 By creating this project, you agree to:
               </p>
               <ul style={{ margin: 0, paddingLeft: '20px' }}>
@@ -1006,9 +1254,21 @@ function CreateProject({ onClose }) {
 
           <div style={styles.buttonContainer}>
             <button
-              style={{...styles.button, ...styles.secondaryButton}}
+              style={styles.secondaryButton}
               onClick={handleBack}
               disabled={isSubmitting}
+              onMouseEnter={(e) => {
+                if (!isSubmitting) {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                  e.target.style.transform = 'translateY(-2px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSubmitting) {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.transform = 'translateY(0)';
+                }
+              }}
             >
               Back
             </button>
@@ -1020,6 +1280,18 @@ function CreateProject({ onClose }) {
               }}
               onClick={handleSubmit}
               disabled={!formData.termsAccepted || isSubmitting}
+              onMouseEnter={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!e.target.disabled) {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                }
+              }}
             >
               {isSubmitting ? 'Creating Project...' : 'Create Project'}
             </button>

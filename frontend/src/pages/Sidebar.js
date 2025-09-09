@@ -1,7 +1,20 @@
-// frontend/src/pages/Sidebar.js
+// frontend/src/pages/Sidebar.js - FIXED DASHBOARD HIGHLIGHTING
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { 
+  Home, 
+  FolderOpen, 
+  Users, 
+  BookOpen, 
+  Puzzle, 
+  UserCog, 
+  Shield, 
+  HelpCircle, 
+  User, 
+  LogOut,
+  ChevronRight 
+} from 'lucide-react';
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -11,34 +24,35 @@ function Sidebar() {
 
   // Main navigation items (for all users)
   const mainNavItems = [
-    { id: 'home', label: 'Home', path: '/', icon: '🏠' },
-    { id: 'projects', label: 'Projects', path: '/projects', icon: '📁' },
-    { id: 'friends', label: 'Friends', path: '/friends', icon: '👥' },
-    { id: 'learns', label: 'Learns', path: '/learns', icon: '📚' }
+    { id: 'home', label: 'Home', path: '/', icon: Home },
+    { id: 'projects', label: 'Projects', path: '/projects', icon: FolderOpen },
+    { id: 'friends', label: 'Friends', path: '/friends', icon: Users },
+    { id: 'learns', label: 'Learns', path: '/learns', icon: BookOpen }
   ];
 
   // Admin/Moderator navigation items (only visible to admin/moderator users)
   const adminNavItems = user?.role === 'admin' || user?.role === 'moderator' ? [
-    { id: 'challenges', label: 'Challenges', path: '/challenges', icon: '🧩' },
+    { id: 'challenges', label: 'Challenges', path: '/challenges', icon: Puzzle },
     ...(user?.role === 'admin' ? [
-      { id: 'manage-users', label: 'Manage Users', path: '/admin/users', icon: '👥' }
+      { id: 'manage-users', label: 'Manage Users', path: '/admin/users', icon: UserCog }
     ] : []),
-    { id: 'admin', label: 'Admin Panel', path: '/admin', icon: '🛡️' }
+    { id: 'admin', label: 'Admin Panel', path: '/admin', icon: Shield }
   ] : [];
 
   // Bottom navigation items
   const bottomNavItems = [
-    { id: 'help', label: 'Help Center', path: '/help', icon: '❓' }
+    { id: 'help', label: 'Help Center', path: '/help', icon: HelpCircle }
   ];
 
   const handleNavigation = (path) => {
     navigate(path);
   };
 
-  // FIXED: Improved path matching logic
+  // Improved path matching logic - FIXED to handle dashboard properly
   const isActive = (path) => {
+    // For home route, check if we're on dashboard or exact home
     if (path === '/') {
-      return location.pathname === '/';
+      return location.pathname === '/' || location.pathname === '/dashboard';
     }
     
     // Special handling for admin routes to prevent overlap
@@ -96,28 +110,74 @@ function Sidebar() {
     sidebar: {
       width: '250px',
       height: '100vh',
-      backgroundColor: '#f8f9fa',
-      borderRight: '1px solid #dee2e6',
+      backgroundColor: '#0F1116',
+      borderRight: '1px solid rgba(255, 255, 255, 0.1)',
       display: 'flex',
       flexDirection: 'column',
       position: 'fixed',
       left: 0,
       top: 0,
-      zIndex: 1000
+      zIndex: 1000,
+      overflow: 'hidden'
+    },
+    backgroundSymbols: {
+      position: 'absolute',
+      inset: 0,
+      zIndex: 1,
+      pointerEvents: 'none'
+    },
+    codeSymbol: {
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '20px',
+      lineHeight: '24px',
+      userSelect: 'none',
+      pointerEvents: 'none'
     },
     logo: {
-      padding: '20px',
-      borderBottom: '1px solid #dee2e6',
-      textAlign: 'center',
-      backgroundColor: 'white'
+      position: 'relative',
+      zIndex: 10,
+      padding: '24px 20px',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      background: 'rgba(26, 28, 32, 0.95)',
+      backdropFilter: 'blur(20px)',
+      display: 'flex',
+      justifyContent: 'center'
+    },
+    logoContainer: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
+    },
+    logoIcon: {
+      width: '32px',
+      height: '32px',
+      background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
+      borderRadius: '6px',
+      transform: 'rotate(45deg)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    logoIconInner: {
+      width: '16px',
+      height: '16px',
+      background: 'white',
+      borderRadius: '3px',
+      transform: 'rotate(-45deg)'
     },
     logoText: {
-      fontSize: '18px',
+      fontSize: '20px',
       fontWeight: 'bold',
-      color: '#333',
-      margin: 0
+      color: 'white',
+      margin: 0,
+      letterSpacing: '-0.025em'
     },
     nav: {
+      position: 'relative',
+      zIndex: 10,
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
@@ -129,63 +189,76 @@ function Sidebar() {
       flexDirection: 'column'
     },
     navItem: {
+      position: 'relative',
       display: 'flex',
       alignItems: 'center',
       padding: '12px 20px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
+      transition: 'all 0.3s ease',
       textDecoration: 'none',
-      color: '#333',
+      color: '#d1d5db',
       borderRadius: '0',
-      margin: '0 10px',
-      marginBottom: '2px'
+      margin: '0 12px',
+      marginBottom: '4px',
+      backdropFilter: 'blur(8px)'
     },
     navItemActive: {
-      backgroundColor: '#007bff',
-      color: 'white',
-      borderRadius: '8px'
+      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      color: '#60a5fa',
+      borderRadius: '12px',
+      transform: 'translateX(4px)',
+      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)',
+      border: '1px solid rgba(59, 130, 246, 0.3)'
     },
     navItemHover: {
-      backgroundColor: '#e9ecef',
-      borderRadius: '8px'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: '12px',
+      transform: 'translateX(2px)'
     },
-    // Special styling for admin items
     adminNavItem: {
+      position: 'relative',
       display: 'flex',
       alignItems: 'center',
       padding: '12px 20px',
       cursor: 'pointer',
-      transition: 'all 0.2s ease',
+      transition: 'all 0.3s ease',
       textDecoration: 'none',
-      color: '#333',
+      color: '#d1d5db',
       borderRadius: '0',
-      margin: '0 10px',
-      marginBottom: '2px'
+      margin: '0 12px',
+      marginBottom: '4px',
+      backdropFilter: 'blur(8px)'
     },
     adminNavItemActive: {
-      backgroundColor: '#dc3545', // Red background for admin
-      color: 'white',
-      borderRadius: '8px'
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      color: '#f87171',
+      borderRadius: '12px',
+      transform: 'translateX(4px)',
+      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)',
+      border: '1px solid rgba(239, 68, 68, 0.3)'
     },
     adminNavItemHover: {
-      backgroundColor: '#f8d7da', // Light red hover
-      borderRadius: '8px'
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      borderRadius: '12px',
+      transform: 'translateX(2px)'
     },
     adminSeparator: {
       height: '1px',
-      backgroundColor: '#dee2e6',
-      margin: '10px 20px',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      margin: '16px 20px',
       borderRadius: '1px'
     },
     bottomNav: {
-      borderTop: '1px solid #dee2e6',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
       paddingTop: '20px'
     },
     userSection: {
-      borderTop: '1px solid #dee2e6',
-      padding: '16px',
-      backgroundColor: 'white',
-      position: 'relative'
+      position: 'relative',
+      zIndex: 10,
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+      padding: '20px 16px',
+      background: 'rgba(26, 28, 32, 0.95)',
+      backdropFilter: 'blur(20px)'
     },
     userItem: {
       display: 'flex',
@@ -197,102 +270,160 @@ function Sidebar() {
       alignItems: 'center',
       cursor: 'pointer',
       flex: 1,
-      padding: '8px',
-      borderRadius: '8px',
-      transition: 'background-color 0.2s ease'
+      padding: '10px 12px',
+      borderRadius: '12px',
+      transition: 'all 0.3s ease',
+      backdropFilter: 'blur(8px)'
     },
     userInfoHover: {
-      backgroundColor: '#f8f9fa'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      transform: 'translateY(-1px)'
     },
     userAvatar: {
-      width: '32px',
-      height: '32px',
+      width: '36px',
+      height: '36px',
       borderRadius: '50%',
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
       color: 'white',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      fontSize: '14px',
+      fontSize: '16px',
       fontWeight: 'bold',
       marginRight: '12px',
-      flexShrink: 0
+      flexShrink: 0,
+      border: '2px solid rgba(96, 165, 250, 0.3)'
     },
     userName: {
       fontSize: '14px',
-      fontWeight: '500',
-      color: '#333',
+      fontWeight: '600',
+      color: 'white',
       lineHeight: 1.2
     },
     userRole: {
       fontSize: '12px',
-      color: '#6c757d',
+      color: '#9ca3af',
       textTransform: 'capitalize',
       marginTop: '2px'
     },
     icon: {
       marginRight: '12px',
-      fontSize: '16px',
       width: '20px',
-      textAlign: 'center'
+      height: '20px'
     },
     label: {
       fontSize: '14px',
-      fontWeight: '400'
+      fontWeight: '500'
     },
     threeDots: {
-      background: 'none',
-      border: 'none',
+      background: 'rgba(255, 255, 255, 0.05)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
       fontSize: '16px',
-      color: '#6c757d',
+      color: '#9ca3af',
       cursor: 'pointer',
-      padding: '4px 6px',
-      borderRadius: '4px',
-      transition: 'all 0.2s ease'
+      padding: '6px 8px',
+      borderRadius: '8px',
+      transition: 'all 0.3s ease',
+      backdropFilter: 'blur(8px)'
     },
     threeDotsHover: {
-      backgroundColor: '#e9ecef',
-      color: '#333'
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: 'white',
+      transform: 'translateY(-1px)'
     },
     userMenu: {
       position: 'absolute',
       bottom: '100%',
       left: '20px',
       right: '20px',
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      backgroundColor: '#1a1c20',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
       zIndex: 1001,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      backdropFilter: 'blur(20px)'
     },
     menuItem: {
       display: 'flex',
       alignItems: 'center',
-      padding: '12px 16px',
+      padding: '14px 16px',
       cursor: 'pointer',
-      transition: 'background-color 0.2s ease',
+      transition: 'all 0.3s ease',
       fontSize: '14px',
-      color: '#333',
-      borderBottom: '1px solid #f1f3f4'
+      color: '#d1d5db',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
     },
     menuItemLast: {
       borderBottom: 'none'
     },
     menuItemHover: {
-      backgroundColor: '#f8f9fa'
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white'
     },
     menuItemIcon: {
-      marginRight: '8px',
-      fontSize: '14px'
+      marginRight: '10px',
+      width: '16px',
+      height: '16px'
+    },
+    adminBadge: {
+      marginLeft: 'auto',
+      fontSize: '9px',
+      backgroundColor: 'rgba(239, 68, 68, 0.2)',
+      color: '#f87171',
+      padding: '2px 6px',
+      borderRadius: '8px',
+      fontWeight: 'bold',
+      border: '1px solid rgba(239, 68, 68, 0.3)'
     }
   };
 
   return (
     <div style={styles.sidebar}>
+      {/* Background Code Symbols */}
+      <div style={styles.backgroundSymbols}>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '25%', top: '15%', color: '#2E3344', transform: 'rotate(-15deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '75%', top: '30%', color: '#ABB5CE', transform: 'rotate(20deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '15%', top: '45%', color: '#6C758E', transform: 'rotate(-25deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '85%', top: '60%', color: '#292A2E', transform: 'rotate(30deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '35%', top: '75%', color: '#3A4158', transform: 'rotate(-10deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '65%', top: '85%', color: '#5A6B8C', transform: 'rotate(15deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '10%', top: '25%', color: '#4F5A7A', transform: 'rotate(35deg)'
+        }}>&#60;/&#62;</div>
+        <div style={{
+          ...styles.codeSymbol,
+          left: '90%', top: '40%', color: '#8A94B8', transform: 'rotate(-20deg)'
+        }}>&#60;/&#62;</div>
+      </div>
+
       {/* Logo Section */}
       <div style={styles.logo}>
-        <h1 style={styles.logoText}>TechSync</h1>
+        <div style={styles.logoContainer}>
+          <div style={styles.logoIcon}>
+            <div style={styles.logoIconInner} />
+          </div>
+          <h1 style={styles.logoText}>TechSync</h1>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -301,6 +432,7 @@ function Sidebar() {
           {/* Main Navigation Items (for all users) */}
           {mainNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
+            const IconComponent = item.icon;
             return (
               <div
                 key={item.id}
@@ -318,10 +450,11 @@ function Sidebar() {
                   if (!isActiveItem) {
                     e.target.style.backgroundColor = 'transparent';
                     e.target.style.borderRadius = '0';
+                    e.target.style.transform = 'translateX(0)';
                   }
                 }}
               >
-                <span style={styles.icon}>{item.icon}</span>
+                <IconComponent size={20} style={styles.icon} />
                 <span style={styles.label}>{item.label}</span>
               </div>
             );
@@ -333,6 +466,7 @@ function Sidebar() {
               <div style={styles.adminSeparator}></div>
               {adminNavItems.map((item) => {
                 const isActiveItem = isActive(item.path);
+                const IconComponent = item.icon;
                 return (
                   <div
                     key={item.id}
@@ -350,19 +484,14 @@ function Sidebar() {
                       if (!isActiveItem) {
                         e.target.style.backgroundColor = 'transparent';
                         e.target.style.borderRadius = '0';
+                        e.target.style.transform = 'translateX(0)';
                       }
                     }}
                   >
-                    <span style={styles.icon}>{item.icon}</span>
+                    <IconComponent size={20} style={styles.icon} />
                     <span style={styles.label}>{item.label}</span>
                     {user?.role === 'admin' && item.id === 'admin' && (
-                      <span style={{
-                        marginLeft: 'auto',
-                        fontSize: '10px',
-                        backgroundColor: 'rgba(255,255,255,0.2)',
-                        padding: '2px 6px',
-                        borderRadius: '10px'
-                      }}>
+                      <span style={styles.adminBadge}>
                         ADMIN
                       </span>
                     )}
@@ -377,6 +506,7 @@ function Sidebar() {
         <div style={{ ...styles.navSection, ...styles.bottomNav }}>
           {bottomNavItems.map((item) => {
             const isActiveItem = isActive(item.path);
+            const IconComponent = item.icon;
             return (
               <div
                 key={item.id}
@@ -394,10 +524,11 @@ function Sidebar() {
                   if (!isActiveItem) {
                     e.target.style.backgroundColor = 'transparent';
                     e.target.style.borderRadius = '0';
+                    e.target.style.transform = 'translateX(0)';
                   }
                 }}
               >
-                <span style={styles.icon}>{item.icon}</span>
+                <IconComponent size={20} style={styles.icon} />
                 <span style={styles.label}>{item.label}</span>
               </div>
             );
@@ -416,6 +547,7 @@ function Sidebar() {
             }}
             onMouseLeave={(e) => {
               e.target.style.backgroundColor = 'transparent';
+              e.target.style.transform = 'translateY(0)';
             }}
           >
             <div style={styles.userAvatar}>
@@ -441,8 +573,9 @@ function Sidebar() {
               Object.assign(e.target.style, styles.threeDotsHover);
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'transparent';
-              e.target.style.color = '#6c757d';
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              e.target.style.color = '#9ca3af';
+              e.target.style.transform = 'translateY(0)';
             }}
           >
             ⋮
@@ -460,9 +593,10 @@ function Sidebar() {
               }}
               onMouseLeave={(e) => {
                 e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#d1d5db';
               }}
             >
-              <span style={styles.menuItemIcon}>👤</span>
+              <User size={16} style={styles.menuItemIcon} />
               Profile Settings
             </div>
             {/* Admin menu item (only for admins) */}
@@ -478,9 +612,10 @@ function Sidebar() {
                 }}
                 onMouseLeave={(e) => {
                   e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#d1d5db';
                 }}
               >
-                <span style={styles.menuItemIcon}>🛡️</span>
+                <Shield size={16} style={styles.menuItemIcon} />
                 Admin Dashboard
               </div>
             )}
@@ -492,9 +627,10 @@ function Sidebar() {
               }}
               onMouseLeave={(e) => {
                 e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#d1d5db';
               }}
             >
-              <span style={styles.menuItemIcon}>🚪</span>
+              <LogOut size={16} style={styles.menuItemIcon} />
               Logout
             </div>
           </div>
