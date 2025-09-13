@@ -1,4 +1,4 @@
-// frontend/src/pages/Projects.js - ALIGNED WITH DASHBOARD THEME
+// frontend/src/pages/Projects.js - ALIGNED WITH DASHBOARD THEME AND LAYOUT
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -147,7 +147,7 @@ function Projects() {
     };
   };
 
-  // Enhanced project card rendering with dashboard-style containers
+  // Enhanced project card rendering with dashboard-style layout
   const renderProjectCard = (project, index) => {
     const isOwner = project.owner_id === user?.id || 
                     (project.membership && project.membership.role === 'owner');
@@ -171,79 +171,79 @@ function Projects() {
           Object.assign(e.target.style, cardColorStyles.base);
         }}
       >
-        <div style={styles.cardHeader}>
-          <h3 style={styles.cardTitle}>{project.title}</h3>
-          <div style={styles.cardMeta}>
+        {/* Status Badge - positioned like match score in dashboard */}
+        <div style={{
+          ...styles.statusBadgePositioned,
+          backgroundColor: project.status === 'active' ? '#28a745' : 
+                         project.status === 'completed' ? '#007bff' : '#6c757d'
+        }}>
+          {project.status}
+        </div>
+
+        {/* Solo Project Indicator */}
+        {isSoloProject && (
+          <div style={styles.soloIndicator}>
             <span style={{
-              ...styles.statusBadge,
-              backgroundColor: project.status === 'active' ? '#28a745' : 
-                             project.status === 'completed' ? '#007bff' : '#6c757d'
+              ...styles.soloProjectBadge,
+              ...cardColorStyles.highlightChip
             }}>
-              {project.status}
+              👤 Solo
             </span>
-            
-            {/* Solo Project Indicator */}
-            {isSoloProject && (
-              <span style={{
-                ...styles.soloProjectBadge,
-                ...cardColorStyles.highlightChip
-              }}>
-                👤 Solo
-              </span>
-            )}
-            
+          </div>
+        )}
+
+        {/* Project Title */}
+        <h4 style={styles.projectTitle}>{project.title}</h4>
+        
+        {/* Project Description */}
+        <p style={styles.projectDescription}>
+          {project.description?.substring(0, 120)}
+          {project.description?.length > 120 && '...'}
+        </p>
+
+        {/* Card Footer - structured like dashboard */}
+        <div style={styles.cardFooter}>
+          {/* Project Meta */}
+          <div style={styles.projectMeta}>
             <span style={getDifficultyStyle(project.difficulty_level)}>
               {(project.difficulty_level || 'Medium').toUpperCase()}
             </span>
-          </div>
-        </div>
-        
-        <div style={styles.cardContent}>
-          <p style={styles.cardDescription}>
-            {project.description?.substring(0, 120)}
-            {project.description?.length > 120 && '...'}
-          </p>
-          
-          <div style={styles.cardDetails}>
-            <div style={styles.memberCount}>
-              {isSoloProject ? '👤 Solo Project' : `${project.current_members || 0}/${project.maximum_members || 0} members`}
-            </div>
-            
-            {project.project_languages && project.project_languages.length > 0 && (
-              <div style={styles.tagsContainer}>
-                {project.project_languages
-                  .slice(0, 3)
-                  .map((lang, langIndex) => (
-                    <span key={langIndex} style={styles.tag}>
-                      {lang.programming_languages?.name || 'Unknown'}
-                    </span>
-                  ))}
-                {project.project_languages.length > 3 && (
-                  <span style={styles.tag}>
-                    +{project.project_languages.length - 3} more
-                  </span>
-                )}
-              </div>
-            )}
+            <span style={styles.memberCount}>
+              {isSoloProject ? 'Solo Project' : `${project.current_members || 0}/${project.maximum_members || 0} members`}
+            </span>
           </div>
 
-          <div style={styles.cardFooter}>
+          {/* Owner Info */}
+          <div style={styles.ownerInfo}>
             <span style={styles.ownerText}>
-              {isOwner ? 'You' : 'By:'}
+              {isOwner ? 'You' : `By: ${project.users?.full_name || project.users?.username || 'Anonymous'}`}
             </span>
-            {!isOwner && (
-              <span style={styles.ownerName}>
-                {project.users?.full_name || project.users?.username || 'Anonymous'}
-              </span>
-            )}
-            {/* Show membership info for joined projects */}
             {!isOwner && project.membership && (
               <span style={styles.membershipInfo}>
                 (Joined as {project.membership.role})
               </span>
             )}
           </div>
-          
+
+          {/* Technologies */}
+          {project.project_languages && project.project_languages.length > 0 && (
+            <div style={styles.tagsContainer}>
+              {project.project_languages
+                .slice(0, 3)
+                .map((lang, langIndex) => (
+                  <span key={langIndex} style={styles.tag}>
+                    {lang.programming_languages?.name || 'Unknown'}
+                  </span>
+                ))}
+              {project.project_languages.length > 3 && (
+                <span style={styles.tag}>
+                  +{project.project_languages.length - 3} more
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons - Fixed at bottom like dashboard */}
           <div style={styles.cardActions}>
             <button 
               style={{
@@ -402,7 +402,10 @@ function Projects() {
       padding: '24px',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
-      position: 'relative'
+      position: 'relative',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '420px' // Fixed height like dashboard
     },
     // Subtle color variants for project cards - aligned with dashboard
     projectCardVariants: {
@@ -539,43 +542,40 @@ function Projects() {
         joinButtonHover: '#2563eb'
       }
     },
-    cardHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: '15px'
-    },
-    cardTitle: {
-      fontSize: '18px',
+    // Status badge positioned like match score in dashboard
+    statusBadgePositioned: {
+      position: 'absolute',
+      top: '20px',
+      right: '20px',
+      padding: '6px 12px',
+      borderRadius: '16px',
+      fontSize: '12px',
       fontWeight: 'bold',
-      color: 'white',
-      margin: '0 0 8px 0',
-      flex: 1,
-      lineHeight: '1.3'
-    },
-    cardMeta: {
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap'
-    },
-    statusBadge: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: '500',
       color: 'white',
       textTransform: 'uppercase'
     },
+    // Solo indicator positioned below status
+    soloIndicator: {
+      position: 'absolute',
+      top: '55px',
+      right: '20px'
+    },
     soloProjectBadge: {
-      padding: '3px 10px',
+      padding: '6px 12px',
       borderRadius: '12px',
       fontSize: '11px',
       fontWeight: '500'
     },
-    cardContent: {
-      marginBottom: '15px'
+    projectTitle: {
+      fontSize: '18px',
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: '8px',
+      paddingRight: '80px', // Space for status badges
+      lineHeight: '1.3',
+      marginTop: isSoloProject => isSoloProject ? '40px' : '20px' // Adjust for solo badge
     },
-    cardDescription: {
+    projectDescription: {
       color: '#d1d5db',
       fontSize: '14px',
       lineHeight: '1.5',
@@ -585,30 +585,24 @@ function Projects() {
       WebkitBoxOrient: 'vertical',
       overflow: 'hidden'
     },
-    cardDetails: {
-      marginBottom: '15px'
+    cardFooter: {
+      marginTop: 'auto', // Push footer to bottom like dashboard
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    },
+    projectMeta: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '16px',
+      fontSize: '12px'
     },
     memberCount: {
       color: '#9ca3af',
-      fontSize: '12px',
-      fontWeight: '500',
-      marginBottom: '8px'
+      fontSize: '12px'
     },
-    tagsContainer: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '6px'
-    },
-    tag: {
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      color: '#d1d5db',
-      padding: '4px 10px',
-      borderRadius: '12px',
-      fontSize: '11px',
-      fontWeight: '500',
-      border: '1px solid rgba(255, 255, 255, 0.1)'
-    },
-    cardFooter: {
+    ownerInfo: {
       display: 'flex',
       alignItems: 'center',
       gap: '5px',
@@ -619,17 +613,30 @@ function Projects() {
     ownerText: {
       fontWeight: '500'
     },
-    ownerName: {
-      color: '#d1d5db'
-    },
     membershipInfo: {
       color: '#10b981',
       fontWeight: '500',
       fontSize: '12px'
     },
+    tagsContainer: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '6px',
+      marginBottom: '20px'
+    },
+    tag: {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      color: '#d1d5db',
+      padding: '4px 10px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: '500',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
+    },
     cardActions: {
       display: 'flex',
-      gap: '10px'
+      gap: '10px',
+      marginTop: 'auto' // Ensure buttons stay at bottom
     },
     viewButton: {
       flex: 1,
@@ -788,18 +795,6 @@ function Projects() {
       <div style={styles.container}>
         {/* Background Code Symbols */}
         <div style={styles.backgroundSymbols}>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-          }}>&#60;/&#62;</div>
           <div style={{
             ...styles.codeSymbol,
             left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'

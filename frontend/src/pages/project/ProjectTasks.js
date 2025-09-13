@@ -1,9 +1,254 @@
-// frontend/src/pages/project/ProjectTasks.js - FIXED MEMBER ASSIGNMENT
+// frontend/src/pages/project/ProjectTasks.js - ALIGNED WITH DASHBOARD THEME
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { taskService } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
+
+// Background symbols component - SAME AS DASHBOARD
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
 
 function ProjectTasks() {
   const { projectId } = useParams();
@@ -221,8 +466,8 @@ function ProjectTasks() {
       
       if (editingTask) {
         // Update existing task
-        console.log('📝 Updating task:', editingTask.id);
-        console.log('📝 Form data:', taskForm);
+        console.log('🔄 Updating task:', editingTask.id);
+        console.log('🔄 Form data:', taskForm);
         
         // Prepare task data with proper validation - only send changed fields
         const taskData = {};
@@ -274,7 +519,7 @@ function ProjectTasks() {
           taskData.due_date = newDueDate ? new Date(newDueDate).toISOString() : null;
         }
         
-        console.log('🔄 Sending update data:', taskData);
+        console.log('📄 Sending update data:', taskData);
         
         // Only proceed if we have changes to make
         if (Object.keys(taskData).length === 0) {
@@ -339,7 +584,7 @@ function ProjectTasks() {
       setError(errorMessage);
       
       // Don't close modal on error so user can fix issues
-      console.log('❌ Keeping modal open due to error');
+      console.log('⌛ Keeping modal open due to error');
     }
   };
 
@@ -421,10 +666,10 @@ function ProjectTasks() {
   const getStatusColor = (status) => {
     const colors = {
       'todo': '#6c757d',
-      'in_progress': '#007bff',
-      'in_review': '#ffc107',
-      'completed': '#28a745',
-      'blocked': '#dc3545'
+      'in_progress': '#3b82f6',
+      'in_review': '#f59e0b',
+      'completed': '#10b981',
+      'blocked': '#ef4444'
     };
     return colors[status] || '#6c757d';
   };
@@ -435,10 +680,10 @@ function ProjectTasks() {
 
   const getPriorityColor = (priority) => {
     const colors = {
-      'low': '#28a745',
-      'medium': '#ffc107',
-      'high': '#fd7e14',
-      'urgent': '#dc3545'
+      'low': '#10b981',
+      'medium': '#f59e0b',
+      'high': '#f97316',
+      'urgent': '#ef4444'
     };
     return colors[priority] || '#6c757d';
   };
@@ -454,14 +699,15 @@ function ProjectTasks() {
         right: '20px',
         zIndex: 1000,
         padding: '12px 24px',
-        backgroundColor: '#d4edda',
-        color: '#155724',
-        border: '1px solid #c3e6cb',
-        borderRadius: '6px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.9))',
+        color: 'white',
+        border: '1px solid rgba(16, 185, 129, 0.3)',
+        borderRadius: '12px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(20px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#28a745', fontSize: '16px' }}>✓</span>
+          <span style={{ fontSize: '16px' }}>✓</span>
           <span>{showSuccess}</span>
         </div>
       </div>
@@ -475,188 +721,272 @@ function ProjectTasks() {
     return (
       <div style={{
         marginBottom: '20px',
-        padding: '12px',
-        backgroundColor: '#f8d7da',
-        color: '#721c24',
-        border: '1px solid #f5c6cb',
-        borderRadius: '4px'
+        padding: '15px',
+        background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.1))',
+        color: '#fca5a5',
+        border: '1px solid rgba(239, 68, 68, 0.3)',
+        borderRadius: '12px',
+        backdropFilter: 'blur(10px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#dc3545', fontSize: '16px' }}>⚠</span>
+          <span style={{ color: '#ef4444', fontSize: '16px' }}>⚠</span>
           <span>{error}</span>
         </div>
       </div>
     );
   };
 
-  // Component styles
+  // Aligned component styles with dashboard theme
   const styles = {
     container: {
-      padding: '30px',
-      maxWidth: '1200px',
-      margin: '0 auto'
+      minHeight: 'calc(100vh - 40px)',
+      backgroundColor: '#0F1116',
+      color: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '20px',
+      paddingLeft: '270px', // Match Dashboard.js sidebar spacing
+      marginLeft: '-150px'   // Match Dashboard.js sidebar spacing
     },
     header: {
+      position: 'relative',
+      zIndex: 10,
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      alignItems: 'center',
       marginBottom: '30px',
-      paddingBottom: '20px',
-      borderBottom: '2px solid #e9ecef'
+      padding: '0 0 20px 0',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
     headerLeft: {
       flex: 1
     },
     headerRight: {
       display: 'flex',
-      gap: '10px'
+      gap: '12px'
     },
     title: {
-      color: '#333',
       fontSize: '28px',
-      margin: '0 0 10px 0'
+      fontWeight: 'bold',
+      color: 'white',
+      margin: '0 0 8px 0'
     },
     subtitle: {
-      color: '#6c757d',
+      color: '#d1d5db',
       fontSize: '16px',
       margin: 0
     },
     createButton: {
-      backgroundColor: '#28a745',
+      background: 'linear-gradient(135deg, #10b981, #059669)',
       color: 'white',
       border: 'none',
       padding: '12px 24px',
-      borderRadius: '6px',
+      borderRadius: '12px',
       cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3)'
+    },
+    controls: {
+      position: 'relative',
+      zIndex: 10,
+      display: 'flex',
+      gap: '20px',
+      marginBottom: '30px',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      padding: '20px',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      backdropFilter: 'blur(20px)'
+    },
+    filterGroup: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    },
+    filterLabel: {
+      color: '#d1d5db',
       fontSize: '14px',
       fontWeight: '500'
     },
-    controls: {
-      display: 'flex',
-      gap: '15px',
-      marginBottom: '30px',
-      alignItems: 'center',
-      flexWrap: 'wrap'
-    },
     filterSelect: {
       padding: '8px 12px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      fontSize: '14px'
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      fontSize: '14px',
+      backgroundColor: 'rgba(26, 28, 32, 0.8)',
+      color: 'white',
+      outline: 'none'
     },
     sortControls: {
       display: 'flex',
-      gap: '10px',
+      gap: '12px',
       alignItems: 'center'
     },
     actionButton: {
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
       color: 'white',
       border: 'none',
-      padding: '8px 12px',
-      borderRadius: '4px',
+      padding: '8px 16px',
+      borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '14px'
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'all 0.3s ease'
+    },
+    refreshButton: {
+      background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.8), rgba(75, 85, 99, 0.8))',
+      color: 'white',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      padding: '8px 16px',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'all 0.3s ease'
     },
     tasksGrid: {
+      position: 'relative',
+      zIndex: 10,
       display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-      gap: '20px',
+      gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
+      gap: '24px',
       marginBottom: '30px'
     },
     taskCard: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-      transition: 'transform 0.2s, box-shadow 0.2s',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      padding: '24px',
+      backdropFilter: 'blur(20px)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+      transition: 'all 0.3s ease',
       cursor: 'pointer'
     },
     taskHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
-      marginBottom: '15px'
+      marginBottom: '16px'
     },
     taskTitle: {
       fontSize: '18px',
       fontWeight: '600',
-      color: '#333',
+      color: 'white',
       margin: '0 0 8px 0',
-      flex: 1
+      flex: 1,
+      lineHeight: '1.4'
     },
     taskMeta: {
       display: 'flex',
-      gap: '10px',
-      marginBottom: '10px',
+      gap: '8px',
+      marginBottom: '12px',
       flexWrap: 'wrap'
     },
     statusBadge: {
-      padding: '4px 8px',
+      padding: '6px 12px',
       borderRadius: '12px',
       fontSize: '12px',
-      fontWeight: '500'
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px'
     },
     priorityBadge: {
-      padding: '4px 8px',
+      padding: '6px 12px',
       borderRadius: '12px',
       fontSize: '12px',
-      fontWeight: '500'
+      fontWeight: '600',
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      color: 'white'
     },
     taskDescription: {
-      color: '#666',
+      color: '#d1d5db',
       fontSize: '14px',
-      marginBottom: '15px',
-      lineHeight: '1.4'
+      marginBottom: '16px',
+      lineHeight: '1.5',
+      opacity: 0.8
     },
     taskFooter: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingTop: '15px',
-      borderTop: '1px solid #eee'
+      paddingTop: '16px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+    },
+    taskInfo: {
+      fontSize: '12px',
+      color: '#9ca3af'
     },
     taskActions: {
       display: 'flex',
       gap: '8px'
     },
     viewButton: {
-      backgroundColor: '#17a2b8',
+      background: 'linear-gradient(135deg, #06b6d4, #0891b2)',
       color: 'white',
       border: 'none',
       padding: '6px 12px',
-      borderRadius: '4px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px'
+      fontSize: '12px',
+      fontWeight: '500',
+      transition: 'all 0.2s ease'
     },
-    taskButton: {
-      backgroundColor: '#007bff',
+    editButton: {
+      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
       color: 'white',
       border: 'none',
       padding: '6px 12px',
-      borderRadius: '4px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px'
+      fontSize: '12px',
+      fontWeight: '500',
+      transition: 'all 0.2s ease'
     },
     deleteButton: {
-      backgroundColor: '#dc3545',
+      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
       color: 'white',
       border: 'none',
       padding: '6px 12px',
-      borderRadius: '4px',
+      borderRadius: '6px',
       cursor: 'pointer',
-      fontSize: '12px'
+      fontSize: '12px',
+      fontWeight: '500',
+      transition: 'all 0.2s ease'
     },
     emptyState: {
+      position: 'relative',
+      zIndex: 10,
       textAlign: 'center',
       padding: '60px 20px',
-      color: '#6c757d'
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      backdropFilter: 'blur(20px)'
+    },
+    emptyTitle: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: '12px'
+    },
+    emptyText: {
+      color: '#9ca3af',
+      fontSize: '16px',
+      marginBottom: '24px'
     },
     loadingState: {
+      position: 'relative',
+      zIndex: 10,
       textAlign: 'center',
-      padding: '40px',
-      color: '#6c757d'
+      padding: '60px',
+      color: '#9ca3af',
+      fontSize: '18px'
     },
     modal: {
       position: 'fixed',
@@ -664,83 +994,116 @@ function ProjectTasks() {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      zIndex: 1000
+      zIndex: 2000,
+      backdropFilter: 'blur(8px)'
     },
     modalContent: {
-      backgroundColor: 'white',
-      padding: '30px',
-      borderRadius: '8px',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.98), rgba(15, 17, 22, 0.95))',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      padding: '32px',
+      borderRadius: '20px',
       width: '90%',
-      maxWidth: '500px',
+      maxWidth: '600px',
       maxHeight: '90vh',
-      overflow: 'auto'
+      overflow: 'auto',
+      backdropFilter: 'blur(20px)',
+      boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
     },
     modalHeader: {
-      marginBottom: '20px'
+      marginBottom: '24px',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      paddingBottom: '16px'
     },
     modalTitle: {
       fontSize: '24px',
-      fontWeight: '600',
-      margin: '0 0 10px 0'
+      fontWeight: 'bold',
+      margin: 0,
+      color: 'white'
     },
     formGroup: {
       marginBottom: '20px'
     },
     label: {
       display: 'block',
-      marginBottom: '5px',
+      marginBottom: '8px',
       fontWeight: '500',
-      color: '#333'
+      color: '#d1d5db',
+      fontSize: '14px'
     },
     input: {
       width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      fontSize: '14px'
+      padding: '12px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      fontSize: '14px',
+      backgroundColor: 'rgba(26, 28, 32, 0.8)',
+      color: 'white',
+      outline: 'none',
+      transition: 'border-color 0.3s ease'
     },
     textarea: {
       width: '100%',
       minHeight: '100px',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
+      padding: '12px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
-      resize: 'vertical'
+      backgroundColor: 'rgba(26, 28, 32, 0.8)',
+      color: 'white',
+      outline: 'none',
+      resize: 'vertical',
+      transition: 'border-color 0.3s ease'
     },
     select: {
       width: '100%',
-      padding: '10px',
-      border: '1px solid #ddd',
-      borderRadius: '4px',
-      fontSize: '14px'
+      padding: '12px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      fontSize: '14px',
+      backgroundColor: 'rgba(26, 28, 32, 0.8)',
+      color: 'white',
+      outline: 'none',
+      transition: 'border-color 0.3s ease'
     },
     modalActions: {
       display: 'flex',
-      gap: '10px',
-      justifyContent: 'flex-end'
+      gap: '12px',
+      justifyContent: 'flex-end',
+      marginTop: '24px',
+      paddingTop: '20px',
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)'
     },
     saveButton: {
-      backgroundColor: '#28a745',
+      background: 'linear-gradient(135deg, #10b981, #059669)',
       color: 'white',
       border: 'none',
-      padding: '10px 20px',
-      borderRadius: '4px',
+      padding: '12px 24px',
+      borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '14px'
+      fontSize: '14px',
+      fontWeight: '600',
+      transition: 'all 0.3s ease'
     },
     cancelButton: {
-      backgroundColor: '#6c757d',
+      background: 'linear-gradient(135deg, rgba(107, 114, 128, 0.8), rgba(75, 85, 99, 0.8))',
       color: 'white',
-      border: 'none',
-      padding: '10px 20px',
-      borderRadius: '4px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      padding: '12px 24px',
+      borderRadius: '8px',
       cursor: 'pointer',
-      fontSize: '14px'
+      fontSize: '14px',
+      fontWeight: '500',
+      transition: 'all 0.3s ease'
+    },
+    memberNote: {
+      color: '#9ca3af',
+      fontSize: '12px',
+      marginTop: '4px',
+      fontStyle: 'italic'
     }
   };
 
@@ -748,8 +1111,9 @@ function ProjectTasks() {
   if (loading) {
     return (
       <div style={styles.container}>
+        <BackgroundSymbols />
         <div style={styles.loadingState}>
-          <h2>Loading tasks...</h2>
+          Loading tasks...
         </div>
       </div>
     );
@@ -760,6 +1124,9 @@ function ProjectTasks() {
 
   return (
     <div style={styles.container}>
+      {/* Background Code Symbols */}
+      <BackgroundSymbols />
+
       {/* Success Message */}
       {renderSuccessMessage()}
 
@@ -781,6 +1148,14 @@ function ProjectTasks() {
                 setError(null);
                 setShowCreateModal(true);
               }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 16px rgba(16, 185, 129, 0.3)';
+              }}
             >
               + Create Task
             </button>
@@ -790,12 +1165,9 @@ function ProjectTasks() {
 
       {/* Controls */}
       <div style={styles.controls}>
-        <div>
-          <label htmlFor="filter-select" style={{ marginRight: '8px', fontWeight: '500' }}>
-            Filter:
-          </label>
+        <div style={styles.filterGroup}>
+          <label style={styles.filterLabel}>Filter:</label>
           <select
-            id="filter-select"
             style={styles.filterSelect}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -811,11 +1183,8 @@ function ProjectTasks() {
         </div>
 
         <div style={styles.sortControls}>
-          <label htmlFor="sort-by" style={{ marginRight: '8px', fontWeight: '500' }}>
-            Sort by:
-          </label>
+          <label style={styles.filterLabel}>Sort by:</label>
           <select
-            id="sort-by"
             style={styles.filterSelect}
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -830,14 +1199,26 @@ function ProjectTasks() {
           <button
             style={styles.actionButton}
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+            }}
           >
             {sortOrder === 'asc' ? '↓' : '↑'}
           </button>
         </div>
 
         <button
-          style={styles.actionButton}
+          style={styles.refreshButton}
           onClick={fetchTasks}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+          }}
         >
           Refresh
         </button>
@@ -849,8 +1230,8 @@ function ProjectTasks() {
       {/* Tasks Grid */}
       {filteredTasks.length === 0 ? (
         <div style={styles.emptyState}>
-          <h2>No tasks found</h2>
-          <p>
+          <h2 style={styles.emptyTitle}>No tasks found</h2>
+          <p style={styles.emptyText}>
             {filter === 'all' 
               ? 'No tasks have been created yet.' 
               : `No tasks match the current filter: ${filter.replace('_', ' ')}`
@@ -878,12 +1259,12 @@ function ProjectTasks() {
                 key={task.id}
                 style={styles.taskCard}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.3)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                  e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
                 }}
               >
                 <div style={styles.taskHeader}>
@@ -898,16 +1279,15 @@ function ProjectTasks() {
                       color: getStatusTextColor(task.status)
                     }}
                   >
-                    {task.status.replace('_', ' ').toUpperCase()}
+                    {task.status.replace('_', ' ')}
                   </span>
                   <span
                     style={{
                       ...styles.priorityBadge,
-                      backgroundColor: getPriorityColor(task.priority),
-                      color: 'white'
+                      backgroundColor: getPriorityColor(task.priority)
                     }}
                   >
-                    {task.priority.toUpperCase()}
+                    {task.priority}
                   </span>
                 </div>
 
@@ -921,30 +1301,41 @@ function ProjectTasks() {
                 )}
 
                 <div style={styles.taskFooter}>
-                  <div style={{ fontSize: '12px', color: '#666' }}>
+                  <div style={styles.taskInfo}>
                     <div>Due: {formatDate(task.due_date)}</div>
                     <div>Assigned: {getMemberName(task.assigned_to)}</div>
                   </div>
                   
                   <div style={styles.taskActions}>
-                    {/* View Details button - always visible */}
                     <button
                       style={styles.viewButton}
                       onClick={(e) => {
                         e.stopPropagation();
                         viewTaskDetail(task.id);
                       }}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                      }}
                     >
-                      View Details
+                      View
                     </button>
                     
                     {canCreateTasks && (
                       <>
                         <button
-                          style={styles.taskButton}
+                          style={styles.editButton}
                           onClick={(e) => {
                             e.stopPropagation();
                             editTask(task);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'translateY(-1px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'translateY(0)';
                           }}
                         >
                           Edit
@@ -954,6 +1345,12 @@ function ProjectTasks() {
                           onClick={(e) => {
                             e.stopPropagation();
                             deleteTask(task.id);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'translateY(-1px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'translateY(0)';
                           }}
                         >
                           Delete
@@ -1075,7 +1472,6 @@ function ProjectTasks() {
                 </select>
               </div>
 
-              {/* FIXED: Proper Member Assignment Dropdown */}
               <div style={styles.formGroup}>
                 <label style={styles.label} htmlFor="assigned_to">
                   Assigned To
@@ -1095,7 +1491,7 @@ function ProjectTasks() {
                   ))}
                 </select>
                 {assignableMembers.length === 0 && (
-                  <small style={{ color: '#6c757d', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                  <small style={styles.memberNote}>
                     No members found. Only project owner and members can be assigned tasks.
                   </small>
                 )}
@@ -1142,6 +1538,12 @@ function ProjectTasks() {
                     resetForm();
                     setError(null);
                   }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                  }}
                 >
                   Cancel
                 </button>
@@ -1149,6 +1551,16 @@ function ProjectTasks() {
                   type="submit"
                   style={styles.saveButton}
                   disabled={!taskForm.title.trim()}
+                  onMouseEnter={(e) => {
+                    if (!e.target.disabled) {
+                      e.target.style.transform = 'translateY(-1px)';
+                      e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 >
                   {editingTask ? 'Update Task' : 'Create Task'}
                 </button>

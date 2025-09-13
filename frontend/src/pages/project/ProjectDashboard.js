@@ -1,9 +1,254 @@
-// frontend/src/pages/project/ProjectDashboard.js - ENHANCED VERSION
+// frontend/src/pages/project/ProjectDashboard.js - ENHANCED VERSION WITH ALIGNED THEME
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { projectService } from '../../services/projectService';
 import { taskService } from '../../services/taskService';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Background symbols component - ALIGNED WITH DASHBOARD
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
 
 function ProjectDashboard() {
   const { projectId } = useParams();
@@ -177,7 +422,7 @@ function ProjectDashboard() {
       case 'task_created': return '📝';
       case 'project_updated': return '📊';
       case 'member_joined': return '👋';
-      default: return '🔔';
+      default: return '📄';
     }
   };
 
@@ -193,40 +438,55 @@ function ProjectDashboard() {
 
   const styles = {
     container: {
-      padding: '30px',
-      maxWidth: '1400px',
-      margin: '0 auto'
+      minHeight: 'calc(100vh - 40px)',
+      backgroundColor: '#0F1116',
+      color: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '20px',
+      paddingLeft: '270px', // Match Dashboard.js sidebar spacing
+      marginLeft: '-150px'   // Match Dashboard.js sidebar spacing
     },
     header: {
+      position: 'relative',
+      zIndex: 10,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
       marginBottom: '30px',
-      paddingBottom: '20px',
-      borderBottom: '2px solid #e9ecef'
+      padding: '0 0 20px 0',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
     title: {
-      color: '#333',
       fontSize: '28px',
-      margin: '0 0 10px 0'
+      fontWeight: 'bold',
+      color: 'white',
+      margin: 0
     },
     subtitle: {
-      color: '#6c757d',
+      color: '#d1d5db',
       fontSize: '16px',
-      margin: 0
+      margin: '8px 0 0 0'
     },
     
     // Analytics Cards at Top
     analyticsGrid: {
+      position: 'relative',
+      zIndex: 10,
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
       gap: '20px',
       marginBottom: '30px'
     },
     analyticsCard: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '12px',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
       padding: '25px',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.07)',
-      transition: 'transform 0.2s ease, box-shadow 0.2s ease'
+      backdropFilter: 'blur(20px)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+      transition: 'all 0.3s ease'
     },
     analyticsHeader: {
       display: 'flex',
@@ -235,7 +495,7 @@ function ProjectDashboard() {
       marginBottom: '15px'
     },
     analyticsTitle: {
-      color: '#333',
+      color: 'white',
       fontSize: '16px',
       fontWeight: '600',
       margin: 0
@@ -246,29 +506,31 @@ function ProjectDashboard() {
     analyticsValue: {
       fontSize: '32px',
       fontWeight: 'bold',
-      color: '#007bff',
+      color: '#3b82f6',
       margin: '10px 0'
     },
     analyticsSubtext: {
-      color: '#6c757d',
+      color: '#9ca3af',
       fontSize: '14px'
     },
     progressBar: {
       width: '100%',
       height: '8px',
-      backgroundColor: '#e9ecef',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       borderRadius: '4px',
       overflow: 'hidden',
       marginTop: '10px'
     },
     progressFill: {
       height: '100%',
-      backgroundColor: '#28a745',
+      background: 'linear-gradient(90deg, #10b981, #059669)',
       transition: 'width 0.3s ease'
     },
 
     // Main Content Grid
     contentGrid: {
+      position: 'relative',
+      zIndex: 10,
       display: 'grid',
       gridTemplateColumns: '2fr 1fr',
       gap: '30px',
@@ -277,17 +539,20 @@ function ProjectDashboard() {
     
     // Announcements Section
     announcementsSection: {
+      position: 'relative',
+      zIndex: 10,
       marginBottom: '30px'
     },
     card: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
       padding: '25px',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      backdropFilter: 'blur(20px)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
     },
     cardTitle: {
-      color: '#333',
+      color: 'white',
       fontSize: '20px',
       marginBottom: '20px',
       fontWeight: 'bold',
@@ -302,16 +567,17 @@ function ProjectDashboard() {
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: '12px 15px',
-      border: '1px solid #eee',
-      borderRadius: '6px',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '8px',
       marginBottom: '10px',
-      transition: 'background-color 0.2s ease'
+      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+      transition: 'all 0.2s ease'
     },
     taskInfo: {
       flex: 1
     },
     taskTitle: {
-      color: '#333',
+      color: 'white',
       fontSize: '14px',
       fontWeight: '500',
       marginBottom: '4px'
@@ -330,11 +596,14 @@ function ProjectDashboard() {
     },
     dueBadge: {
       padding: '4px 8px',
-      backgroundColor: '#fff3cd',
-      color: '#856404',
+      backgroundColor: 'rgba(251, 191, 36, 0.15)',
+      color: '#fbbf24',
       borderRadius: '12px',
       fontSize: '12px',
-      fontWeight: '500'
+      fontWeight: '500',
+      border: '1px solid rgba(251, 191, 36, 0.3)',
+      display: 'flex',
+      alignItems: 'center'
     },
     
     // Activity Feed
@@ -342,7 +611,7 @@ function ProjectDashboard() {
       display: 'flex',
       gap: '12px',
       padding: '15px 0',
-      borderBottom: '1px solid #f0f0f0'
+      borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
     },
     activityIcon: {
       fontSize: '20px',
@@ -352,17 +621,17 @@ function ProjectDashboard() {
       flex: 1
     },
     activityText: {
-      color: '#333',
+      color: 'white',
       fontSize: '14px',
       marginBottom: '4px'
     },
     activityTime: {
-      color: '#6c757d',
+      color: '#9ca3af',
       fontSize: '12px'
     },
     activityTarget: {
       fontWeight: '500',
-      color: '#007bff'
+      color: '#3b82f6'
     },
     
     // Other elements
@@ -372,28 +641,30 @@ function ProjectDashboard() {
       marginBottom: '10px'
     },
     statLabel: {
-      color: '#6c757d',
+      color: '#9ca3af',
       fontSize: '14px'
     },
     statValue: {
-      color: '#333',
+      color: 'white',
       fontSize: '14px',
       fontWeight: '500'
     },
     description: {
-      color: '#666',
+      color: '#d1d5db',
       lineHeight: '1.6',
       fontSize: '14px'
     },
     tag: {
       display: 'inline-block',
-      padding: '4px 8px',
-      backgroundColor: '#007bff',
-      color: 'white',
-      borderRadius: '4px',
+      padding: '6px 12px',
+      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1))',
+      color: '#93c5fd',
+      borderRadius: '12px',
       fontSize: '12px',
+      fontWeight: '500',
       marginRight: '8px',
-      marginBottom: '8px'
+      marginBottom: '8px',
+      border: '1px solid rgba(59, 130, 246, 0.3)'
     },
     loading: {
       display: 'flex',
@@ -401,30 +672,48 @@ function ProjectDashboard() {
       alignItems: 'center',
       minHeight: '400px',
       fontSize: '18px',
-      color: '#6c757d'
+      color: '#9ca3af'
     },
     emptyState: {
       textAlign: 'center',
-      color: '#6c757d',
-      padding: '20px',
-      fontStyle: 'italic'
+      color: '#9ca3af',
+      padding: '40px 20px',
+      fontStyle: 'italic',
+      background: 'rgba(26, 28, 32, 0.8)',
+      borderRadius: '16px',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
     }
   };
 
   if (loading) {
-    return <div style={styles.loading}>Loading project dashboard...</div>;
+    return (
+      <div style={styles.container}>
+        <BackgroundSymbols />
+        <div style={styles.loading}>Loading project dashboard...</div>
+      </div>
+    );
   }
 
   if (!project) {
-    return <div style={styles.loading}>Project not found</div>;
+    return (
+      <div style={styles.container}>
+        <BackgroundSymbols />
+        <div style={styles.loading}>Project not found</div>
+      </div>
+    );
   }
 
   return (
     <div style={styles.container}>
+      {/* Background Code Symbols - Now consistent with Dashboard */}
+      <BackgroundSymbols />
+
       {/* Header */}
       <div style={styles.header}>
-        <h1 style={styles.title}>{project.title}</h1>
-        <p style={styles.subtitle}>Project Dashboard & Analytics</p>
+        <div>
+          <h1 style={styles.title}>{project.title}</h1>
+          <p style={styles.subtitle}>Project Dashboard & Analytics</p>
+        </div>
       </div>
 
       {/* Analytics Cards */}
@@ -469,7 +758,7 @@ function ProjectDashboard() {
           </div>
           <div style={{
             ...styles.analyticsValue,
-            color: analytics.overdueTasksCount > 0 ? '#dc3545' : '#28a745'
+            color: analytics.overdueTasksCount > 0 ? '#ef4444' : '#10b981'
           }}>
             {analytics.overdueTasksCount}
           </div>

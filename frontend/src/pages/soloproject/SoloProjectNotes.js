@@ -1,7 +1,219 @@
-// frontend/src/pages/soloproject/SoloProjectNotes.js
+// frontend/src/pages/soloproject/SoloProjectNotes.js - ALIGNED WITH PROJECT THEME
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Edit3, 
+  Save, 
+  Trash2, 
+  X, 
+  FileText, 
+  Calendar, 
+  Clock, 
+  StickyNote,
+  BookOpen,
+  Lightbulb,
+  Code2,
+  Bug,
+  Target,
+  RefreshCw,
+  AlertTriangle,
+  Check,
+  ChevronDown
+} from 'lucide-react';
 import SoloProjectService from '../../services/soloProjectService';
+
+// Background symbols component - SAME AS PROJECT THEME
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
 
 function SoloProjectNotes() {
   const { projectId } = useParams();
@@ -27,20 +239,17 @@ function SoloProjectNotes() {
   useEffect(() => {
     let isMounted = true;
     const timeout = setTimeout(async () => {
-        setLoading(true);
-        setError(null);
-        try {
+      setLoading(true);
+      setError(null);
+      try {
         const filters = {
-            sort_by: sortBy,
-            sort_order: sortBy === 'title' ? 'asc' : 'desc'
+          sort_by: sortBy,
+          sort_order: sortBy === 'title' ? 'asc' : 'desc'
         };
         if (searchTerm.trim()) filters.search = searchTerm.trim();
 
         const res = await SoloProjectService.getNotes(projectId, filters);
-        const apiNotes =
-            res?.data?.data?.notes ||
-            res?.data?.notes ||
-            [];
+        const apiNotes = res?.data?.data?.notes || res?.data?.notes || [];
 
         if (!isMounted) return;
 
@@ -48,26 +257,26 @@ function SoloProjectNotes() {
 
         // Keep selection valid without referencing selectedNote from the closure
         setSelectedNote(prev => {
-            const stillExists = prev && apiNotes.some(n => n.id === prev.id);
-            if (stillExists) return prev;
-            // If previous selection is gone or was null, pick the first note
-            setIsEditing(false);
-            return apiNotes[0] || null;
+          const stillExists = prev && apiNotes.some(n => n.id === prev.id);
+          if (stillExists) return prev;
+          // If previous selection is gone or was null, pick the first note
+          setIsEditing(false);
+          return apiNotes[0] || null;
         });
-        } catch (err) {
+      } catch (err) {
         if (isMounted) {
-            setError(err?.response?.data?.message || 'Failed to load notes');
+          setError(err?.response?.data?.message || 'Failed to load notes');
         }
-        } finally {
+      } finally {
         if (isMounted) setLoading(false);
-        }
+      }
     }, 300);
 
     return () => {
-        isMounted = false;
-        clearTimeout(timeout);
+      isMounted = false;
+      clearTimeout(timeout);
     };
-    }, [projectId, searchTerm, sortBy]); // selectedNote no longer needed here
+  }, [projectId, searchTerm, sortBy]);
 
   // Server-sorted/filtered list
   const filteredAndSortedNotes = notes;
@@ -78,7 +287,7 @@ function SoloProjectNotes() {
     // Optional client-side validation
     const { isValid, errors } = SoloProjectService.validateNoteData(newNote);
     if (!isValid) {
-      alert(errors.join('\n'));
+      setError(errors.join(', '));
       return;
     }
 
@@ -89,9 +298,7 @@ function SoloProjectNotes() {
         category: newNote.category
       });
 
-      const created =
-        res?.data?.data?.note ||
-        res?.data?.note;
+      const created = res?.data?.data?.note || res?.data?.note;
 
       if (created) {
         setNotes(prev => [created, ...prev]);
@@ -100,8 +307,9 @@ function SoloProjectNotes() {
 
       setNewNote({ title: '', content: '', category: 'general' });
       setShowCreateNote(false);
+      setError(null);
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to create note');
+      setError(err?.response?.data?.message || 'Failed to create note');
     }
   };
 
@@ -115,7 +323,7 @@ function SoloProjectNotes() {
       category: selectedNote.category
     });
     if (!isValid) {
-      alert(errors.join('\n'));
+      setError(errors.join(', '));
       return;
     }
 
@@ -130,17 +338,16 @@ function SoloProjectNotes() {
         }
       );
 
-      const updated =
-        res?.data?.data?.note ||
-        res?.data?.note;
+      const updated = res?.data?.data?.note || res?.data?.note;
 
       if (updated) {
         setNotes(prev => prev.map(n => (n.id === updated.id ? updated : n)));
         setSelectedNote(updated);
       }
       setIsEditing(false);
+      setError(null);
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to update note');
+      setError(err?.response?.data?.message || 'Failed to update note');
     }
   };
 
@@ -153,8 +360,9 @@ function SoloProjectNotes() {
         setSelectedNote(remaining[0] || null);
         setIsEditing(false);
       }
+      setError(null);
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to delete note');
+      setError(err?.response?.data?.message || 'Failed to delete note');
     }
   };
 
@@ -169,382 +377,136 @@ function SoloProjectNotes() {
     });
   };
 
-  // Align with backend allowed categories: general, planning, development, learning, ideas, bugs
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'planning': return '📋';
-      case 'development': return '💻';
-      case 'learning': return '📚';
-      case 'ideas': return '💡';
-      case 'bugs': return '🐛';
+      case 'planning': return <Target size={16} />;
+      case 'development': return <Code2 size={16} />;
+      case 'learning': return <BookOpen size={16} />;
+      case 'ideas': return <Lightbulb size={16} />;
+      case 'bugs': return <Bug size={16} />;
       case 'general':
-      default: return '📝';
+      default: return <StickyNote size={16} />;
     }
   };
 
   const getCategoryColor = (category) => {
     switch (category) {
-      case 'planning': return '#007bff';
-      case 'development': return '#28a745';
-      case 'learning': return '#6f42c1';
-      case 'ideas': return '#ffc107';
-      case 'bugs': return '#dc3545';
+      case 'planning': return '#3b82f6';
+      case 'development': return '#10b981';
+      case 'learning': return '#a855f7';
+      case 'ideas': return '#f59e0b';
+      case 'bugs': return '#ef4444';
       case 'general':
-      default: return '#6c757d';
+      default: return '#6b7280';
     }
   };
 
-  const styles = {
-    container: {
-      padding: '30px',
-      maxWidth: '1400px',
-      margin: '0 auto',
-      height: 'calc(100vh - 60px)'
-    },
-    header: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '24px',
-      paddingBottom: '16px',
-      borderBottom: '2px solid #e9ecef'
-    },
-    title: {
-      color: '#333',
-      fontSize: '28px',
-      margin: 0,
-      fontWeight: 'bold'
-    },
-    createButton: {
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      border: 'none',
-      padding: '12px 24px',
-      borderRadius: '8px',
-      fontSize: '16px',
-      fontWeight: '500',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease'
-    },
-    error: {
-      backgroundColor: '#fff3f3',
-      border: '1px solid #f5c2c7',
-      color: '#842029',
-      padding: '10px 14px',
-      borderRadius: '8px',
-      marginBottom: '16px'
-    },
-    mainContent: {
-      display: 'grid',
-      gridTemplateColumns: '350px 1fr',
-      gap: '24px',
-      height: 'calc(100% - 100px)'
-    },
-    sidebar: {
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      overflow: 'hidden'
-    },
-    sidebarHeader: {
-      padding: '20px',
-      borderBottom: '1px solid #e9ecef',
-      backgroundColor: '#f8f9fa'
-    },
-    searchInput: {
-      width: '100%',
-      padding: '10px 12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      marginBottom: '12px'
-    },
-    sortSelect: {
-      width: '100%',
-      padding: '8px 12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '6px',
-      fontSize: '14px',
-      backgroundColor: 'white'
-    },
-    notesList: {
-      flex: 1,
-      overflowY: 'auto'
-    },
-    noteItem: {
-      padding: '16px 20px',
-      borderBottom: '1px solid #f1f3f4',
-      cursor: 'pointer',
-      transition: 'background-color 0.2s ease'
-    },
-    noteItemActive: {
-      backgroundColor: '#6f42c1',
-      color: 'white'
-    },
-    noteItemHover: {
-      backgroundColor: '#f8f9fa'
-    },
-    noteItemTitle: {
-      fontSize: '16px',
-      fontWeight: '600',
-      margin: '0 0 8px 0',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    },
-    noteItemMeta: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      fontSize: '12px',
-      opacity: 0.8
-    },
-    categoryBadge: {
-      padding: '2px 6px',
-      borderRadius: '10px',
-      fontSize: '10px',
-      fontWeight: '500',
-      color: 'white'
-    },
-    noteItemPreview: {
-      fontSize: '13px',
-      margin: '8px 0 0 0',
-      opacity: 0.7,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
-    },
-    editor: {
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      overflow: 'hidden'
-    },
-    editorHeader: {
-      padding: '20px',
-      borderBottom: '1px solid #e9ecef',
-      backgroundColor: '#f8f9fa',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    },
-    editorTitle: {
-      fontSize: '20px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: 0,
-      flex: 1,
-      minWidth: 0
-    },
-    editorActions: {
-      display: 'flex',
-      gap: '8px'
-    },
-    actionButton: {
-      padding: '8px 16px',
-      border: '1px solid #dee2e6',
-      borderRadius: '6px',
-      backgroundColor: 'white',
-      color: '#6c757d',
-      fontSize: '14px',
-      cursor: 'pointer',
-      transition: 'all 0.2s ease'
-    },
-    editButton: {
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      border: 'none'
-    },
-    saveButton: {
-      backgroundColor: '#28a745',
-      color: 'white',
-      border: 'none'
-    },
-    deleteButton: {
-      backgroundColor: '#dc3545',
-      color: 'white',
-      border: 'none'
-    },
-    editorContent: {
-      flex: 1,
-      padding: '20px',
-      overflow: 'auto'
-    },
-    titleInput: {
-      width: '100%',
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '18px',
-      fontWeight: 'bold',
-      marginBottom: '16px'
-    },
-    contentTextarea: {
-      width: '100%',
-      height: '400px',
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      lineHeight: '1.6',
-      fontFamily: 'Monaco, Consolas, "Lucida Console", monospace',
-      resize: 'none'
-    },
-    contentDisplay: {
-      fontSize: '14px',
-      lineHeight: '1.6',
-      color: '#333',
-      whiteSpace: 'pre-wrap'
-    },
-    emptyState: {
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      height: '100%',
-      color: '#6c757d',
-      textAlign: 'center'
-    },
-    emptyStateIcon: {
-      fontSize: '64px',
-      marginBottom: '20px',
-      opacity: 0.5
-    },
-    emptyStateText: {
-      fontSize: '18px',
-      margin: '0 0 8px 0'
-    },
-    emptyStateSubtext: {
-      fontSize: '14px',
-      margin: 0
-    },
-    modal: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    },
-    modalContent: {
-      backgroundColor: 'white',
-      borderRadius: '12px',
-      padding: '30px',
-      width: '100%',
-      maxWidth: '600px',
-      margin: '20px'
-    },
-    modalTitle: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 24px 0'
-    },
-    formGroup: {
-      marginBottom: '20px'
-    },
-    formLabel: {
-      display: 'block',
-      fontSize: '14px',
-      fontWeight: '500',
-      color: '#333',
-      marginBottom: '8px'
-    },
-    formInput: {
-      width: '100%',
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px'
-    },
-    formTextarea: {
-      width: '100%',
-      height: '200px',
-      padding: '12px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      fontSize: '14px',
-      resize: 'vertical'
-    },
-    formActions: {
-      display: 'flex',
-      gap: '12px',
-      justifyContent: 'flex-end',
-      marginTop: '24px'
-    },
-    cancelButton: {
-      padding: '12px 24px',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      backgroundColor: 'white',
-      color: '#6c757d',
-      fontSize: '14px',
-      cursor: 'pointer'
-    },
-    submitButton: {
-      padding: '12px 24px',
-      border: 'none',
-      borderRadius: '8px',
-      backgroundColor: '#6f42c1',
-      color: 'white',
-      fontSize: '14px',
-      cursor: 'pointer',
-      fontWeight: '500'
-    }
-  };
+  if (loading && notes.length === 0) {
+    return (
+      <div style={styles.container}>
+        <BackgroundSymbols />
+        <div style={styles.loadingState}>
+          <div style={styles.loadingIcon}>
+            <FileText size={32} style={{ color: '#a855f7' }} />
+          </div>
+          <div style={styles.loadingText}>Loading Notes...</div>
+          <div style={styles.loadingSubtext}>Fetching your project notes</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>
+      <BackgroundSymbols />
+      
       {/* Header */}
       <div style={styles.header}>
-        <h1 style={styles.title}>Notes</h1>
+        <div>
+          <h1 style={styles.title}>Project Notes</h1>
+          <p style={styles.subtitle}>
+            Keep track of your ideas, progress, and important information for your project
+          </p>
+        </div>
         <button
           style={styles.createButton}
           onClick={() => setShowCreateNote(true)}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 8px 24px rgba(168, 85, 247, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.3)';
+          }}
         >
-          + New Note
+          <Plus size={16} style={{ marginRight: '8px' }} />
+          New Note
         </button>
       </div>
 
       {/* Error */}
-      {error && <div style={styles.error}>⚠️ {error}</div>}
+      {error && (
+        <div style={styles.errorMessage}>
+          <AlertTriangle size={16} style={{ marginRight: '8px' }} />
+          {error}
+        </div>
+      )}
 
       {/* Main Content */}
       <div style={styles.mainContent}>
         {/* Sidebar */}
         <div style={styles.sidebar}>
           <div style={styles.sidebarHeader}>
-            <input
-              style={styles.searchInput}
-              type="text"
-              placeholder="Search notes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <select
-              style={styles.sortSelect}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="updated_at">Last Modified</option>
-              <option value="created_at">Date Created</option>
-              <option value="title">Title</option>
-            </select>
+            <div style={styles.searchContainer}>
+              <Search size={16} style={styles.searchIcon} />
+              <input
+                style={styles.searchInput}
+                type="text"
+                placeholder="Search notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#a855f7';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+            <div style={styles.sortContainer}>
+              <Filter size={16} style={styles.sortIcon} />
+              <select
+                style={styles.sortSelect}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#a855f7';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                <option value="updated_at">Last Modified</option>
+                <option value="created_at">Date Created</option>
+                <option value="title">Title</option>
+              </select>
+              <ChevronDown size={16} style={styles.selectArrow} />
+            </div>
           </div>
           
           <div style={styles.notesList}>
             {loading && filteredAndSortedNotes.length === 0 ? (
-              <div style={{ padding: '16px 20px', color: '#6c757d' }}>Loading notes...</div>
+              <div style={styles.loadingItem}>
+                <RefreshCw size={16} style={{ marginRight: '8px', color: '#a855f7' }} />
+                Loading notes...
+              </div>
             ) : filteredAndSortedNotes.length === 0 ? (
-              <div style={{ padding: '16px 20px', color: '#6c757d' }}>No notes found</div>
+              <div style={styles.emptyItem}>No notes found</div>
             ) : (
               filteredAndSortedNotes.map((note) => (
                 <div
@@ -564,22 +526,33 @@ function SoloProjectNotes() {
                   }}
                   onMouseLeave={(e) => {
                     if (!selectedNote || selectedNote.id !== note.id) {
-                      e.currentTarget.style.backgroundColor = 'white';
+                      e.currentTarget.style.backgroundColor = 'transparent';
                     }
                   }}
                 >
-                  <h4 style={styles.noteItemTitle}>{note.title}</h4>
-                  <div style={styles.noteItemMeta}>
-                    <span style={{
-                      ...styles.categoryBadge,
-                      backgroundColor: getCategoryColor(note.category)
-                    }}>
-                      {getCategoryIcon(note.category)} {note.category}
+                  <div style={styles.noteItemHeader}>
+                    <h4 style={styles.noteItemTitle}>{note.title}</h4>
+                    <div style={styles.noteItemMeta}>
+                      <span
+                        style={{
+                          ...styles.categoryBadge,
+                          backgroundColor: getCategoryColor(note.category),
+                          color: 'white'
+                        }}
+                      >
+                        {getCategoryIcon(note.category)}
+                        <span style={{ marginLeft: '6px' }}>{note.category}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div style={styles.noteItemFooter}>
+                    <span style={styles.dateText}>
+                      <Clock size={12} style={{ marginRight: '4px' }} />
+                      {formatDate(note.updated_at)}
                     </span>
-                    <span>{formatDate(note.updated_at)}</span>
                   </div>
                   <p style={styles.noteItemPreview}>
-                    {(note.content || '').substring(0, 60)}...
+                    {(note.content || '').substring(0, 100)}{note.content && note.content.length > 100 ? '...' : ''}
                   </p>
                 </div>
               ))
@@ -590,56 +563,118 @@ function SoloProjectNotes() {
         {/* Editor */}
         <div style={styles.editor}>
           {selectedNote ? (
-            <>
+            <div>
               <div style={styles.editorHeader}>
-                {isEditing ? (
-                  <input
-                    style={{...styles.titleInput, margin: 0, flex: 1, marginRight: '16px'}}
-                    value={selectedNote.title}
-                    onChange={(e) => setSelectedNote({
-                      ...selectedNote,
-                      title: e.target.value
-                    })}
-                  />
-                ) : (
-                  <h2 style={styles.editorTitle}>{selectedNote.title}</h2>
-                )}
+                <div style={styles.editorTitleSection}>
+                  {isEditing ? (
+                    <input
+                      style={styles.titleInput}
+                      value={selectedNote.title}
+                      onChange={(e) => setSelectedNote({
+                        ...selectedNote,
+                        title: e.target.value
+                      })}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#a855f7';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    />
+                  ) : (
+                    <h2 style={styles.editorTitle}>{selectedNote.title}</h2>
+                  )}
+                  <div style={styles.editorMeta}>
+                    <span
+                      style={{
+                        ...styles.categoryBadge,
+                        backgroundColor: getCategoryColor(selectedNote.category),
+                        color: 'white'
+                      }}
+                    >
+                      {getCategoryIcon(selectedNote.category)}
+                      <span style={{ marginLeft: '6px' }}>{selectedNote.category}</span>
+                    </span>
+                    <span style={styles.metaItem}>
+                      <Calendar size={14} style={{ marginRight: '6px', color: '#9ca3af' }} />
+                      {formatDate(selectedNote.updated_at)}
+                    </span>
+                  </div>
+                </div>
                 
                 <div style={styles.editorActions}>
                   {isEditing ? (
-                    <>
+                    <div style={styles.actionGroup}>
                       <button
-                        style={{...styles.actionButton, ...styles.saveButton}}
+                        style={styles.saveButton}
                         onClick={handleUpdateNote}
+                        onMouseEnter={(e) => {
+                          e.target.style.transform = 'translateY(-2px)';
+                          e.target.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                        }}
                       >
+                        <Save size={16} style={{ marginRight: '6px' }} />
                         Save
                       </button>
                       <button
-                        style={styles.actionButton}
+                        style={styles.cancelButton}
                         onClick={() => setIsEditing(false)}
+                        onMouseEnter={(e) => {
+                          e.target.style.backgroundColor = 'rgba(15, 17, 22, 0.95)';
+                          e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.backgroundColor = 'rgba(26, 28, 32, 0.95)';
+                          e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        }}
                       >
+                        <X size={16} style={{ marginRight: '6px' }} />
                         Cancel
                       </button>
-                    </>
+                    </div>
                   ) : (
-                    <>
+                    <div style={styles.actionGroup}>
                       <button
-                        style={{...styles.actionButton, ...styles.editButton}}
+                        style={styles.editButton}
                         onClick={() => setIsEditing(true)}
+                        onMouseEnter={(e) => {
+                          e.target.style.transform = 'translateY(-2px)';
+                          e.target.style.boxShadow = '0 8px 24px rgba(168, 85, 247, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 4px 12px rgba(168, 85, 247, 0.3)';
+                        }}
                       >
+                        <Edit3 size={16} style={{ marginRight: '6px' }} />
                         Edit
                       </button>
                       <button
-                        style={{...styles.actionButton, ...styles.deleteButton}}
+                        style={styles.deleteButton}
                         onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this note?')) {
+                          if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
                             handleDeleteNote(selectedNote.id);
                           }
                         }}
+                        onMouseEnter={(e) => {
+                          e.target.style.transform = 'translateY(-2px)';
+                          e.target.style.boxShadow = '0 8px 24px rgba(239, 68, 68, 0.4)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                        }}
                       >
+                        <Trash2 size={16} style={{ marginRight: '6px' }} />
                         Delete
                       </button>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
@@ -647,24 +682,35 @@ function SoloProjectNotes() {
               {/* Editor Content */}
               <div style={styles.editorContent}>
                 {isEditing ? (
-                  <>
+                  <div>
                     <div style={styles.formGroup}>
                       <label style={styles.formLabel}>Category</label>
-                      <select
-                        style={styles.formInput}
-                        value={selectedNote.category}
-                        onChange={(e) => setSelectedNote({
-                          ...selectedNote,
-                          category: e.target.value
-                        })}
-                      >
-                        <option value="general">General</option>
-                        <option value="planning">Planning</option>
-                        <option value="development">Development</option>
-                        <option value="learning">Learning</option>
-                        <option value="ideas">Ideas</option>
-                        <option value="bugs">Bugs</option>
-                      </select>
+                      <div style={styles.selectContainer}>
+                        <select
+                          style={styles.categorySelect}
+                          value={selectedNote.category}
+                          onChange={(e) => setSelectedNote({
+                            ...selectedNote,
+                            category: e.target.value
+                          })}
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#a855f7';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                            e.target.style.boxShadow = 'none';
+                          }}
+                        >
+                          <option value="general">General</option>
+                          <option value="planning">Planning</option>
+                          <option value="development">Development</option>
+                          <option value="learning">Learning</option>
+                          <option value="ideas">Ideas</option>
+                          <option value="bugs">Bugs</option>
+                        </select>
+                        <ChevronDown size={16} style={styles.selectArrow} />
+                      </div>
                     </div>
                     <textarea
                       style={styles.contentTextarea}
@@ -674,18 +720,30 @@ function SoloProjectNotes() {
                         content: e.target.value
                       })}
                       placeholder="Write your note content here..."
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#a855f7';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                        e.target.style.boxShadow = 'none';
+                      }}
                     />
-                  </>
+                  </div>
                 ) : (
                   <div style={styles.contentDisplay}>{selectedNote.content}</div>
                 )}
               </div>
-            </>
+            </div>
           ) : (
             <div style={styles.emptyState}>
-              <div style={styles.emptyStateIcon}>📝</div>
-              <div style={styles.emptyStateText}>No note selected</div>
-              <div style={styles.emptyStateSubtext}>Choose a note from the sidebar to view it here</div>
+              <div style={styles.emptyStateIcon}>
+                <StickyNote size={64} style={{ color: '#a855f7' }} />
+              </div>
+              <h2 style={styles.emptyStateTitle}>No note selected</h2>
+              <p style={styles.emptyStateText}>
+                Choose a note from the sidebar to view it here, or create a new one to get started.
+              </p>
             </div>
           )}
         </div>
@@ -695,57 +753,137 @@ function SoloProjectNotes() {
       {showCreateNote && (
         <div style={styles.modal} onClick={() => setShowCreateNote(false)}>
           <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 style={styles.modalTitle}>Create New Note</h2>
-            
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Title *</label>
-              <input
-                style={styles.formInput}
-                type="text"
-                value={newNote.title}
-                onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
-                placeholder="Enter note title"
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Category</label>
-              <select
-                style={styles.formInput}
-                value={newNote.category}
-                onChange={(e) => setNewNote({ ...newNote, category: e.target.value })}
-              >
-                <option value="general">General</option>
-                <option value="planning">Planning</option>
-                <option value="development">Development</option>
-                <option value="learning">Learning</option>
-                <option value="ideas">Ideas</option>
-                <option value="bugs">Bugs</option>
-              </select>
-            </div>
-
-            <div style={styles.formGroup}>
-              <label style={styles.formLabel}>Content *</label>
-              <textarea
-                style={styles.formTextarea}
-                value={newNote.content}
-                onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
-                placeholder="Write your note content here..."
-              />
-            </div>
-
-            <div style={styles.formActions}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>
+                <Plus size={24} style={{ marginRight: '12px', color: '#a855f7' }} />
+                Create New Note
+              </h2>
               <button
-                style={styles.cancelButton}
+                style={styles.modalCloseButton}
                 onClick={() => setShowCreateNote(false)}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                  e.target.style.color = '#ef4444';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'transparent';
+                  e.target.style.color = '#9ca3af';
+                }}
               >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  <FileText size={16} style={{ marginRight: '6px' }} />
+                  Title *
+                </label>
+                <input
+                  style={styles.formInput}
+                  type="text"
+                  value={newNote.title}
+                  onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+                  placeholder="Enter note title"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#a855f7';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  <Filter size={16} style={{ marginRight: '6px' }} />
+                  Category
+                </label>
+                <div style={styles.selectContainer}>
+                  <select
+                    style={styles.formSelect}
+                    value={newNote.category}
+                    onChange={(e) => setNewNote({ ...newNote, category: e.target.value })}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#a855f7';
+                      e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  >
+                    <option value="general">General</option>
+                    <option value="planning">Planning</option>
+                    <option value="development">Development</option>
+                    <option value="learning">Learning</option>
+                    <option value="ideas">Ideas</option>
+                    <option value="bugs">Bugs</option>
+                  </select>
+                  <ChevronDown size={16} style={styles.selectArrow} />
+                </div>
+              </div>
+
+              <div style={styles.formGroup}>
+                <label style={styles.formLabel}>
+                  <Edit3 size={16} style={{ marginRight: '6px' }} />
+                  Content *
+                </label>
+                <textarea
+                  style={styles.formTextarea}
+                  value={newNote.content}
+                  onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                  placeholder="Write your note content here..."
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#a855f7';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={styles.modalActions}>
+              <button
+                style={styles.cancelModalButton}
+                onClick={() => setShowCreateNote(false)}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(15, 17, 22, 0.95)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(26, 28, 32, 0.95)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+              >
+                <X size={16} style={{ marginRight: '6px' }} />
                 Cancel
               </button>
               <button
-                style={styles.submitButton}
+                style={{
+                  ...styles.submitButton,
+                  ...((!newNote.title.trim() || !newNote.content.trim()) ? styles.disabledButton : {})
+                }}
                 onClick={handleCreateNote}
                 disabled={!newNote.title.trim() || !newNote.content.trim()}
+                onMouseEnter={(e) => {
+                  if (newNote.title.trim() && newNote.content.trim()) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                }}
               >
+                <Check size={16} style={{ marginRight: '6px' }} />
                 Create Note
               </button>
             </div>
@@ -755,5 +893,574 @@ function SoloProjectNotes() {
     </div>
   );
 }
+
+// COMPLETE STYLES ALIGNED WITH PROJECT THEME
+const styles = {
+  container: {
+    minHeight: 'calc(100vh - 40px)',
+    backgroundColor: '#0F1116',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    padding: '20px',
+    paddingLeft: '270px',
+    marginLeft: '-150px'
+  },
+  header: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '32px',
+    padding: '0 0 20px 0',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: 0
+  },
+  subtitle: {
+    color: '#d1d5db',
+    fontSize: '16px',
+    margin: '8px 0 0 0'
+  },
+  createButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 24px',
+    background: 'linear-gradient(to right, #a855f7, #7c3aed)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)',
+    marginTop: '8px'
+  },
+  loadingState: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '400px',
+    textAlign: 'center'
+  },
+  loadingIcon: {
+    marginBottom: '20px'
+  },
+  loadingText: {
+    fontSize: '18px',
+    color: 'white',
+    marginBottom: '8px'
+  },
+  loadingSubtext: {
+    fontSize: '16px',
+    color: '#9ca3af'
+  },
+  errorMessage: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    color: '#f87171',
+    padding: '16px',
+    borderRadius: '12px',
+    marginBottom: '24px',
+    backdropFilter: 'blur(8px)'
+  },
+  mainContent: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'grid',
+    gridTemplateColumns: '400px 1fr',
+    gap: '24px',
+    height: 'calc(100vh - 200px)',
+    minHeight: '600px'
+  },
+  sidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+    overflow: 'hidden'
+  },
+  sidebarHeader: {
+    padding: '20px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))'
+  },
+  searchContainer: {
+    position: 'relative',
+    marginBottom: '16px'
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#9ca3af',
+    zIndex: 1
+  },
+  searchInput: {
+    width: '100%',
+    padding: '12px 12px 12px 40px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '10px',
+    fontSize: '14px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: 'white',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  sortContainer: {
+    position: 'relative'
+  },
+  sortIcon: {
+    position: 'absolute',
+    left: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#9ca3af',
+    zIndex: 1
+  },
+  sortSelect: {
+    width: '100%',
+    padding: '10px 40px 10px 40px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '8px',
+    fontSize: '14px',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: 'white',
+    appearance: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  selectArrow: {
+    position: 'absolute',
+    right: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#9ca3af',
+    pointerEvents: 'none'
+  },
+  notesList: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '0'
+  },
+  loadingItem: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '16px 20px',
+    color: '#9ca3af',
+    fontSize: '14px'
+  },
+  emptyItem: {
+    padding: '16px 20px',
+    color: '#9ca3af',
+    fontSize: '14px',
+    textAlign: 'center'
+  },
+  noteItem: {
+    padding: '20px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    backgroundColor: 'transparent'
+  },
+  noteItemActive: {
+    background: 'linear-gradient(to right, #a855f7, #7c3aed)',
+    color: 'white'
+  },
+  noteItemHover: {
+    backgroundColor: 'rgba(168, 85, 247, 0.1)'
+  },
+  noteItemHeader: {
+    marginBottom: '12px'
+  },
+  noteItemTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    margin: '0 0 8px 0',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    color: 'inherit'
+  },
+  noteItemMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  categoryBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '4px 8px',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '500',
+    textTransform: 'capitalize'
+  },
+  noteItemFooter: {
+    marginBottom: '8px'
+  },
+  dateText: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '12px',
+    color: '#9ca3af',
+    opacity: 0.8
+  },
+  noteItemPreview: {
+    fontSize: '13px',
+    margin: 0,
+    opacity: 0.7,
+    lineHeight: '1.4',
+    color: 'inherit'
+  },
+  editor: {
+    display: 'flex',
+    flexDirection: 'column',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+    overflow: 'hidden'
+  },
+  editorHeader: {
+    padding: '24px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
+  },
+  editorTitleSection: {
+    flex: 1,
+    marginRight: '20px'
+  },
+  editorTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: '0 0 12px 0'
+  },
+  titleInput: {
+    width: '100%',
+    padding: '12px 16px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '10px',
+    fontSize: '24px',
+    fontWeight: 'bold',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: 'white',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box',
+    margin: '0 0 12px 0'
+  },
+  editorMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px'
+  },
+  metaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    color: '#d1d5db',
+    fontSize: '14px'
+  },
+  editorActions: {
+    display: 'flex',
+    gap: '12px'
+  },
+  actionGroup: {
+    display: 'flex',
+    gap: '12px'
+  },
+  editButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 16px',
+    background: 'linear-gradient(to right, #a855f7, #7c3aed)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
+  },
+  saveButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 16px',
+    background: 'linear-gradient(to right, #10b981, #059669)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+  },
+  deleteButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '10px 16px',
+    background: 'linear-gradient(to right, #ef4444, #dc2626)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+  },
+  cancelButton: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    padding: '10px 16px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  editorContent: {
+    flex: 1,
+    padding: '24px',
+    overflow: 'auto'
+  },
+  formGroup: {
+    marginBottom: '20px'
+  },
+  formLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: 'white',
+    marginBottom: '8px'
+  },
+  selectContainer: {
+    position: 'relative'
+  },
+  categorySelect: {
+    width: '100%',
+    padding: '12px 40px 12px 16px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '10px',
+    fontSize: '14px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: 'white',
+    appearance: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  contentTextarea: {
+    width: '100%',
+    height: '400px',
+    padding: '16px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
+    fontSize: '14px',
+    lineHeight: '1.6',
+    fontFamily: 'Monaco, Consolas, "Lucida Console", monospace',
+    resize: 'vertical',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: '#e5e7eb',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  contentDisplay: {
+    fontSize: '15px',
+    lineHeight: '1.6',
+    color: '#d1d5db',
+    whiteSpace: 'pre-wrap',
+    padding: '16px 0'
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100%',
+    textAlign: 'center',
+    padding: '60px 20px'
+  },
+  emptyStateIcon: {
+    marginBottom: '24px'
+  },
+  emptyStateTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: '0 0 16px 0'
+  },
+  emptyStateText: {
+    fontSize: '16px',
+    color: '#9ca3af',
+    lineHeight: '1.6',
+    maxWidth: '400px',
+    margin: 0
+  },
+  modal: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    backdropFilter: 'blur(8px)'
+  },
+  modalContent: {
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    width: '100%',
+    maxWidth: '600px',
+    margin: '20px',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)',
+    overflow: 'hidden'
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '24px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))'
+  },
+  modalTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: 0
+  },
+  modalCloseButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '36px',
+    height: '36px',
+    border: 'none',
+    borderRadius: '8px',
+    backgroundColor: 'transparent',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  modalBody: {
+    padding: '24px'
+  },
+  formInput: {
+    width: '100%',
+    padding: '12px 16px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '10px',
+    fontSize: '14px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: 'white',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  formSelect: {
+    width: '100%',
+    padding: '12px 40px 12px 16px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '10px',
+    fontSize: '14px',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: 'white',
+    appearance: 'none',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  formTextarea: {
+    width: '100%',
+    height: '200px',
+    padding: '12px 16px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
+    fontSize: '14px',
+    resize: 'vertical',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: 'white',
+    lineHeight: '1.5',
+    fontFamily: 'inherit',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box'
+  },
+  modalActions: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'flex-end',
+    padding: '24px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))'
+  },
+  cancelModalButton: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  submitButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 24px',
+    background: 'linear-gradient(to right, #10b981, #059669)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+  },
+  disabledButton: {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+    background: '#6b7280'
+  }
+};
 
 export default SoloProjectNotes;

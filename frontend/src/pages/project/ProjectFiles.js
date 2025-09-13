@@ -1,7 +1,252 @@
-// frontend/src/pages/project/ProjectFiles.js
+// frontend/src/pages/project/ProjectFiles.js - ALIGNED WITH DASHBOARD THEME
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { githubService } from '../../services/githubService';
+
+// Background symbols component - SAME AS DASHBOARD
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
 
 function ProjectFiles() {
   const { projectId } = useParams();
@@ -217,224 +462,334 @@ function ProjectFiles() {
 
   const styles = {
     container: {
-      padding: '30px',
-      maxWidth: '1200px',
-      margin: '0 auto'
+      minHeight: 'calc(100vh - 40px)',
+      backgroundColor: '#0F1116',
+      color: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '20px',
+      paddingLeft: '270px', // Match Dashboard.js sidebar spacing
+      marginLeft: '-150px'   // Match Dashboard.js sidebar spacing
     },
     header: {
+      position: 'relative',
+      zIndex: 10,
       marginBottom: '30px',
       paddingBottom: '20px',
-      borderBottom: '2px solid #e9ecef'
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
     title: {
-      color: '#333',
       fontSize: '28px',
-      margin: '0 0 10px 0'
+      fontWeight: 'bold',
+      color: 'white',
+      margin: '0 0 8px 0'
     },
     subtitle: {
-      color: '#6c757d',
+      color: '#d1d5db',
       fontSize: '16px',
       margin: 0
     },
     connectSection: {
+      position: 'relative',
+      zIndex: 10,
       textAlign: 'center',
       padding: '60px 20px',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '8px',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      backdropFilter: 'blur(20px)',
       marginBottom: '30px'
     },
+    connectTitle: {
+      fontSize: '24px',
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: '16px'
+    },
+    connectText: {
+      color: '#d1d5db',
+      fontSize: '16px',
+      marginBottom: '24px',
+      lineHeight: '1.6'
+    },
     connectButton: {
-      backgroundColor: '#24292e',
+      background: 'linear-gradient(135deg, #24292e, #1b1f23)',
       color: 'white',
       border: 'none',
       padding: '12px 24px',
-      borderRadius: '6px',
+      borderRadius: '12px',
       fontSize: '16px',
       cursor: 'pointer',
       display: 'inline-flex',
       alignItems: 'center',
       gap: '8px',
-      marginTop: '20px'
+      fontWeight: '600',
+      transition: 'all 0.3s ease',
+      boxShadow: '0 4px 16px rgba(36, 41, 46, 0.3)'
     },
     connectedInfo: {
-      backgroundColor: '#d4edda',
-      border: '1px solid #c3e6cb',
-      borderRadius: '8px',
-      padding: '15px',
-      marginBottom: '20px',
+      position: 'relative',
+      zIndex: 10,
+      background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1))',
+      border: '1px solid rgba(16, 185, 129, 0.3)',
+      borderRadius: '12px',
+      padding: '20px',
+      marginBottom: '24px',
       display: 'flex',
       justifyContent: 'space-between',
-      alignItems: 'center'
+      alignItems: 'center',
+      backdropFilter: 'blur(10px)'
     },
     userInfo: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px'
+      gap: '12px'
     },
     avatar: {
-      width: '32px',
-      height: '32px',
-      borderRadius: '50%'
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      border: '2px solid rgba(255, 255, 255, 0.2)'
+    },
+    userName: {
+      color: 'white',
+      fontWeight: '600',
+      fontSize: '16px'
+    },
+    userHandle: {
+      color: '#d1d5db',
+      fontSize: '14px'
     },
     repositorySection: {
+      position: 'relative',
+      zIndex: 10,
       marginBottom: '30px'
+    },
+    sectionTitle: {
+      fontSize: '20px',
+      fontWeight: 'bold',
+      color: 'white',
+      marginBottom: '16px'
+    },
+    sectionText: {
+      color: '#d1d5db',
+      fontSize: '14px',
+      marginBottom: '20px'
     },
     repositoryHeader: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: '20px',
-      padding: '15px',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '8px'
+      padding: '20px',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      backdropFilter: 'blur(20px)'
     },
     repositoryInfo: {
       display: 'flex',
       alignItems: 'center',
-      gap: '10px'
+      gap: '12px'
+    },
+    repositoryName: {
+      color: 'white',
+      fontWeight: '600',
+      fontSize: '16px'
     },
     branchSelector: {
       padding: '6px 12px',
-      border: '1px solid #ccc',
-      borderRadius: '4px',
-      fontSize: '14px'
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      fontSize: '14px',
+      backgroundColor: 'rgba(26, 28, 32, 0.8)',
+      color: 'white',
+      outline: 'none'
     },
     breadcrumb: {
+      position: 'relative',
+      zIndex: 10,
       display: 'flex',
       alignItems: 'center',
-      gap: '5px',
-      marginBottom: '15px',
+      gap: '8px',
+      marginBottom: '16px',
       fontSize: '14px',
-      color: '#666'
+      color: '#9ca3af',
+      padding: '12px 16px',
+      background: 'rgba(26, 28, 32, 0.6)',
+      borderRadius: '8px',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
     },
     breadcrumbLink: {
-      color: '#007bff',
+      color: '#3b82f6',
       cursor: 'pointer',
-      textDecoration: 'none'
+      textDecoration: 'none',
+      transition: 'color 0.2s ease'
     },
     fileList: {
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      overflow: 'hidden'
+      position: 'relative',
+      zIndex: 10,
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      backdropFilter: 'blur(20px)'
     },
     fileItem: {
       display: 'flex',
       alignItems: 'center',
-      padding: '12px 15px',
-      borderBottom: '1px solid #eee',
+      padding: '16px 20px',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
       cursor: 'pointer',
-      transition: 'background-color 0.2s'
+      transition: 'all 0.2s ease',
+      color: 'white'
+    },
+    parentDirectory: {
+      backgroundColor: 'rgba(255, 255, 255, 0.02)'
     },
     fileIcon: {
-      marginRight: '10px',
-      fontSize: '16px'
+      marginRight: '12px',
+      fontSize: '18px',
+      width: '20px'
     },
     fileName: {
       flex: 1,
-      fontSize: '14px'
-    },
-    fileSize: {
-      fontSize: '12px',
-      color: '#666'
-    },
-    fileViewer: {
-      marginTop: '30px'
-    },
-    fileViewerHeader: {
-      backgroundColor: '#f8f9fa',
-      padding: '10px 15px',
-      borderBottom: '1px solid #dee2e6',
       fontSize: '14px',
       fontWeight: '500'
     },
+    fileSize: {
+      fontSize: '12px',
+      color: '#9ca3af'
+    },
+    fileViewer: {
+      position: 'relative',
+      zIndex: 10,
+      marginTop: '24px',
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      overflow: 'hidden',
+      backdropFilter: 'blur(20px)'
+    },
+    fileViewerHeader: {
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      padding: '16px 20px',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      fontSize: '14px',
+      fontWeight: '600',
+      color: 'white'
+    },
     fileViewerContent: {
-      backgroundColor: '#f8f9fa',
+      backgroundColor: 'rgba(0, 0, 0, 0.3)',
       padding: '20px',
       fontSize: '14px',
       fontFamily: 'Monaco, Consolas, "Lucida Console", monospace',
-      lineHeight: '1.5',
+      lineHeight: '1.6',
       maxHeight: '600px',
       overflow: 'auto',
       whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word'
+      wordBreak: 'break-word',
+      color: '#e5e7eb'
     },
     repositorySelector: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
-      padding: '20px',
-      marginBottom: '30px'
+      position: 'relative',
+      zIndex: 10,
+      background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '12px',
+      padding: '24px',
+      marginBottom: '30px',
+      backdropFilter: 'blur(20px)'
     },
     repositoryItem: {
-      padding: '15px',
-      border: '1px solid #eee',
-      borderRadius: '6px',
-      marginBottom: '10px',
+      padding: '20px',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '8px',
+      marginBottom: '12px',
       cursor: 'pointer',
-      transition: 'all 0.2s'
+      transition: 'all 0.3s ease',
+      background: 'rgba(255, 255, 255, 0.02)'
     },
-    repositoryName: {
-      fontWeight: '500',
-      marginBottom: '5px'
+    repositoryItemName: {
+      fontWeight: '600',
+      marginBottom: '8px',
+      color: 'white',
+      fontSize: '16px'
     },
     repositoryDescription: {
       fontSize: '14px',
-      color: '#666',
-      marginBottom: '5px'
+      color: '#d1d5db',
+      marginBottom: '8px',
+      lineHeight: '1.4'
     },
     repositoryMeta: {
       fontSize: '12px',
-      color: '#888',
+      color: '#9ca3af',
       display: 'flex',
-      gap: '15px'
+      gap: '16px',
+      alignItems: 'center'
     },
     button: {
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
       color: 'white',
       border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
+      padding: '10px 20px',
+      borderRadius: '8px',
       fontSize: '14px',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      fontWeight: '500',
+      transition: 'all 0.3s ease'
     },
     dangerButton: {
-      backgroundColor: '#dc3545',
+      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
       color: 'white',
       border: 'none',
-      padding: '8px 16px',
-      borderRadius: '4px',
+      padding: '10px 20px',
+      borderRadius: '8px',
       fontSize: '14px',
-      cursor: 'pointer'
+      cursor: 'pointer',
+      fontWeight: '500',
+      transition: 'all 0.3s ease'
     },
     loadingState: {
+      position: 'relative',
+      zIndex: 10,
       textAlign: 'center',
-      padding: '40px',
-      color: '#666'
+      padding: '60px',
+      color: '#9ca3af',
+      fontSize: '18px'
     },
     errorState: {
-      backgroundColor: '#f8d7da',
-      border: '1px solid #f5c6cb',
-      color: '#721c24',
-      padding: '15px',
-      borderRadius: '8px',
-      marginBottom: '20px'
+      position: 'relative',
+      zIndex: 10,
+      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(185, 28, 28, 0.1))',
+      border: '1px solid rgba(239, 68, 68, 0.3)',
+      color: '#fca5a5',
+      padding: '16px 20px',
+      borderRadius: '12px',
+      marginBottom: '24px',
+      backdropFilter: 'blur(10px)'
     },
     accessDeniedSection: {
+      position: 'relative',
+      zIndex: 10,
       textAlign: 'center',
       padding: '40px 20px',
-      backgroundColor: '#fff3cd',
-      border: '1px solid #ffeaa7',
-      borderRadius: '8px',
-      marginBottom: '20px'
+      background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.1))',
+      border: '1px solid rgba(251, 191, 36, 0.3)',
+      borderRadius: '16px',
+      marginBottom: '24px',
+      backdropFilter: 'blur(10px)'
     },
     accessDeniedTitle: {
-      color: '#856404',
+      color: '#fbbf24',
       fontSize: '20px',
-      marginBottom: '15px',
+      marginBottom: '16px',
       fontWeight: '600'
     },
     accessDeniedText: {
-      color: '#856404',
+      color: '#fcd34d',
       fontSize: '16px',
       lineHeight: '1.6',
       marginBottom: '20px'
@@ -443,10 +798,10 @@ function ProjectFiles() {
       textAlign: 'left',
       maxWidth: '500px',
       margin: '0 auto',
-      backgroundColor: '#fcf8e3',
+      background: 'rgba(251, 191, 36, 0.1)',
       padding: '20px',
-      borderRadius: '6px',
-      border: '1px solid #faebcc'
+      borderRadius: '8px',
+      border: '1px solid rgba(251, 191, 36, 0.2)'
     },
     stepsList: {
       margin: '10px 0',
@@ -454,15 +809,20 @@ function ProjectFiles() {
     },
     stepItem: {
       marginBottom: '8px',
-      color: '#856404'
+      color: '#fcd34d'
+    },
+    repoFullName: {
+      fontWeight: '600',
+      color: '#3b82f6'
     }
   };
 
   if (loading) {
     return (
       <div style={styles.container}>
+        <BackgroundSymbols />
         <div style={styles.loadingState}>
-          <h2>Loading GitHub integration...</h2>
+          Loading GitHub integration...
         </div>
       </div>
     );
@@ -470,6 +830,9 @@ function ProjectFiles() {
 
   return (
     <div style={styles.container}>
+      {/* Background Code Symbols */}
+      <BackgroundSymbols />
+
       <div style={styles.header}>
         <h1 style={styles.title}>Files</h1>
         <p style={styles.subtitle}>Project files and GitHub repository integration</p>
@@ -496,7 +859,7 @@ function ProjectFiles() {
               <li style={styles.stepItem}>
                 Ask them to add you as a collaborator to the repository: 
                 <br />
-                <strong>{projectRepository.repository_full_name}</strong>
+                <span style={styles.repoFullName}>{projectRepository.repository_full_name}</span>
               </li>
               <li style={styles.stepItem}>
                 Once added, refresh this page to view the files
@@ -513,9 +876,20 @@ function ProjectFiles() {
 
       {!isGitHubConnected ? (
         <div style={styles.connectSection}>
-          <h2>Connect Your GitHub Account</h2>
-          <p>Connect your GitHub account to browse and manage repository files directly in your project workspace.</p>
-          <button style={styles.connectButton} onClick={handleGitHubConnect}>
+          <h2 style={styles.connectTitle}>Connect Your GitHub Account</h2>
+          <p style={styles.connectText}>Connect your GitHub account to browse and manage repository files directly in your project workspace.</p>
+          <button 
+            style={styles.connectButton} 
+            onClick={handleGitHubConnect}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(36, 41, 46, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 16px rgba(36, 41, 46, 0.3)';
+            }}
+          >
             <span>📚</span>
             Connect GitHub
           </button>
@@ -530,56 +904,83 @@ function ProjectFiles() {
                 style={styles.avatar}
               />
               <div>
-                <strong>{githubUser?.github_name || githubUser?.github_username}</strong>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  @{githubUser?.github_username}
-                </div>
+                <div style={styles.userName}>{githubUser?.github_name || githubUser?.github_username}</div>
+                <div style={styles.userHandle}>@{githubUser?.github_username}</div>
               </div>
             </div>
-            <button style={styles.dangerButton} onClick={handleDisconnectGitHub}>
+            <button 
+              style={styles.dangerButton} 
+              onClick={handleDisconnectGitHub}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
               Disconnect
             </button>
           </div>
 
           {!projectRepository ? (
             <div style={styles.repositorySection}>
-              <h3>Connect Repository to Project</h3>
-              <p>Select a repository to connect to this project for file management.</p>
+              <h3 style={styles.sectionTitle}>Connect Repository to Project</h3>
+              <p style={styles.sectionText}>Select a repository to connect to this project for file management.</p>
               
               {!showRepositorySelector ? (
                 <button 
                   style={styles.button} 
                   onClick={loadUserRepositories}
                   disabled={loadingRepositories}
+                  onMouseEnter={(e) => {
+                    if (!e.target.disabled) {
+                      e.target.style.transform = 'translateY(-1px)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                  }}
                 >
                   {loadingRepositories ? 'Loading...' : 'Select Repository'}
                 </button>
               ) : (
                 <div style={styles.repositorySelector}>
-                  <h4>Your Repositories</h4>
+                  <h4 style={styles.sectionTitle}>Your Repositories</h4>
                   {repositories.map(repo => (
                     <div 
                       key={repo.id} 
                       style={styles.repositoryItem}
                       onClick={() => connectRepositoryToProject(repo)}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                      onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                        e.target.style.transform = 'translateY(0)';
+                      }}
                     >
-                      <div style={styles.repositoryName}>{repo.full_name}</div>
+                      <div style={styles.repositoryItemName}>{repo.full_name}</div>
                       {repo.description && (
                         <div style={styles.repositoryDescription}>{repo.description}</div>
                       )}
                       <div style={styles.repositoryMeta}>
-                        {repo.language && <span>📝 {repo.language}</span>}
+                        {repo.language && <span>🔧 {repo.language}</span>}
                         <span>⭐ {repo.stargazers_count}</span>
                         <span>🍴 {repo.forks_count}</span>
-                        <span>{repo.private ? '🔒 Private' : '🌍 Public'}</span>
+                        <span>{repo.private ? '🔒 Private' : '🌐 Public'}</span>
                       </div>
                     </div>
                   ))}
                   <button 
                     style={styles.button} 
                     onClick={() => setShowRepositorySelector(false)}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                    }}
                   >
                     Cancel
                   </button>
@@ -590,7 +991,7 @@ function ProjectFiles() {
             <div style={styles.repositorySection}>
               <div style={styles.repositoryHeader}>
                 <div style={styles.repositoryInfo}>
-                  <strong>📚 {projectRepository.repository_full_name}</strong>
+                  <span style={styles.repositoryName}>📚 {projectRepository.repository_full_name}</span>
                   {branches.length > 0 && error !== 'access_denied' && (
                     <select 
                       style={styles.branchSelector}
@@ -608,6 +1009,12 @@ function ProjectFiles() {
                 <button 
                   style={styles.dangerButton} 
                   onClick={disconnectRepositoryFromProject}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                  }}
                 >
                   Disconnect Repository
                 </button>
@@ -620,6 +1027,12 @@ function ProjectFiles() {
                       <span 
                         style={styles.breadcrumbLink}
                         onClick={() => loadRepositoryContents(projectRepository.repository_full_name, currentBranch, '')}
+                        onMouseEnter={(e) => {
+                          e.target.style.color = '#60a5fa';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.color = '#3b82f6';
+                        }}
                       >
                         {projectRepository.repository_full_name.split('/')[1]}
                       </span>
@@ -631,6 +1044,12 @@ function ProjectFiles() {
                             onClick={() => {
                               const path = breadcrumbParts.slice(0, index + 1).join('/');
                               loadRepositoryContents(projectRepository.repository_full_name, currentBranch, path);
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.color = '#60a5fa';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.color = '#3b82f6';
                             }}
                           >
                             {part}
@@ -646,8 +1065,14 @@ function ProjectFiles() {
                     <div style={styles.fileList}>
                       {currentPath && (
                         <div 
-                          style={{...styles.fileItem, backgroundColor: '#f8f9fa'}}
+                          style={{...styles.fileItem, ...styles.parentDirectory}}
                           onClick={navigateToParent}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                          }}
                         >
                           <span style={styles.fileIcon}>📁</span>
                           <span style={styles.fileName}>..</span>
@@ -659,8 +1084,12 @@ function ProjectFiles() {
                           key={index}
                           style={styles.fileItem}
                           onClick={() => handleFileClick(file)}
-                          onMouseEnter={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                          onMouseLeave={(e) => e.target.style.backgroundColor = 'white'}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                          }}
                         >
                           <span style={styles.fileIcon}>
                             {file.type === 'dir' ? '📁' : '📄'}

@@ -1,9 +1,217 @@
-// frontend/src/pages/soloproject/SoloWeeklyChallenge.js
+// frontend/src/pages/soloproject/SoloWeeklyChallenge.js - ALIGNED WITH PROJECT INFO THEME
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { 
+  Target, 
+  Calendar, 
+  Clock, 
+  Zap, 
+  Trophy, 
+  Code2, 
+  Play, 
+  CheckCircle, 
+  XCircle,
+  BarChart3,
+  TrendingUp,
+  AlertTriangle,
+  RefreshCw,
+  FileCode,
+  Monitor,
+  Award,
+  History
+} from 'lucide-react';
 import ChallengeAPI from '../../services/challengeAPI';
 import SoloProjectService from '../../services/soloProjectService';
-import api from '../../services/api'; // Add this import for direct API calls
+
+// Background symbols component - SAME AS PROJECT INFO
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
 
 function SoloWeeklyChallenge() {
   const { projectId } = useParams();
@@ -82,7 +290,7 @@ function SoloWeeklyChallenge() {
         setLoading(true);
         setError(null);
 
-        console.log('🔄 Loading weekly challenge for project:', projectId);
+        console.log('Loading weekly challenge for project:', projectId);
 
         // 1) Get project language information
         const dashboardRes = await SoloProjectService.getDashboardData(projectId);
@@ -91,7 +299,7 @@ function SoloWeeklyChallenge() {
         const langId = dashboardData.project?.programming_language_id;
         const langName = dashboardData.project?.programming_language?.name;
 
-        console.log('📊 Project language info:', { langId, langName });
+        console.log('Project language info:', { langId, langName });
 
         if (!langId) {
           if (isMounted) {
@@ -106,15 +314,14 @@ function SoloWeeklyChallenge() {
         setLanguageName(langName || '');
 
         // 2) Use the BETTER approach: Get challenges by language specifically
-        // This will filter at the database level for better performance
         const challengesRes = await ChallengeAPI.getChallengesByLanguage(langId, {
-          project_id: projectId, // Include project-specific challenges
+          project_id: projectId,
           page: 1,
           limit: 20
         });
 
         const allChallenges = challengesRes?.data?.challenges || [];
-        console.log('🎯 Found challenges for language:', allChallenges.length);
+        console.log('Found challenges for language:', allChallenges.length);
 
         // 3) Get user attempts to filter out recently attempted ones
         const attemptsRes = await ChallengeAPI.getUserAttempts({ page: 1, limit: 50 });
@@ -130,22 +337,21 @@ function SoloWeeklyChallenge() {
 
         const availableChallenges = allChallenges.filter(ch => !recentAttemptIds.has(ch.id));
         
-        console.log('✅ Available challenges after filtering:', availableChallenges.length);
+        console.log('Available challenges after filtering:', availableChallenges.length);
 
         // 4) Pick the next challenge (prefer project-specific, then general)
         let nextChallenge = null;
         
         if (availableChallenges.length > 0) {
-          // Prefer project-specific challenges first
           const projectSpecific = availableChallenges.filter(ch => ch.project_id === projectId);
           const general = availableChallenges.filter(ch => !ch.project_id);
           
           if (projectSpecific.length > 0) {
             nextChallenge = projectSpecific[Math.floor(Math.random() * projectSpecific.length)];
-            console.log('🎯 Selected project-specific challenge:', nextChallenge.title);
+            console.log('Selected project-specific challenge:', nextChallenge.title);
           } else if (general.length > 0) {
             nextChallenge = general[Math.floor(Math.random() * general.length)];
-            console.log('🌍 Selected general challenge:', nextChallenge.title);
+            console.log('Selected general challenge:', nextChallenge.title);
           }
         }
 
@@ -204,7 +410,7 @@ function SoloWeeklyChallenge() {
         if (isMounted) setPastChallenges(pastAttempts);
 
       } catch (err) {
-        console.error('❌ Error loading weekly challenge:', err);
+        console.error('Error loading weekly challenge:', err);
         if (isMounted) {
           setError(err?.response?.data?.message || err.message || 'Failed to load weekly challenge');
         }
@@ -227,20 +433,17 @@ function SoloWeeklyChallenge() {
       setSubmitting(true);
       setError(null);
 
-      console.log('🚀 Submitting solo weekly challenge attempt...');
+      console.log('Submitting solo weekly challenge attempt...');
 
-      // FIXED: Use simple challenge submission for solo weekly challenges
-      // This bypasses the project recruitment system entirely
       const attemptData = {
         challenge_id: currentChallenge.id,
         submitted_code: submission.code,
         notes: submission.description,
         language: submission.language,
-        project_id: projectId, // Include project ID for tracking
-        attempt_type: 'solo_weekly' // Mark this as a solo weekly challenge
+        project_id: projectId,
+        attempt_type: 'solo_weekly'
       };
 
-      // Use the new simple challenge submission method
       const response = await ChallengeAPI.submitSimpleChallenge(attemptData);
       const attempt = response?.data?.attempt || response?.data || null;
 
@@ -262,176 +465,213 @@ function SoloWeeklyChallenge() {
       setShowSubmission(false);
       setSubmission({ code: '', description: '', language: submission.language });
 
-      console.log('✅ Solo weekly challenge submitted successfully');
+      console.log('Solo weekly challenge submitted successfully');
 
     } catch (err) {
-      console.error('❌ Submission error:', err);
+      console.error('Submission error:', err);
       setError(err?.response?.data?.message || err.message || 'Failed to submit challenge');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Rest of your component rendering logic remains the same...
+  // Helper function for difficulty colors
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty?.toLowerCase()) {
+      case 'easy': return '#10b981';
+      case 'medium': return '#f59e0b';
+      case 'hard': return '#f97316';
+      case 'expert': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  const getDifficultyIcon = (difficulty) => {
+    switch (difficulty?.toLowerCase()) {
+      case 'easy': return <Target size={16} />;
+      case 'medium': return <BarChart3 size={16} />;
+      case 'hard': return <TrendingUp size={16} />;
+      case 'expert': return <Zap size={16} />;
+      default: return <Target size={16} />;
+    }
+  };
+
   if (loading) {
     return (
-      <div style={{ padding: '30px', textAlign: 'center' }}>
-        <div style={{ fontSize: '18px', marginBottom: '10px' }}>Loading Weekly Challenge...</div>
-        <div style={{ color: '#666' }}>Fetching {languageName || 'programming'} challenges for you</div>
+      <div style={styles.container}>
+        <BackgroundSymbols />
+        <div style={styles.loadingState}>
+          <div style={styles.loadingIcon}>
+            <Code2 size={32} style={{ color: '#a855f7' }} />
+          </div>
+          <div style={styles.loadingText}>Loading Weekly Challenge...</div>
+          <div style={styles.loadingSubtext}>Fetching {languageName || 'programming'} challenges for you</div>
+        </div>
       </div>
     );
   }
 
   if (error && !currentChallenge) {
     return (
-      <div style={{ padding: '30px', textAlign: 'center', color: '#e74c3c' }}>
-        <div style={{ fontSize: '18px', marginBottom: '10px' }}>⚠️ {error}</div>
-        <button 
-          onClick={() => window.location.reload()} 
-          style={{ 
-            padding: '10px 20px', 
-            backgroundColor: '#3498db', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '5px',
-            cursor: 'pointer'
-          }}
-        >
-          Try Again
-        </button>
+      <div style={styles.container}>
+        <BackgroundSymbols />
+        <div style={styles.errorState}>
+          <AlertTriangle size={32} style={{ color: '#f87171', marginBottom: '16px' }} />
+          <div style={styles.errorText}>{error}</div>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={styles.retryButton}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+            }}
+          >
+            <RefreshCw size={16} style={{ marginRight: '8px' }} />
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <h1>Weekly {languageName || 'Programming'} Challenge</h1>
-        <p style={{ color: '#666' }}>
-          Challenge yourself with weekly {languageName || 'programming'} problems to improve your skills!
-        </p>
+    <div style={styles.container}>
+      <BackgroundSymbols />
+      
+      {/* Header */}
+      <div style={styles.header}>
+        <div>
+          <h1 style={styles.title}>Weekly {languageName || 'Programming'} Challenge</h1>
+          <p style={styles.subtitle}>
+            Challenge yourself with weekly {languageName || 'programming'} problems to improve your skills!
+          </p>
+        </div>
       </div>
 
-      <div style={{ borderBottom: '2px solid #eee', marginBottom: '20px' }}>
+      {/* Tab Navigation */}
+      <div style={styles.tabContainer}>
         <button
           onClick={() => setActiveTab('current')}
           style={{
-            padding: '10px 20px',
-            border: 'none',
-            backgroundColor: activeTab === 'current' ? '#3498db' : 'transparent',
-            color: activeTab === 'current' ? 'white' : '#666',
-            borderRadius: '5px 5px 0 0',
-            cursor: 'pointer',
-            marginRight: '5px'
+            ...styles.tab,
+            ...(activeTab === 'current' ? styles.activeTab : {})
+          }}
+          onMouseEnter={(e) => {
+            if (activeTab !== 'current') {
+              e.target.style.backgroundColor = 'rgba(168, 85, 247, 0.1)';
+              e.target.style.color = '#a855f7';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeTab !== 'current') {
+              e.target.style.backgroundColor = 'transparent';
+              e.target.style.color = '#9ca3af';
+            }
           }}
         >
+          <Target size={16} style={{ marginRight: '8px' }} />
           Current Challenge
         </button>
         <button
           onClick={() => setActiveTab('past')}
           style={{
-            padding: '10px 20px',
-            border: 'none',
-            backgroundColor: activeTab === 'past' ? '#3498db' : 'transparent',
-            color: activeTab === 'past' ? 'white' : '#666',
-            borderRadius: '5px 5px 0 0',
-            cursor: 'pointer'
+            ...styles.tab,
+            ...(activeTab === 'past' ? styles.activeTab : {})
+          }}
+          onMouseEnter={(e) => {
+            if (activeTab !== 'past') {
+              e.target.style.backgroundColor = 'rgba(168, 85, 247, 0.1)';
+              e.target.style.color = '#a855f7';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (activeTab !== 'past') {
+              e.target.style.backgroundColor = 'transparent';
+              e.target.style.color = '#9ca3af';
+            }
           }}
         >
+          <History size={16} style={{ marginRight: '8px' }} />
           Past Challenges ({pastChallenges.length})
         </button>
       </div>
 
+      {/* Content */}
       {activeTab === 'current' && (
-        <div>
+        <div style={styles.content}>
           {currentChallenge ? (
             <div>
-              <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '20px', 
-                borderRadius: '8px', 
-                marginBottom: '20px' 
-              }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'flex-start',
-                  marginBottom: '15px'
-                }}>
-                  <div>
-                    <h2 style={{ margin: '0 0 10px 0' }}>{currentChallenge.title}</h2>
-                    <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                      <span style={{ 
-                        padding: '4px 12px', 
-                        backgroundColor: getDifficultyColor(currentChallenge.difficulty),
-                        color: 'white',
-                        borderRadius: '15px',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}>
-                        {currentChallenge.difficulty?.toUpperCase()}
+              {/* Challenge Card */}
+              <div style={styles.challengeCard}>
+                <div style={styles.challengeHeader}>
+                  <div style={styles.challengeInfo}>
+                    <h2 style={styles.challengeTitle}>{currentChallenge.title}</h2>
+                    <div style={styles.challengeMeta}>
+                      <span
+                        style={{
+                          ...styles.difficultyBadge,
+                          backgroundColor: getDifficultyColor(currentChallenge.difficulty)
+                        }}
+                      >
+                        {getDifficultyIcon(currentChallenge.difficulty)}
+                        <span style={{ marginLeft: '6px' }}>
+                          {currentChallenge.difficulty?.toUpperCase()}
+                        </span>
                       </span>
-                      <span style={{ color: '#666' }}>
-                        🏆 {currentChallenge.points} points
+                      <span style={styles.metaItem}>
+                        <Trophy size={16} style={{ marginRight: '6px', color: '#f59e0b' }} />
+                        {currentChallenge.points} points
                       </span>
-                      <span style={{ color: '#666' }}>
-                        ⏱️ {currentChallenge.timeLimit}
+                      <span style={styles.metaItem}>
+                        <Clock size={16} style={{ marginRight: '6px', color: '#6b7280' }} />
+                        {currentChallenge.timeLimit}
                       </span>
-                      <span style={{ color: '#666' }}>
-                        💻 {languageName}
+                      <span style={styles.metaItem}>
+                        <Monitor size={16} style={{ marginRight: '6px', color: '#6b7280' }} />
+                        {languageName}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '20px' }}>
-                  <h3>Description</h3>
-                  <div style={{ 
-                    backgroundColor: 'white', 
-                    padding: '15px', 
-                    borderRadius: '5px',
-                    whiteSpace: 'pre-wrap'
-                  }}>
+                {/* Description */}
+                <div style={styles.challengeSection}>
+                  <h3 style={styles.sectionTitle}>
+                    <FileCode size={20} style={{ marginRight: '8px', color: '#a855f7' }} />
+                    Description
+                  </h3>
+                  <div style={styles.descriptionBox}>
                     {currentChallenge.description}
                   </div>
                 </div>
 
+                {/* Examples */}
                 {currentChallenge.examples && currentChallenge.examples.length > 0 && (
-                  <div style={{ marginBottom: '20px' }}>
-                    <h3>Examples</h3>
+                  <div style={styles.challengeSection}>
+                    <h3 style={styles.sectionTitle}>
+                      <Code2 size={20} style={{ marginRight: '8px', color: '#a855f7' }} />
+                      Examples
+                    </h3>
                     {currentChallenge.examples.map((example, idx) => (
-                      <div key={idx} style={{ 
-                        backgroundColor: 'white', 
-                        padding: '15px', 
-                        borderRadius: '5px',
-                        marginBottom: '10px'
-                      }}>
-                        <div style={{ marginBottom: '10px' }}>
-                          <strong>Input:</strong>
-                          <pre style={{ 
-                            backgroundColor: '#f1f2f6', 
-                            padding: '8px', 
-                            borderRadius: '3px',
-                            margin: '5px 0',
-                            fontSize: '14px'
-                          }}>
+                      <div key={idx} style={styles.exampleBox}>
+                        <div style={styles.exampleItem}>
+                          <strong style={styles.exampleLabel}>Input:</strong>
+                          <pre style={styles.codeBlock}>
                             {example.input}
                           </pre>
                         </div>
-                        <div style={{ marginBottom: '10px' }}>
-                          <strong>Output:</strong>
-                          <pre style={{ 
-                            backgroundColor: '#f1f2f6', 
-                            padding: '8px', 
-                            borderRadius: '3px',
-                            margin: '5px 0',
-                            fontSize: '14px'
-                          }}>
+                        <div style={styles.exampleItem}>
+                          <strong style={styles.exampleLabel}>Output:</strong>
+                          <pre style={styles.codeBlock}>
                             {example.output}
                           </pre>
                         </div>
                         {example.explanation && (
-                          <div style={{ color: '#666', fontSize: '14px' }}>
+                          <div style={styles.explanationText}>
                             <strong>Explanation:</strong> {example.explanation}
                           </div>
                         )}
@@ -441,143 +681,164 @@ function SoloWeeklyChallenge() {
                 )}
               </div>
 
+              {/* Action Section */}
               {!currentChallenge.submitted ? (
-                <div>
+                <div style={styles.actionSection}>
                   {!showSubmission ? (
                     <button
                       onClick={() => setShowSubmission(true)}
-                      style={{
-                        padding: '15px 30px',
-                        backgroundColor: '#27ae60',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        fontSize: '16px',
-                        cursor: 'pointer'
+                      style={styles.startButton}
+                      onMouseEnter={(e) => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
                       }}
                     >
+                      <Play size={20} style={{ marginRight: '8px' }} />
                       Start Challenge
                     </button>
                   ) : (
-                    <form onSubmit={handleSubmitChallenge}>
-                      <div style={{ marginBottom: '15px' }}>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                          Your Solution ({languageName})
-                        </label>
-                        <textarea
-                          value={submission.code}
-                          onChange={(e) => setSubmission(prev => ({ ...prev, code: e.target.value }))}
-                          placeholder={`Write your ${languageName} solution here...`}
-                          rows={15}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '2px solid #ddd',
-                            borderRadius: '5px',
-                            fontFamily: 'Monaco, Consolas, monospace',
-                            fontSize: '14px'
-                          }}
-                          required
-                        />
-                      </div>
-
-                      <div style={{ marginBottom: '15px' }}>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-                          Description (Optional)
-                        </label>
-                        <textarea
-                          value={submission.description}
-                          onChange={(e) => setSubmission(prev => ({ ...prev, description: e.target.value }))}
-                          placeholder="Describe your approach or any notes about your solution..."
-                          rows={3}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            border: '2px solid #ddd',
-                            borderRadius: '5px'
-                          }}
-                        />
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button
-                          type="submit"
-                          disabled={submitting || !submission.code.trim()}
-                          style={{
-                            padding: '12px 24px',
-                            backgroundColor: submitting ? '#95a5a6' : '#27ae60',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: submitting ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          {submitting ? 'Submitting...' : 'Submit Solution'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowSubmission(false)}
-                          style={{
-                            padding: '12px 24px',
-                            backgroundColor: '#95a5a6',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '5px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-
-                      {error && (
-                        <div style={{ 
-                          color: '#e74c3c', 
-                          marginTop: '10px',
-                          padding: '10px',
-                          backgroundColor: '#fdf2f2',
-                          borderRadius: '5px'
-                        }}>
-                          {error}
+                    <div style={styles.submissionForm}>
+                      <form onSubmit={handleSubmitChallenge}>
+                        <div style={styles.formGroup}>
+                          <label style={styles.formLabel}>
+                            <Code2 size={16} style={{ marginRight: '8px' }} />
+                            Your Solution ({languageName})
+                          </label>
+                          <textarea
+                            value={submission.code}
+                            onChange={(e) => setSubmission(prev => ({ ...prev, code: e.target.value }))}
+                            placeholder={`Write your ${languageName} solution here...`}
+                            rows={15}
+                            style={styles.codeTextarea}
+                            required
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#a855f7';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                              e.target.style.boxShadow = 'none';
+                            }}
+                          />
                         </div>
-                      )}
-                    </form>
+
+                        <div style={styles.formGroup}>
+                          <label style={styles.formLabel}>
+                            Description (Optional)
+                          </label>
+                          <textarea
+                            value={submission.description}
+                            onChange={(e) => setSubmission(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Describe your approach or any notes about your solution..."
+                            rows={3}
+                            style={styles.descriptionTextarea}
+                            onFocus={(e) => {
+                              e.target.style.borderColor = '#a855f7';
+                              e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
+                            }}
+                            onBlur={(e) => {
+                              e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                              e.target.style.boxShadow = 'none';
+                            }}
+                          />
+                        </div>
+
+                        <div style={styles.buttonGroup}>
+                          <button
+                            type="submit"
+                            disabled={submitting || !submission.code.trim()}
+                            style={{
+                              ...styles.submitButton,
+                              ...(submitting || !submission.code.trim() ? styles.disabledButton : {})
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!submitting && submission.code.trim()) {
+                                e.target.style.transform = 'translateY(-2px)';
+                                e.target.style.boxShadow = '0 8px 24px rgba(16, 185, 129, 0.4)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.transform = 'translateY(0)';
+                              e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+                            }}
+                          >
+                            {submitting ? (
+                              <>
+                                <RefreshCw size={16} style={{ marginRight: '8px' }} />
+                                Submitting...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle size={16} style={{ marginRight: '8px' }} />
+                                Submit Solution
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowSubmission(false)}
+                            style={styles.cancelButton}
+                            onMouseEnter={(e) => {
+                              e.target.style.backgroundColor = 'rgba(15, 17, 22, 0.95)';
+                              e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.backgroundColor = 'rgba(26, 28, 32, 0.95)';
+                              e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                            }}
+                          >
+                            <XCircle size={16} style={{ marginRight: '8px' }} />
+                            Cancel
+                          </button>
+                        </div>
+
+                        {error && (
+                          <div style={styles.errorMessage}>
+                            <AlertTriangle size={16} style={{ marginRight: '8px' }} />
+                            {error}
+                          </div>
+                        )}
+                      </form>
+                    </div>
                   )}
                 </div>
               ) : (
-                <div style={{ 
-                  backgroundColor: '#d5edda', 
-                  padding: '20px', 
-                  borderRadius: '8px',
-                  border: '1px solid #c3e6cb'
-                }}>
-                  <h3 style={{ color: '#155724', margin: '0 0 10px 0' }}>
-                    ✅ Challenge Completed!
-                  </h3>
-                  <p style={{ margin: '5px 0' }}>
-                    <strong>Score:</strong> {currentChallenge.userSubmission?.score}/100
-                  </p>
-                  <p style={{ margin: '5px 0' }}>
-                    <strong>Submitted:</strong> {new Date(currentChallenge.userSubmission?.submittedAt).toLocaleDateString()}
-                  </p>
+                <div style={styles.completedSection}>
+                  <div style={styles.completedHeader}>
+                    <CheckCircle size={24} style={{ color: '#10b981', marginRight: '12px' }} />
+                    <h3 style={styles.completedTitle}>Challenge Completed!</h3>
+                  </div>
+                  <div style={styles.completedStats}>
+                    <div style={styles.statItem}>
+                      <Award size={20} style={{ color: '#f59e0b', marginRight: '8px' }} />
+                      <span><strong>Score:</strong> {currentChallenge.userSubmission?.score}/100</span>
+                    </div>
+                    <div style={styles.statItem}>
+                      <Calendar size={20} style={{ color: '#6b7280', marginRight: '8px' }} />
+                      <span><strong>Submitted:</strong> {new Date(currentChallenge.userSubmission?.submittedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
                   {currentChallenge.userSubmission?.feedback && (
-                    <p style={{ margin: '10px 0 0 0', fontStyle: 'italic' }}>
-                      {currentChallenge.userSubmission.feedback}
-                    </p>
+                    <div style={styles.feedbackBox}>
+                      <div style={styles.feedbackText}>
+                        {currentChallenge.userSubmission.feedback}
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
             </div>
           ) : (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '60px 20px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '8px'
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎯</div>
-              <h2>No Current Challenge</h2>
-              <p style={{ color: '#666', maxWidth: '500px', margin: '0 auto 20px' }}>
+            <div style={styles.noChallengeState}>
+              <div style={styles.noChallengeIcon}>
+                <Target size={64} style={{ color: '#a855f7' }} />
+              </div>
+              <h2 style={styles.noChallengeTitle}>No Current Challenge</h2>
+              <p style={styles.noChallengeText}>
                 {languageName 
                   ? `No new ${languageName} challenges available right now. New challenges are added weekly!`
                   : 'No challenges available. Set up your project programming language first.'
@@ -585,15 +846,17 @@ function SoloWeeklyChallenge() {
               </p>
               <button 
                 onClick={() => window.location.reload()} 
-                style={{ 
-                  padding: '12px 24px', 
-                  backgroundColor: '#3498db', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '5px',
-                  cursor: 'pointer'
+                style={styles.refreshButton}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
                 }}
               >
+                <RefreshCw size={16} style={{ marginRight: '8px' }} />
                 Check Again
               </button>
             </div>
@@ -602,65 +865,74 @@ function SoloWeeklyChallenge() {
       )}
 
       {activeTab === 'past' && (
-        <div>
+        <div style={styles.content}>
           {pastChallenges.length > 0 ? (
             <div>
-              <h2>Past {languageName} Challenges</h2>
-              <div style={{ display: 'grid', gap: '15px' }}>
+              <div style={styles.pastHeader}>
+                <h2 style={styles.pastTitle}>Past {languageName} Challenges</h2>
+                <p style={styles.pastSubtitle}>Review your challenge history and progress</p>
+              </div>
+              <div style={styles.challengeGrid}>
                 {pastChallenges.map(challenge => (
-                  <div key={challenge.id} style={{ 
-                    backgroundColor: '#f8f9fa', 
-                    padding: '20px', 
-                    borderRadius: '8px',
-                    border: challenge.status === 'completed' ? '2px solid #27ae60' : '2px solid #e67e22'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ margin: '0 0 10px 0' }}>{challenge.title}</h3>
-                        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '10px' }}>
-                          <span style={{ 
-                            padding: '4px 12px', 
-                            backgroundColor: getDifficultyColor(challenge.difficulty),
-                            color: 'white',
-                            borderRadius: '15px',
-                            fontSize: '12px',
-                            fontWeight: 'bold'
-                          }}>
-                            {challenge.difficulty?.toUpperCase()}
+                  <div key={challenge.id} style={styles.pastChallengeCard}>
+                    <div style={styles.pastChallengeHeader}>
+                      <div style={styles.pastChallengeInfo}>
+                        <h3 style={styles.pastChallengeTitle}>{challenge.title}</h3>
+                        <div style={styles.pastChallengeMeta}>
+                          <span
+                            style={{
+                              ...styles.difficultyBadge,
+                              backgroundColor: getDifficultyColor(challenge.difficulty)
+                            }}
+                          >
+                            {getDifficultyIcon(challenge.difficulty)}
+                            <span style={{ marginLeft: '6px' }}>
+                              {challenge.difficulty?.toUpperCase()}
+                            </span>
                           </span>
-                          <span style={{ color: '#666' }}>🏆 {challenge.points} points</span>
-                          <span style={{ color: '#666' }}>⏱️ {challenge.timeSpent}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: '#666' }}>
-                          <span>Completed: {new Date(challenge.completedAt).toLocaleDateString()}</span>
-                          <span>Score: {challenge.score}/100</span>
+                          <span style={styles.metaItem}>
+                            <Trophy size={16} style={{ marginRight: '6px', color: '#f59e0b' }} />
+                            {challenge.points} points
+                          </span>
+                          <span style={styles.metaItem}>
+                            <Clock size={16} style={{ marginRight: '6px', color: '#6b7280' }} />
+                            {challenge.timeSpent}
+                          </span>
                         </div>
                       </div>
-                      <div style={{ 
-                        padding: '8px 16px',
-                        backgroundColor: challenge.status === 'completed' ? '#27ae60' : '#e67e22',
-                        color: 'white',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}>
-                        {challenge.status === 'completed' ? '✅ PASSED' : '❌ FAILED'}
+                      <div
+                        style={{
+                          ...styles.statusBadge,
+                          backgroundColor: challenge.status === 'completed' ? '#10b981' : '#f97316'
+                        }}
+                      >
+                        {challenge.status === 'completed' ? (
+                          <CheckCircle size={16} style={{ marginRight: '6px' }} />
+                        ) : (
+                          <XCircle size={16} style={{ marginRight: '6px' }} />
+                        )}
+                        {challenge.status === 'completed' ? 'PASSED' : 'FAILED'}
                       </div>
+                    </div>
+                    <div style={styles.pastChallengeStats}>
+                      <span style={styles.statText}>
+                        Completed: {new Date(challenge.completedAt).toLocaleDateString()}
+                      </span>
+                      <span style={styles.statText}>
+                        Score: {challenge.score}/100
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '60px 20px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '8px'
-            }}>
-              <div style={{ fontSize: '48px', marginBottom: '20px' }}>📚</div>
-              <h2>No Past Challenges</h2>
-              <p style={{ color: '#666' }}>
+            <div style={styles.noPastState}>
+              <div style={styles.noPastIcon}>
+                <History size={64} style={{ color: '#a855f7' }} />
+              </div>
+              <h2 style={styles.noPastTitle}>No Past Challenges</h2>
+              <p style={styles.noPastText}>
                 You haven't attempted any {languageName || 'programming'} challenges yet. 
                 Start with the current challenge to build your history!
               </p>
@@ -672,15 +944,508 @@ function SoloWeeklyChallenge() {
   );
 }
 
-// Helper function for difficulty colors
-function getDifficultyColor(difficulty) {
-  switch (difficulty?.toLowerCase()) {
-    case 'easy': return '#27ae60';
-    case 'medium': return '#f39c12';
-    case 'hard': return '#e74c3c';
-    case 'expert': return '#8e44ad';
-    default: return '#95a5a6';
+// COMPLETE STYLES ALIGNED WITH PROJECT INFO THEME
+const styles = {
+  container: {
+    minHeight: 'calc(100vh - 40px)',
+    backgroundColor: '#0F1116',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    padding: '20px',
+    paddingLeft: '270px',
+    marginLeft: '-150px'
+  },
+  header: {
+    position: 'relative',
+    zIndex: 10,
+    marginBottom: '32px',
+    padding: '0 0 20px 0',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: 0
+  },
+  subtitle: {
+    color: '#d1d5db',
+    fontSize: '16px',
+    margin: '8px 0 0 0'
+  },
+  loadingState: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '400px',
+    textAlign: 'center'
+  },
+  loadingIcon: {
+    marginBottom: '20px'
+  },
+  loadingText: {
+    fontSize: '18px',
+    color: 'white',
+    marginBottom: '8px'
+  },
+  loadingSubtext: {
+    fontSize: '16px',
+    color: '#9ca3af'
+  },
+  errorState: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '400px',
+    textAlign: 'center'
+  },
+  errorText: {
+    fontSize: '18px',
+    color: '#f87171',
+    marginBottom: '24px',
+    maxWidth: '500px'
+  },
+  retryButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 24px',
+    background: 'linear-gradient(to right, #3b82f6, #2563eb)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+  },
+  tabContainer: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    marginBottom: '24px',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
+    padding: '4px',
+    backdropFilter: 'blur(20px)'
+  },
+  tab: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 20px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: '#9ca3af',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    flex: 1,
+    justifyContent: 'center'
+  },
+  activeTab: {
+    background: 'linear-gradient(to right, #a855f7, #7c3aed)',
+    color: 'white',
+    boxShadow: '0 4px 12px rgba(168, 85, 247, 0.3)'
+  },
+  content: {
+    position: 'relative',
+    zIndex: 10
+  },
+  challengeCard: {
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+    overflow: 'hidden',
+    marginBottom: '24px'
+  },
+  challengeHeader: {
+    padding: '24px',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))'
+  },
+  challengeInfo: {
+    flex: 1
+  },
+  challengeTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: '0 0 16px 0'
+  },
+  challengeMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '16px',
+    alignItems: 'center'
+  },
+  difficultyBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '6px 12px',
+    borderRadius: '16px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    color: 'white'
+  },
+  metaItem: {
+    display: 'flex',
+    alignItems: 'center',
+    color: '#d1d5db',
+    fontSize: '14px'
+  },
+  challengeSection: {
+    padding: '24px'
+  },
+  sectionTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: '16px'
+  },
+  descriptionBox: {
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
+    padding: '20px',
+    color: '#d1d5db',
+    lineHeight: '1.6',
+    whiteSpace: 'pre-wrap'
+  },
+  exampleBox: {
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '12px',
+    padding: '20px',
+    marginBottom: '16px'
+  },
+  exampleItem: {
+    marginBottom: '16px'
+  },
+  exampleLabel: {
+    color: 'white',
+    fontSize: '14px',
+    display: 'block',
+    marginBottom: '8px'
+  },
+  codeBlock: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+    borderRadius: '8px',
+    padding: '12px',
+    fontSize: '14px',
+    fontFamily: 'Monaco, Consolas, monospace',
+    color: '#e5e7eb',
+    overflow: 'auto'
+  },
+  explanationText: {
+    color: '#9ca3af',
+    fontSize: '14px',
+    fontStyle: 'italic'
+  },
+  actionSection: {
+    padding: '24px',
+    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(15, 17, 22, 0.95), rgba(26, 28, 32, 0.90))'
+  },
+  startButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '16px 32px',
+    background: 'linear-gradient(to right, #10b981, #059669)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+  },
+  submissionForm: {
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '24px',
+    backdropFilter: 'blur(20px)'
+  },
+  formGroup: {
+    marginBottom: '20px'
+  },
+  formLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: 'white',
+    marginBottom: '8px'
+  },
+  codeTextarea: {
+    width: '100%',
+    padding: '16px',
+    borderRadius: '12px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    fontSize: '14px',
+    fontFamily: 'Monaco, Consolas, monospace',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box',
+    resize: 'vertical',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    color: '#e5e7eb',
+    lineHeight: '1.5'
+  },
+  descriptionTextarea: {
+    width: '100%',
+    padding: '14px 16px',
+    borderRadius: '10px',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    fontSize: '15px',
+    transition: 'all 0.2s ease',
+    boxSizing: 'border-box',
+    resize: 'vertical',
+    minHeight: '80px',
+    fontFamily: 'inherit',
+    lineHeight: '1.5',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: 'white'
+  },
+  buttonGroup: {
+    display: 'flex',
+    gap: '12px',
+    marginTop: '20px'
+  },
+  submitButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 24px',
+    background: 'linear-gradient(to right, #10b981, #059669)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+  },
+  disabledButton: {
+    opacity: 0.6,
+    cursor: 'not-allowed',
+    background: '#6b7280'
+  },
+  cancelButton: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease'
+  },
+  errorMessage: {
+    display: 'flex',
+    alignItems: 'center',
+    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    color: '#f87171',
+    padding: '16px',
+    borderRadius: '12px',
+    marginTop: '16px',
+    backdropFilter: 'blur(8px)'
+  },
+  completedSection: {
+    padding: '24px',
+    background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1))',
+    border: '1px solid rgba(16, 185, 129, 0.3)',
+    borderRadius: '16px',
+    backdropFilter: 'blur(8px)'
+  },
+  completedHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '16px'
+  },
+  completedTitle: {
+    fontSize: '20px',
+    fontWeight: 'bold',
+    color: '#10b981',
+    margin: 0
+  },
+  completedStats: {
+    display: 'flex',
+    gap: '24px',
+    marginBottom: '16px'
+  },
+  statItem: {
+    display: 'flex',
+    alignItems: 'center',
+    color: '#d1d5db',
+    fontSize: '14px'
+  },
+  feedbackBox: {
+    background: 'rgba(0, 0, 0, 0.2)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '8px',
+    padding: '16px'
+  },
+  feedbackText: {
+    color: '#d1d5db',
+    fontStyle: 'italic',
+    lineHeight: '1.5'
+  },
+  noChallengeState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+    textAlign: 'center',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '60px 20px',
+    backdropFilter: 'blur(20px)'
+  },
+  noChallengeIcon: {
+    marginBottom: '24px'
+  },
+  noChallengeTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: '0 0 16px 0'
+  },
+  noChallengeText: {
+    color: '#9ca3af',
+    fontSize: '16px',
+    lineHeight: '1.6',
+    maxWidth: '500px',
+    marginBottom: '32px'
+  },
+  refreshButton: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 24px',
+    background: 'linear-gradient(to right, #3b82f6, #2563eb)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
+  },
+  pastHeader: {
+    marginBottom: '24px'
+  },
+  pastTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: '0 0 8px 0'
+  },
+  pastSubtitle: {
+    color: '#9ca3af',
+    fontSize: '16px',
+    margin: 0
+  },
+  challengeGrid: {
+    display: 'grid',
+    gap: '16px'
+  },
+  pastChallengeCard: {
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '20px',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.2)'
+  },
+  pastChallengeHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '12px'
+  },
+  pastChallengeInfo: {
+    flex: 1
+  },
+  pastChallengeTitle: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: '0 0 12px 0'
+  },
+  pastChallengeMeta: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '12px',
+    alignItems: 'center'
+  },
+  statusBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    padding: '6px 12px',
+    borderRadius: '16px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    color: 'white'
+  },
+  pastChallengeStats: {
+    display: 'flex',
+    gap: '20px',
+    fontSize: '14px'
+  },
+  statText: {
+    color: '#9ca3af'
+  },
+  noPastState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+    textAlign: 'center',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
+    padding: '60px 20px',
+    backdropFilter: 'blur(20px)'
+  },
+  noPastIcon: {
+    marginBottom: '24px'
+  },
+  noPastTitle: {
+    fontSize: '24px',
+    fontWeight: 'bold',
+    color: 'white',
+    margin: '0 0 16px 0'
+  },
+  noPastText: {
+    color: '#9ca3af',
+    fontSize: '16px',
+    lineHeight: '1.6',
+    maxWidth: '500px'
   }
-}
+};
 
 export default SoloWeeklyChallenge;

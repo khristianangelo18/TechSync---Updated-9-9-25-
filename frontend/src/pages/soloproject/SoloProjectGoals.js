@@ -1,7 +1,275 @@
-// frontend/src/pages/soloproject/SoloProjectGoals.js - COMPLETE WITH FIXED PROGRESS TRACKING
+// frontend/src/pages/soloproject/SoloProjectGoals.js - ALIGNED WITH DASHBOARD STYLING
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
+import { 
+  Target, 
+  CheckSquare, 
+  Plus, 
+  Calendar, 
+  Clock, 
+  Flag, 
+  Folder, 
+  BarChart3, 
+  Kanban, 
+  List, 
+  X, 
+  Edit, 
+  Trash2, 
+  AlertCircle, 
+  FileText, 
+  Code,
+  Palette,
+  Search,
+  BookOpen,
+  TestTube,
+  Zap
+} from 'lucide-react';
 import SoloProjectService from '../../services/soloProjectService';
+
+// Background symbols component - SAME AS DASHBOARD
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
 
 function SoloProjectGoals() {
   const { projectId } = useParams();
@@ -11,7 +279,7 @@ function SoloProjectGoals() {
   const searchParams = new URLSearchParams(location.search);
   const createIntent = searchParams.get('intent'); // 'task' or 'goal'
 
-  const [items, setItems] = useState([]); // Renamed from 'goals' to 'items'
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [error, setError] = useState(null);
@@ -22,14 +290,14 @@ function SoloProjectGoals() {
     target_date: '',
     priority: 'medium',
     category: 'feature',
-    type: createIntent || 'goal', // Default to goal, but can be task
+    type: createIntent || 'goal',
     estimated_hours: '',
     task_type: 'development'
   });
   const [activeTab, setActiveTab] = useState('all');
   const [editingItem, setEditingItem] = useState(null);
 
-  // FIXED: Enhanced data fetching with proper progress tracking
+  // Enhanced data fetching with proper progress tracking
   useEffect(() => {
     let isMounted = true;
 
@@ -45,13 +313,12 @@ function SoloProjectGoals() {
         
         // Enhance items with UI-only properties and proper progress tracking
         const enhancedItems = apiItems.map(item => {
-          // Calculate progress based on status if not explicitly set
           let progress = item.progress || 0;
           if (!item.progress) {
             if (item.status === 'completed') {
               progress = 100;
             } else if (item.status === 'in_progress') {
-              progress = 50; // Default for in-progress items
+              progress = 50;
             } else {
               progress = 0;
             }
@@ -60,7 +327,7 @@ function SoloProjectGoals() {
           return {
             ...item,
             progress: progress,
-            type: item.estimated_hours ? 'task' : 'goal' // Infer type based on data
+            type: item.estimated_hours ? 'task' : 'goal'
           };
         });
         
@@ -98,7 +365,6 @@ function SoloProjectGoals() {
         target_date: newItem.target_date || null,
         priority: newItem.priority,
         category: newItem.category,
-        // Add task-specific fields if it's a task
         ...(newItem.type === 'task' && {
           estimated_hours: parseInt(newItem.estimated_hours) || null
         })
@@ -133,25 +399,21 @@ function SoloProjectGoals() {
     }
   };
 
-  // FIXED: Enhanced progress tracking that prevents resets
+  // Enhanced progress tracking that prevents resets
   const updateItemProgress = async (itemId, newProgress) => {
-    // Store original item for rollback if needed
     const originalItem = items.find(item => item.id === itemId);
     
-    // Update progress optimistically in UI
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
         return { 
           ...item, 
           progress: newProgress,
-          // Also update status based on progress
           status: newProgress >= 100 ? 'completed' : newProgress > 0 ? 'in_progress' : 'active'
         };
       }
       return item;
     }));
 
-    // Determine the appropriate status based on progress
     let newStatus = 'active';
     if (newProgress >= 100) {
       newStatus = 'completed';
@@ -160,10 +422,8 @@ function SoloProjectGoals() {
     }
 
     try {
-      // Send both progress and status to the backend
       const updateData = { 
         status: newStatus,
-        // If your backend supports progress field, include it
         progress: newProgress 
       };
 
@@ -171,20 +431,18 @@ function SoloProjectGoals() {
       const updatedItem = res?.data?.goal;
       
       if (updatedItem) {
-        // Merge the response but preserve our progress value
         setItems(prev => prev.map(item => 
           item.id === itemId ? { 
             ...item, 
             ...updatedItem, 
-            progress: newProgress, // Force our progress value
-            type: item.type // Preserve the type
+            progress: newProgress,
+            type: item.type
           } : item
         ));
       }
     } catch (err) {
       console.error('Progress update failed:', err);
       
-      // Rollback to original state if API call fails
       if (originalItem) {
         setItems(prev => prev.map(item => 
           item.id === itemId ? originalItem : item
@@ -268,10 +526,8 @@ function SoloProjectGoals() {
 
   // Filter items based on active tab and view mode
   const filteredItems = items.filter(item => {
-    // First filter by view mode
     if (viewMode === 'goals' && item.type !== 'goal') return false;
     
-    // Then filter by tab
     switch (activeTab) {
       case 'active':
         return ['active', 'in_progress'].includes(item.status);
@@ -320,13 +576,13 @@ function SoloProjectGoals() {
 
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'learning': return '📚';
-      case 'feature': return '⚡';
-      case 'bug_fix': return '🐛';
-      case 'optimization': return '⚡';
-      case 'documentation': return '📄';
-      case 'testing': return '🧪';
-      default: return '🎯';
+      case 'learning': return <BookOpen size={16} />;
+      case 'feature': return <Zap size={16} />;
+      case 'bug_fix': return <AlertCircle size={16} />;
+      case 'optimization': return <BarChart3 size={16} />;
+      case 'documentation': return <FileText size={16} />;
+      case 'testing': return <TestTube size={16} />;
+      default: return <Target size={16} />;
     }
   };
 
@@ -386,140 +642,6 @@ function SoloProjectGoals() {
       ...styles.itemCard,
       ...(isKanban ? styles.kanbanCard : {})
     }}>
-      <div style={styles.itemHeader}>
-        <div style={styles.itemTypeIndicator}>
-          <span style={styles.itemTypeIcon}>
-            {item.type === 'goal' ? '🎯' : '📋'}
-          </span>
-          <span style={styles.itemTypeText}>{item.type}</span>
-        </div>
-        <div style={{
-          ...styles.priorityBadge,
-          backgroundColor: getPriorityColor(item.priority)
-        }}>
-          {item.priority}
-        </div>
-      </div>
-
-      <h3 style={styles.itemTitle}>{item.title}</h3>
-      
-      {item.description && (
-        <p style={styles.itemDescription}>
-          {item.description.length > 100 ? 
-            item.description.substring(0, 100) + '...' : 
-            item.description
-          }
-        </p>
-      )}
-
-      {/* FIXED: Enhanced Progress Bar for Goals */}
-      {item.type === 'goal' && (
-        <div style={styles.progressSection}>
-          <div style={styles.progressBar}>
-            <div 
-              style={{
-                ...styles.progressFill,
-                width: `${item.progress || 0}%`
-              }}
-            />
-          </div>
-          <div style={styles.progressControls}>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5" // Changed to 5% increments for smoother control
-              value={item.progress || 0}
-              onChange={(e) => {
-                const newProgress = parseInt(e.target.value);
-                // Immediate UI feedback
-                setItems(prev => prev.map(i => 
-                  i.id === item.id ? { ...i, progress: newProgress } : i
-                ));
-              }}
-              onMouseUp={(e) => {
-                // Only call API when user releases the slider
-                const newProgress = parseInt(e.target.value);
-                updateItemProgress(item.id, newProgress);
-              }}
-              onTouchEnd={(e) => {
-                // Handle touch devices
-                const newProgress = parseInt(e.target.value);
-                updateItemProgress(item.id, newProgress);
-              }}
-              style={styles.progressSlider}
-            />
-            <span style={styles.progressText}>{item.progress || 0}%</span>
-          </div>
-          
-          {/* Quick progress buttons */}
-          <div style={styles.quickProgress}>
-            <button 
-              style={{
-                ...styles.progressButton,
-                ...(item.progress === 0 ? styles.progressButtonActive : {})
-              }}
-              onClick={() => updateItemProgress(item.id, 0)}
-            >
-              0%
-            </button>
-            <button 
-              style={{
-                ...styles.progressButton,
-                ...(item.progress === 25 ? styles.progressButtonActive : {})
-              }}
-              onClick={() => updateItemProgress(item.id, 25)}
-            >
-              25%
-            </button>
-            <button 
-              style={{
-                ...styles.progressButton,
-                ...(item.progress === 50 ? styles.progressButtonActive : {})
-              }}
-              onClick={() => updateItemProgress(item.id, 50)}
-            >
-              50%
-            </button>
-            <button 
-              style={{
-                ...styles.progressButton,
-                ...(item.progress === 75 ? styles.progressButtonActive : {})
-              }}
-              onClick={() => updateItemProgress(item.id, 75)}
-            >
-              75%
-            </button>
-            <button 
-              style={{
-                ...styles.progressButton,
-                ...(item.progress === 100 ? styles.progressButtonActive : {})
-              }}
-              onClick={() => updateItemProgress(item.id, 100)}
-            >
-              Done
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div style={styles.itemMeta}>
-        <div style={styles.itemDetails}>
-          <span style={styles.itemMetaItem}>
-            📅 {formatDate(item.target_date)}
-          </span>
-          {item.estimated_hours && (
-            <span style={styles.itemMetaItem}>
-              ⏱️ {item.estimated_hours}h
-            </span>
-          )}
-        </div>
-        
-        <div style={styles.itemCategory}>
-          {getCategoryIcon(item.category)} {item.category}
-        </div>
-      </div>
-
       <div style={styles.itemFooter}>
         <span style={{
           ...styles.statusBadge,
@@ -533,12 +655,14 @@ function SoloProjectGoals() {
             style={styles.editButton}
             onClick={() => startEditItem(item)}
           >
+            <Edit size={12} style={{ marginRight: '4px' }} />
             Edit
           </button>
           <button 
             style={styles.deleteButton}
             onClick={() => deleteItem(item.id)}
           >
+            <Trash2 size={12} style={{ marginRight: '4px' }} />
             Delete
           </button>
         </div>
@@ -549,6 +673,7 @@ function SoloProjectGoals() {
   if (loading) {
     return (
       <div style={styles.container}>
+        <BackgroundSymbols />
         <div style={styles.loadingState}>
           <h2>Loading tasks & goals...</h2>
         </div>
@@ -558,6 +683,9 @@ function SoloProjectGoals() {
 
   return (
     <div style={styles.container}>
+      {/* Background Code Symbols */}
+      <BackgroundSymbols />
+
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerTop}>
@@ -565,8 +693,17 @@ function SoloProjectGoals() {
           <button 
             style={styles.createButton}
             onClick={() => setShowCreateModal(true)}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 8px 24px rgba(147, 51, 234, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(147, 51, 234, 0.3)';
+            }}
           >
-            + Add Item
+            <Plus size={16} style={{ marginRight: '8px' }} />
+            Add Item
           </button>
         </div>
 
@@ -579,7 +716,8 @@ function SoloProjectGoals() {
             }}
             onClick={() => setViewMode('list')}
           >
-            📝 List
+            <List size={16} style={{ marginRight: '6px' }} />
+            List
           </button>
           <button 
             style={{
@@ -588,7 +726,8 @@ function SoloProjectGoals() {
             }}
             onClick={() => setViewMode('kanban')}
           >
-            📋 Kanban
+            <Kanban size={16} style={{ marginRight: '6px' }} />
+            Kanban
           </button>
           <button 
             style={{
@@ -597,19 +736,33 @@ function SoloProjectGoals() {
             }}
             onClick={() => setViewMode('goals')}
           >
-            🎯 Goals Focus
+            <Target size={16} style={{ marginRight: '6px' }} />
+            Goals Focus
           </button>
         </div>
 
         {/* Stats Bar */}
         <div style={styles.statsBar}>
-          <div style={styles.statItem}>📋 {itemStats.tasks} Tasks</div>
-          <div style={styles.statItem}>🎯 {itemStats.goals} Goals</div>
-          <div style={styles.statItem}>✅ {itemStats.completed} Completed</div>
-          <div style={styles.statItem}>🔄 {itemStats.active} Active</div>
+          <div style={styles.statItem}>
+            <CheckSquare size={14} style={{ marginRight: '4px', color: '#3b82f6' }} />
+            {itemStats.tasks} Tasks
+          </div>
+          <div style={styles.statItem}>
+            <Target size={14} style={{ marginRight: '4px', color: '#a855f7' }} />
+            {itemStats.goals} Goals
+          </div>
+          <div style={styles.statItem}>
+            <BarChart3 size={14} style={{ marginRight: '4px', color: '#10b981' }} />
+            {itemStats.completed} Completed
+          </div>
+          <div style={styles.statItem}>
+            <Zap size={14} style={{ marginRight: '4px', color: '#f59e0b' }} />
+            {itemStats.active} Active
+          </div>
           {itemStats.overdue > 0 && (
             <div style={{...styles.statItem, color: '#dc3545'}}>
-              ⚠️ {itemStats.overdue} Overdue
+              <AlertCircle size={14} style={{ marginRight: '4px', color: '#dc3545' }} />
+              {itemStats.overdue} Overdue
             </div>
           )}
         </div>
@@ -641,6 +794,7 @@ function SoloProjectGoals() {
       {/* Error Message */}
       {error && (
         <div style={styles.errorMessage}>
+          <AlertCircle size={16} style={{ marginRight: '8px' }} />
           {error}
         </div>
       )}
@@ -658,7 +812,12 @@ function SoloProjectGoals() {
             ) : (
               <div style={styles.emptyState}>
                 <div style={styles.emptyStateIcon}>
-                  {activeTab === 'tasks' ? '📋' : activeTab === 'goals' ? '🎯' : '✅'}
+                  {activeTab === 'tasks' ? 
+                    <CheckSquare size={48} style={{ opacity: 0.5 }} /> : 
+                    activeTab === 'goals' ? 
+                    <Target size={48} style={{ opacity: 0.5 }} /> : 
+                    <BarChart3 size={48} style={{ opacity: 0.5 }} />
+                  }
                 </div>
                 <div style={styles.emptyStateText}>
                   No {activeTab === 'all' ? 'items' : activeTab} found
@@ -667,6 +826,7 @@ function SoloProjectGoals() {
                   style={styles.emptyStateButton}
                   onClick={() => setShowCreateModal(true)}
                 >
+                  <Plus size={16} style={{ marginRight: '8px' }} />
                   Create your first {activeTab === 'tasks' ? 'task' : activeTab === 'goals' ? 'goal' : 'item'}
                 </button>
               </div>
@@ -706,7 +866,7 @@ function SoloProjectGoals() {
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
               >
-                ✕
+                <X size={24} />
               </button>
             </div>
 
@@ -732,7 +892,8 @@ function SoloProjectGoals() {
                     }
                   }}
                 >
-                  📋 Task
+                  <CheckSquare size={16} />
+                  Task
                 </button>
                 <button
                   type="button"
@@ -752,7 +913,8 @@ function SoloProjectGoals() {
                     }
                   }}
                 >
-                  🎯 Goal
+                  <Target size={16} />
+                  Goal
                 </button>
               </div>
 
@@ -770,11 +932,11 @@ function SoloProjectGoals() {
                       placeholder={`Enter ${newItem.type} title`}
                       required
                       onFocus={(e) => {
-                        e.target.style.borderColor = '#3b82f6';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                        e.target.style.borderColor = '#a855f7';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
                         e.target.style.boxShadow = 'none';
                       }}
                     />
@@ -789,11 +951,11 @@ function SoloProjectGoals() {
                       onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
                       placeholder={`Describe your ${newItem.type}...`}
                       onFocus={(e) => {
-                        e.target.style.borderColor = '#3b82f6';
-                        e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                        e.target.style.borderColor = '#a855f7';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(168, 85, 247, 0.1)';
                       }}
                       onBlur={(e) => {
-                        e.target.style.borderColor = '#e2e8f0';
+                        e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
                         e.target.style.boxShadow = 'none';
                       }}
                     />
@@ -871,7 +1033,8 @@ function SoloProjectGoals() {
                   {newItem.type === 'goal' && (
                     <div style={styles.goalSpecificFields}>
                       <p style={styles.goalNote}>
-                        🎯 Goals are tracked with progress updates and focus on long-term objectives
+                        <Target size={16} />
+                        Goals are tracked with progress updates and focus on long-term objectives
                       </p>
                     </div>
                   )}
@@ -903,8 +1066,8 @@ function SoloProjectGoals() {
                 }}
                 onMouseEnter={(e) => Object.assign(e.target.style, styles.cancelButtonHover)}
                 onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'white';
-                  e.target.style.borderColor = '#e2e8f0';
+                  e.target.style.backgroundColor = 'rgba(26, 28, 32, 0.95)';
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)';
                 }}
               >
                 Cancel
@@ -924,9 +1087,9 @@ function SoloProjectGoals() {
                 }}
                 onMouseLeave={(e) => {
                   if (newItem.title.trim()) {
-                    e.target.style.backgroundColor = '#3b82f6';
+                    e.target.style.backgroundColor = '#a855f7';
                     e.target.style.transform = 'none';
-                    e.target.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.1)';
+                    e.target.style.boxShadow = '0 4px 6px -1px rgba(168, 85, 247, 0.1)';
                   }
                 }}
               >
@@ -940,38 +1103,51 @@ function SoloProjectGoals() {
   );
 }
 
-// COMPLETE STYLES WITH FIXED PROGRESS TRACKING
+// COMPLETE STYLES ALIGNED WITH DASHBOARD
 const styles = {
   container: {
-    padding: '24px',
-    backgroundColor: '#f8fafc',
-    minHeight: '100vh'
+    minHeight: 'calc(100vh - 40px)',
+    backgroundColor: '#0F1116',
+    color: 'white',
+    position: 'relative',
+    overflow: 'hidden',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    padding: '20px',
+    paddingLeft: '270px', // Match dashboard sidebar spacing
+    marginLeft: '-150px'   // Match dashboard sidebar spacing
   },
   header: {
+    position: 'relative',
+    zIndex: 10,
     marginBottom: '32px'
   },
   headerTop: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '20px'
+    marginBottom: '20px',
+    padding: '0 0 20px 0',
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
   },
   title: {
-    fontSize: '32px',
+    fontSize: '28px',
     fontWeight: 'bold',
-    color: '#1a202c',
+    color: 'white',
     margin: 0
   },
   createButton: {
-    backgroundColor: '#3b82f6',
+    display: 'flex',
+    alignItems: 'center',
+    padding: '12px 20px',
+    background: 'linear-gradient(to right, #a855f7, #7c3aed)',
     color: 'white',
     border: 'none',
-    padding: '12px 24px',
     borderRadius: '8px',
-    fontSize: '16px',
+    fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
-    transition: 'background-color 0.2s ease'
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 12px rgba(147, 51, 234, 0.3)'
   },
   viewToggle: {
     display: 'flex',
@@ -979,20 +1155,23 @@ const styles = {
     marginBottom: '20px'
   },
   viewButton: {
-    backgroundColor: 'white',
-    color: '#64748b',
-    border: '2px solid #e2e8f0',
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     padding: '8px 16px',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    backdropFilter: 'blur(20px)'
   },
   viewButtonActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#a855f7',
     color: 'white',
-    borderColor: '#3b82f6'
+    borderColor: '#a855f7'
   },
   statsBar: {
     display: 'flex',
@@ -1000,33 +1179,40 @@ const styles = {
     flexWrap: 'wrap'
   },
   statItem: {
+    display: 'flex',
+    alignItems: 'center',
     fontSize: '14px',
     fontWeight: '500',
-    color: '#64748b'
+    color: '#9ca3af'
   },
   filterTabs: {
+    position: 'relative',
+    zIndex: 10,
     display: 'flex',
     gap: '8px',
     marginBottom: '24px',
     flexWrap: 'wrap'
   },
   filterTab: {
-    backgroundColor: 'white',
-    color: '#64748b',
-    border: '1px solid #e2e8f0',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     padding: '8px 16px',
     borderRadius: '20px',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    backdropFilter: 'blur(20px)'
   },
   filterTabActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#a855f7',
     color: 'white',
-    borderColor: '#3b82f6'
+    borderColor: '#a855f7'
   },
   content: {
+    position: 'relative',
+    zIndex: 10,
     marginBottom: '24px'
   },
   itemGrid: {
@@ -1035,11 +1221,12 @@ const styles = {
     gap: '20px'
   },
   itemCard: {
-    backgroundColor: 'white',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    borderRadius: '16px',
     padding: '20px',
-    borderRadius: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    border: '1px solid #e2e8f0',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
     transition: 'transform 0.2s ease, box-shadow 0.2s ease'
   },
   kanbanBoard: {
@@ -1049,9 +1236,11 @@ const styles = {
     minHeight: '500px'
   },
   kanbanColumn: {
-    backgroundColor: '#f8fafc',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '12px',
-    padding: '16px'
+    padding: '16px',
+    backdropFilter: 'blur(20px)'
   },
   kanbanHeader: {
     display: 'flex',
@@ -1062,12 +1251,12 @@ const styles = {
   kanbanTitle: {
     fontSize: '16px',
     fontWeight: '600',
-    color: '#1a202c',
+    color: 'white',
     margin: 0
   },
   kanbanCount: {
-    backgroundColor: '#e2e8f0',
-    color: '#64748b',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: '#9ca3af',
     padding: '4px 8px',
     borderRadius: '12px',
     fontSize: '12px',
@@ -1093,15 +1282,19 @@ const styles = {
     gap: '6px'
   },
   itemTypeIcon: {
-    fontSize: '16px'
+    display: 'flex',
+    alignItems: 'center'
   },
   itemTypeText: {
     fontSize: '12px',
     fontWeight: '500',
-    color: '#64748b',
+    color: '#9ca3af',
     textTransform: 'uppercase'
   },
   priorityBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
     color: 'white',
     padding: '4px 8px',
     borderRadius: '12px',
@@ -1112,12 +1305,12 @@ const styles = {
   itemTitle: {
     fontSize: '18px',
     fontWeight: '600',
-    color: '#1a202c',
+    color: 'white',
     margin: '0 0 12px 0'
   },
   itemDescription: {
     fontSize: '14px',
-    color: '#64748b',
+    color: '#9ca3af',
     margin: '0 0 16px 0',
     lineHeight: '1.5'
   },
@@ -1126,14 +1319,14 @@ const styles = {
   },
   progressBar: {
     height: '8px',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: '4px',
     overflow: 'hidden',
     marginBottom: '10px'
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#10b981',
+    background: 'linear-gradient(90deg, #a855f7, #7c3aed)',
     borderRadius: '4px',
     transition: 'width 0.3s ease'
   },
@@ -1147,7 +1340,7 @@ const styles = {
     flex: 1,
     height: '6px',
     appearance: 'none',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: '3px',
     outline: 'none',
     cursor: 'pointer'
@@ -1155,19 +1348,18 @@ const styles = {
   progressText: {
     fontSize: '13px',
     fontWeight: '600',
-    color: '#64748b',
+    color: '#9ca3af',
     minWidth: '40px'
   },
-  // NEW: Quick progress buttons styles
   quickProgress: {
     display: 'flex',
     gap: '6px',
     flexWrap: 'wrap'
   },
   progressButton: {
-    backgroundColor: '#f8fafc',
-    color: '#64748b',
-    border: '1px solid #e2e8f0',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     padding: '4px 8px',
     borderRadius: '4px',
     fontSize: '11px',
@@ -1176,9 +1368,9 @@ const styles = {
     transition: 'all 0.2s ease'
   },
   progressButtonActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#a855f7',
     color: 'white',
-    borderColor: '#3b82f6'
+    borderColor: '#a855f7'
   },
   itemMeta: {
     display: 'flex',
@@ -1192,12 +1384,16 @@ const styles = {
     gap: '4px'
   },
   itemMetaItem: {
+    display: 'flex',
+    alignItems: 'center',
     fontSize: '12px',
-    color: '#64748b'
+    color: '#9ca3af'
   },
   itemCategory: {
+    display: 'flex',
+    alignItems: 'center',
     fontSize: '12px',
-    color: '#64748b',
+    color: '#9ca3af',
     fontWeight: '500'
   },
   itemFooter: {
@@ -1205,7 +1401,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: '16px',
-    borderTop: '1px solid #f1f5f9'
+    borderTop: '1px solid rgba(255, 255, 255, 0.1)'
   },
   statusBadge: {
     color: 'white',
@@ -1220,6 +1416,8 @@ const styles = {
     gap: '8px'
   },
   editButton: {
+    display: 'flex',
+    alignItems: 'center',
     backgroundColor: '#f59e0b',
     color: 'white',
     border: 'none',
@@ -1231,6 +1429,8 @@ const styles = {
     transition: 'background-color 0.2s ease'
   },
   deleteButton: {
+    display: 'flex',
+    alignItems: 'center',
     backgroundColor: '#ef4444',
     color: 'white',
     border: 'none',
@@ -1244,11 +1444,12 @@ const styles = {
   emptyState: {
     textAlign: 'center',
     padding: '80px 20px',
-    color: '#64748b',
+    color: '#9ca3af',
     gridColumn: '1 / -1'
   },
   emptyStateIcon: {
-    fontSize: '64px',
+    display: 'flex',
+    justifyContent: 'center',
     marginBottom: '16px',
     opacity: 0.5
   },
@@ -1257,74 +1458,92 @@ const styles = {
     marginBottom: '16px'
   },
   emptyStateButton: {
-    backgroundColor: '#3b82f6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    backgroundColor: '#a855f7',
     color: 'white',
     border: 'none',
     padding: '12px 24px',
     borderRadius: '8px',
     fontSize: '14px',
     fontWeight: '500',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    margin: '0 auto'
   },
   loadingState: {
-    textAlign: 'center',
-    padding: '80px 20px',
-    color: '#64748b'
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '400px',
+    fontSize: '18px',
+    color: '#9ca3af'
   },
   errorMessage: {
-    backgroundColor: '#fef2f2',
-    border: '1px solid #fecaca',
-    color: '#dc2626',
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1))',
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    color: '#f87171',
     padding: '16px',
-    borderRadius: '8px',
+    borderRadius: '12px',
     marginBottom: '20px',
-    textAlign: 'center'
+    textAlign: 'center',
+    backdropFilter: 'blur(8px)'
   },
   
-  // MODAL STYLES
+  // MODAL STYLES - ALIGNED WITH DASHBOARD THEME
   modal: {
     position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
-    padding: '20px'
+    padding: '20px',
+    backdropFilter: 'blur(8px)'
   },
   modalContent: {
-    backgroundColor: 'white',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.98), rgba(15, 17, 22, 0.95))',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
     borderRadius: '16px',
     width: '90%',
     maxWidth: '600px',
     maxHeight: '90vh',
     overflow: 'hidden',
-    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    backdropFilter: 'blur(20px)'
   },
   modalHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '32px 32px 24px 32px',
-    borderBottom: '1px solid #f1f5f9',
-    backgroundColor: '#fafafa'
+    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))'
   },
   modalTitle: {
     fontSize: '28px',
     fontWeight: '700',
-    color: '#1a202c',
+    color: 'white',
     margin: 0
   },
   closeButton: {
     background: 'none',
     border: 'none',
-    fontSize: '28px',
-    color: '#64748b',
+    color: '#9ca3af',
     cursor: 'pointer',
     padding: '8px',
     borderRadius: '8px',
@@ -1345,13 +1564,14 @@ const styles = {
     gap: '12px',
     margin: '24px 32px',
     padding: '6px',
-    backgroundColor: '#f8fafc',
-    borderRadius: '12px'
+    backgroundColor: 'rgba(15, 17, 22, 0.8)',
+    borderRadius: '12px',
+    border: '1px solid rgba(255, 255, 255, 0.1)'
   },
   typeButton: {
     flex: 1,
-    backgroundColor: 'white',
-    color: '#64748b',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
     border: '2px solid transparent',
     padding: '16px 20px',
     borderRadius: '8px',
@@ -1365,10 +1585,10 @@ const styles = {
     gap: '8px'
   },
   typeButtonActive: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#a855f7',
     color: 'white',
-    borderColor: '#3b82f6',
-    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1)'
+    borderColor: '#a855f7',
+    boxShadow: '0 4px 6px -1px rgba(168, 85, 247, 0.1)'
   },
   formContainer: {
     padding: '0 32px 24px 32px'
@@ -1386,49 +1606,53 @@ const styles = {
     display: 'block',
     fontSize: '15px',
     fontWeight: '600',
-    color: '#374151',
+    color: 'white',
     marginBottom: '8px'
   },
   formInput: {
     width: '100%',
     padding: '14px 16px',
     borderRadius: '10px',
-    border: '2px solid #e2e8f0',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     fontSize: '15px',
     transition: 'all 0.2s ease',
     boxSizing: 'border-box',
-    fontFamily: 'inherit'
+    fontFamily: 'inherit',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: 'white'
   },
   formTextarea: {
     width: '100%',
     padding: '14px 16px',
     borderRadius: '10px',
-    border: '2px solid #e2e8f0',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     fontSize: '15px',
     transition: 'all 0.2s ease',
     boxSizing: 'border-box',
     resize: 'vertical',
     minHeight: '120px',
     fontFamily: 'inherit',
-    lineHeight: '1.5'
+    lineHeight: '1.5',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: 'white'
   },
   taskSpecificFields: {
-    backgroundColor: '#f0f9ff',
+    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.05))',
     padding: '24px',
     borderRadius: '12px',
     marginBottom: '24px',
-    border: '2px solid #e0f2fe'
+    border: '2px solid rgba(59, 130, 246, 0.2)'
   },
   goalSpecificFields: {
-    backgroundColor: '#f0fdf4',
+    background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(147, 51, 234, 0.05))',
     padding: '24px',
     borderRadius: '12px',
     marginBottom: '24px',
-    border: '2px solid #dcfce7'
+    border: '2px solid rgba(168, 85, 247, 0.2)'
   },
   goalNote: {
     fontSize: '15px',
-    color: '#059669',
+    color: '#a855f7',
     margin: 0,
     fontStyle: 'italic',
     lineHeight: '1.5',
@@ -1441,13 +1665,13 @@ const styles = {
     gap: '16px',
     justifyContent: 'flex-end',
     padding: '24px 32px 32px 32px',
-    borderTop: '1px solid #f1f5f9',
-    backgroundColor: '#fafafa'
+    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+    background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.90))'
   },
   cancelButton: {
-    backgroundColor: 'white',
-    color: '#64748b',
-    border: '2px solid #e2e8f0',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    color: '#9ca3af',
+    border: '2px solid rgba(255, 255, 255, 0.1)',
     padding: '14px 28px',
     borderRadius: '10px',
     fontSize: '15px',
@@ -1457,13 +1681,13 @@ const styles = {
     minWidth: '120px'
   },
   cancelButtonHover: {
-    backgroundColor: '#f8fafc',
-    borderColor: '#cbd5e1'
+    backgroundColor: 'rgba(15, 17, 22, 0.95)',
+    borderColor: 'rgba(255, 255, 255, 0.2)'
   },
   submitButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#a855f7',
     color: 'white',
-    border: '2px solid #3b82f6',
+    border: '2px solid #a855f7',
     padding: '14px 28px',
     borderRadius: '10px',
     fontSize: '15px',
@@ -1471,12 +1695,12 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     minWidth: '160px',
-    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.1)'
+    boxShadow: '0 4px 6px -1px rgba(168, 85, 247, 0.1)'
   },
   submitButtonHover: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#7c3aed',
     transform: 'translateY(-1px)',
-    boxShadow: '0 8px 15px -3px rgba(59, 130, 246, 0.2)'
+    boxShadow: '0 8px 15px -3px rgba(168, 85, 247, 0.2)'
   },
   submitButtonDisabled: {
     backgroundColor: '#9ca3af',

@@ -1,4 +1,4 @@
-// Fixed AIChatInterface.js - Events to Dashboard, No Internal Modal
+// Fixed AIChatInterface.js - Improved data validation and project creation
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { aiChatService } from '../../services/aiChatService';
@@ -39,20 +39,23 @@ What would you like to work on today?`,
     }]);
   }, [user?.username]);
 
-  // NEW: Listen for project creation events from Dashboard
+  // Listen for project creation events from Dashboard
   useEffect(() => {
     const handleCreateAIProject = async (event) => {
       const projectData = event.detail.project;
       setCreatingProject(projectData.title);
       
       try {
-        const response = await aiChatService.createProjectFromResponse(projectData, token);
+        // Validate and clean project data before sending
+        const cleanedProjectData = validateAndCleanProjectData(projectData);
+        
+        const response = await aiChatService.createProjectFromResponse(cleanedProjectData, token);
         
         if (response.success) {
           const successMessage = {
             id: Date.now(),
             role: 'assistant',
-            content: `Great! I've successfully created the project "${projectData.title}" for you! You can now find it in your "My Projects" section. The project is ready for you to start working on and invite collaborators. Let that sync in!`,
+            content: `Great! I've successfully created the project "${cleanedProjectData.title}" for you! You can now find it in your "My Projects" section. The project is ready for you to start working on and invite collaborators. Let that sync in!`,
             timestamp: new Date().toISOString()
           };
           setMessages(prev => [...prev, successMessage]);
@@ -69,7 +72,7 @@ What would you like to work on today?`,
         const errorMessage = {
           id: Date.now(),
           role: 'assistant',
-          content: `Sorry, I couldn't create the project "${projectData.title}". ${error.response?.data?.message || 'Please try creating it manually or ask me to suggest the project details again.'}`,
+          content: `Sorry, I couldn't create the project "${projectData.title}". ${error.response?.data?.message || error.message || 'Please try creating it manually or ask me to suggest the project details again.'}`,
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, errorMessage]);
@@ -81,6 +84,128 @@ What would you like to work on today?`,
     window.addEventListener('createAIProject', handleCreateAIProject);
     return () => window.removeEventListener('createAIProject', handleCreateAIProject);
   }, [token]);
+
+  // Enhanced validation function
+  const validateAndCleanProjectData = (projectData) => {
+    // Ensure required fields exist and are properly formatted
+    const cleaned = {
+      title: String(projectData.title || 'Untitled Project').trim().substring(0, 100),
+      description: String(projectData.description || projectData.detailed_description || 'AI-generated project').trim().substring(0, 500),
+      detailed_description: String(projectData.detailed_description || projectData.description || 'AI-generated project').trim(),
+      difficulty_level: validateDifficultyLevel(projectData.difficulty_level),
+      required_experience_level: validateExperienceLevel(projectData.required_experience_level || projectData.difficulty_level),
+      maximum_members: Math.max(1, Math.min(10, parseInt(projectData.maximum_members) || 1)),
+      programming_languages: validateProgrammingLanguages(projectData.programming_languages),
+      topics: validateTopics(projectData.topics),
+      estimated_duration: projectData.estimated_duration || 'medium',
+      status: 'active',
+      is_public: false
+    };
+
+    // Remove any undefined or null values
+    Object.keys(cleaned).forEach(key => {
+      if (cleaned[key] === undefined || cleaned[key] === null) {
+        delete cleaned[key];
+      }
+    });
+
+    return cleaned;
+  };
+
+  const validateDifficultyLevel = (level) => {
+    const validLevels = ['easy', 'medium', 'hard', 'expert'];
+    const normalized = String(level || 'medium').toLowerCase().trim();
+    
+    // Map common variations
+    const levelMap = {
+      'beginner': 'easy',
+      'intermediate': 'medium',
+      'advanced': 'hard',
+      'professional': 'expert'
+    };
+    
+    const mappedLevel = levelMap[normalized] || normalized;
+    return validLevels.includes(mappedLevel) ? mappedLevel : 'medium';
+  };
+
+  const validateExperienceLevel = (level) => {
+    const validLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
+    const normalized = String(level || 'intermediate').toLowerCase().trim();
+    
+    // Map difficulty to experience
+    const difficultyToExperience = {
+      'easy': 'beginner',
+      'medium': 'intermediate', 
+      'hard': 'advanced',
+      'expert': 'expert'
+    };
+    
+    const mappedLevel = difficultyToExperience[normalized] || normalized;
+    return validLevels.includes(mappedLevel) ? mappedLevel : 'intermediate';
+  };
+
+  const validateProgrammingLanguages = (languages) => {
+    if (!Array.isArray(languages)) {
+      return ['JavaScript']; // Default fallback
+    }
+    
+    const validLanguages = [
+      'JavaScript', 'Python', 'Java', 'C#', 'C++', 'C', 'TypeScript', 
+      'PHP', 'Ruby', 'Go', 'Rust', 'Swift', 'Kotlin', 'Dart', 'R',
+      'HTML', 'CSS', 'SQL', 'Shell', 'PowerShell'
+    ];
+    
+    const cleaned = languages
+      .map(lang => cleanTechnologyName(String(lang).trim()))
+      .filter(lang => lang && lang.length > 0)
+      .slice(0, 5); // Limit to 5 languages
+    
+    // Map common frameworks to their base languages
+    const frameworkMap = {
+      'React': 'JavaScript',
+      'Vue': 'JavaScript',
+      'Angular': 'JavaScript',
+      'Node.js': 'JavaScript',
+      'Express': 'JavaScript',
+      'Django': 'Python',
+      'Flask': 'Python',
+      'Spring': 'Java',
+      'Laravel': 'PHP',
+      'Rails': 'Ruby',
+      'Next.js': 'JavaScript',
+      'Nuxt.js': 'JavaScript'
+    };
+    
+    const mapped = cleaned.map(lang => {
+      const normalized = lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
+      return frameworkMap[normalized] || 
+             validLanguages.find(valid => valid.toLowerCase() === lang.toLowerCase()) || 
+             lang;
+    });
+    
+    return mapped.length > 0 ? [...new Set(mapped)] : ['JavaScript'];
+  };
+
+  const validateTopics = (topics) => {
+    if (!Array.isArray(topics)) {
+      return ['Web Development']; // Default fallback
+    }
+    
+    const validTopics = [
+      'Web Development', 'Mobile Development', 'Desktop Development',
+      'Game Development', 'Data Science', 'Machine Learning', 'AI',
+      'Backend Development', 'Frontend Development', 'Full Stack',
+      'DevOps', 'Cloud Computing', 'Cybersecurity', 'Blockchain',
+      'IoT', 'AR/VR', 'API Development', 'Database', 'Testing'
+    ];
+    
+    const cleaned = topics
+      .map(topic => String(topic).trim())
+      .filter(topic => topic && topic.length > 0)
+      .slice(0, 3); // Limit to 3 topics
+    
+    return cleaned.length > 0 ? cleaned : ['Web Development'];
+  };
 
   const cleanTechnologyName = (tech) => {
     if (!tech) return tech;
@@ -106,7 +231,11 @@ What would you like to work on today?`,
       'flask': 'Python',
       'spring': 'Java',
       'laravel': 'PHP',
-      'rails': 'Ruby'
+      'rails': 'Ruby',
+      'nextjs': 'JavaScript',
+      'next.js': 'JavaScript',
+      'nuxtjs': 'JavaScript',
+      'nuxt.js': 'JavaScript'
     };
     
     const lowerCleaned = cleaned.toLowerCase();
@@ -117,7 +246,7 @@ What would you like to work on today?`,
     const projects = [];
     
     const sanitizeTitle = (raw) => {
-      if (!raw) return raw;
+      if (!raw) return 'Untitled Project';
       let s = String(raw)
         .replace(/\*\*/g, '')
         .replace(/[#*_`]/g, '')
@@ -128,9 +257,10 @@ What would you like to work on today?`,
       s = s.replace(/^(?:project\s*(?:name|title)|title|name)\s*:?\s*/i, '').trim();
       s = s.replace(/^["'`]+|["'`]+$/g, '').trim();
 
-      return s;
+      return s || 'Untitled Project';
     };
 
+    // Try to extract numbered project sections
     const projectSections = content.split(/\*\*\d+\.\s+/).slice(1);
     
     if (projectSections.length > 0) {
@@ -142,54 +272,50 @@ What would you like to work on today?`,
         const nameMatch = firstLine.match(/^(.+?)\*\*/);
         let nameCandidate = nameMatch ? nameMatch[1].trim() : firstLine.trim();
         let name = sanitizeTitle(nameCandidate);
-        if (!name) name = `Project ${index + 1}`;
         
         let description = '';
+        let technologies = [];
+        let difficulty = 'medium';
+        
+        // Extract information from the lines
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
-          if (line && !/^•/.test(line) && !/^Key Features/i.test(line) && !/^Technologies/i.test(line) && !/^Time Estimate/i.test(line) && !/^Difficulty/i.test(line)) {
+          
+          if (line && !description && !/^[•·-]/.test(line) && !/^(Key Features|Technologies|Time Estimate|Difficulty):/i.test(line)) {
             description = line;
-            break;
+          }
+          
+          if (/Technologies:/i.test(line)) {
+            const techLine = line.replace(/Technologies:/i, '').trim();
+            technologies = techLine
+              .split(/[,•·+&/|]/)
+              .map(t => cleanTechnologyName(t.trim()))
+              .filter(t => t && t.length > 0);
+          }
+          
+          if (/Difficulty:/i.test(line)) {
+            const diffLine = line.replace(/Difficulty:/i, '').trim().toLowerCase();
+            difficulty = validateDifficultyLevel(diffLine);
           }
         }
-        
-        const techLine = lines.find(line => /Technologies:/i.test(line));
-        const technologies = techLine ? 
-          techLine.replace(/Technologies:/i, '')
-            .split(/[,\u2022•+&/|]/).map(t => t.trim()).filter(t => t) : [];
-        
-        const difficultyLine = lines.find(line => /Difficulty:/i.test(line));
-        const difficultyRaw = difficultyLine ? 
-          difficultyLine.replace(/Difficulty:/i, '').trim().toLowerCase() : 'medium';
-        
-        const difficultyMapping = {
-          'easy': 'easy',
-          'beginner': 'easy',
-          'medium': 'medium',
-          'intermediate': 'medium',
-          'hard': 'hard',
-          'advanced': 'hard',
-          'expert': 'expert'
-        };
-        const mappedDifficulty = difficultyMapping[difficultyRaw] || 'medium';
         
         const project = {
           title: name,
           description: description || 'AI-generated project idea',
-          detailed_description: description,
-          difficulty_level: mappedDifficulty,
-          required_experience_level: mappedDifficulty === 'easy' ? 'beginner' : 
-                                  mappedDifficulty === 'medium' ? 'intermediate' : 
-                                  mappedDifficulty === 'hard' ? 'advanced' : 'expert',
+          detailed_description: section.trim(),
+          difficulty_level: difficulty,
+          required_experience_level: validateExperienceLevel(difficulty),
           maximum_members: 1,
           programming_languages: technologies.length > 0 ? technologies : ['JavaScript'],
-          topics: ['Web Development']
+          topics: ['Web Development'],
+          estimated_duration: 'medium'
         };
         
         projects.push(project);
       });
     }
     
+    // Fallback: create a single project from the entire content
     if (projects.length === 0) {
       const titleMatch = content.match(/\*\*(.+?)\*\*/);
       const title = titleMatch ? sanitizeTitle(titleMatch[1]) : 'AI Suggested Project';
@@ -197,15 +323,29 @@ What would you like to work on today?`,
       const sentences = content.split(/[.!?]+/).filter(s => s.trim());
       const description = sentences.slice(0, 2).join('.').trim() + (sentences.length ? '.' : '');
       
+      // Try to extract technologies from content
+      const techMatches = content.match(/(?:using|with|in|built with)\s+([^.!?]+)/gi);
+      let technologies = ['JavaScript'];
+      if (techMatches) {
+        const extractedTechs = techMatches.join(' ')
+          .split(/[,&+/|]/)
+          .map(t => cleanTechnologyName(t.replace(/using|with|in|built with/gi, '').trim()))
+          .filter(t => t && t.length > 0 && t.length < 20);
+        if (extractedTechs.length > 0) {
+          technologies = extractedTechs.slice(0, 3);
+        }
+      }
+      
       const project = {
         title,
         description: description || content.split('\n')[0] || 'AI-generated project idea',
-        detailed_description: content,
+        detailed_description: content.trim(),
         difficulty_level: 'medium',
         required_experience_level: 'intermediate',
         maximum_members: 1,
-        programming_languages: ['JavaScript'],
-        topics: ['Web Development']
+        programming_languages: technologies,
+        topics: ['Web Development'],
+        estimated_duration: 'medium'
       };
       
       projects.push(project);
@@ -279,11 +419,14 @@ What would you like to work on today?`,
     { text: "How to structure a full-stack project", icon: <Rocket size={16} /> }
   ];
 
-  // NEW: Function to show project preview at dashboard level
+  // Function to show project preview at dashboard level
   const handleShowPreview = (projectData) => {
+    // Validate and clean data before showing preview
+    const cleanedProjectData = validateAndCleanProjectData(projectData);
+    
     // Emit event to Dashboard to show modal
     window.dispatchEvent(new CustomEvent('aiProjectPreview', { 
-      detail: { project: projectData } 
+      detail: { project: cleanedProjectData } 
     }));
   };
 

@@ -22,6 +22,16 @@ import ProjectJoinPage from './pages/ProjectJoinPage';
 import TaskDetail from './pages/project/TaskDetail';
 import GitHubOAuthCallback from './components/GitHubOAuthCallback';
 
+
+// Solo project components
+import SoloProjectLayout from './pages/soloproject/SoloProjectLayout';
+import SoloProjectDashboard from './pages/soloproject/SoloProjectDashboard';
+import SoloProjectGoals from './pages/soloproject/SoloProjectGoals';
+import SoloProjectInfo from './pages/soloproject/SoloProjectInfo';
+import SoloProjectNotes from './pages/soloproject/SoloProjectNotes';
+import SoloWeeklyChallenge from './pages/soloproject/SoloWeeklyChallenge';
+
+
 // Project workspace components
 import ProjectDashboard from './pages/project/ProjectDashboard';
 import ProjectTasks from './pages/project/ProjectTasks';
@@ -524,6 +534,68 @@ function App() {
                 {/* Redirect /project/:id to /project/:id/dashboard */}
                 <Route 
                   path="/project/:projectId" 
+                  element={<Navigate to="dashboard" replace />} 
+                />
+                
+                {/* Solo Project Workspace Routes with SoloProjectLayout */}
+                <Route 
+                  path="/soloproject/:projectId/dashboard" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectDashboard />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/goals" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectGoals />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/info" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectInfo />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/notes" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloProjectNotes />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                <Route 
+                  path="/soloproject/:projectId/challenge" 
+                  element={
+                    <ProtectedRoute>
+                      <SoloProjectLayout>
+                        <SoloWeeklyChallenge />
+                      </SoloProjectLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+
+                {/* Redirect /soloproject/:id to /soloproject/:id/dashboard */}
+                <Route 
+                  path="/soloproject/:projectId" 
                   element={<Navigate to="dashboard" replace />} 
                 />
                 

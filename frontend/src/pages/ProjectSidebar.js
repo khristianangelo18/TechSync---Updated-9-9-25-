@@ -166,7 +166,9 @@ function ProjectSidebar() {
     },
     projectDetails: {
       flex: 1,
-      minWidth: 0
+      minWidth: 0,
+      textAlign: 'center',
+      marginRight: '44px' // Offset for button width + gap to center properly
     },
     projectTitle: {
       fontSize: '16px',

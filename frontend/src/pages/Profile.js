@@ -1,12 +1,261 @@
-// frontend/src/pages/Profile.js - UPDATED WITH MIGRATED DASHBOARD CONTENT
+// frontend/src/pages/Profile.js - ALIGNED WITH DASHBOARD THEME
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
 import { projectService } from '../services/projectService';
+import { User, Settings, Shield, Calendar, Target, Users, Eye, EyeOff, SquarePen } from 'lucide-react';
+
+// Background symbols component - IDENTICAL TO DASHBOARD
+const BackgroundSymbols = () => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100vw',
+    height: '100vh',
+    zIndex: 1,
+    pointerEvents: 'none'
+  }}>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+    }}>&#60;/&#62;</div>
+    <div style={{
+      position: 'absolute',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontStyle: 'normal',
+      fontWeight: 900,
+      fontSize: '24px',
+      lineHeight: '29px',
+      userSelect: 'none',
+      pointerEvents: 'none',
+      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+    }}>&#60;/&#62;</div>
+  </div>
+);
 
 function Profile() {
   const { user, setUser } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
+  const [editingSections, setEditingSections] = useState({
+    personal: false,
+    social: false
+  });
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -21,9 +270,14 @@ function Profile() {
     newPassword: '',
     confirmPassword: ''
   });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
   const [notification, setNotification] = useState({ message: '', type: '' });
 
-  // NEW: Project statistics state (migrated from Dashboard)
+  // Project statistics state (migrated from Dashboard)
   const [projectStats, setProjectStats] = useState({
     activeProjects: 0,
     completedProjects: 0,
@@ -45,7 +299,7 @@ function Profile() {
     }
   }, [user]);
 
-  // NEW: Fetch project statistics (migrated from Dashboard)
+  // Fetch project statistics
   useEffect(() => {
     const fetchProjectStats = async () => {
       if (!user?.id) return;
@@ -98,12 +352,22 @@ function Profile() {
     setTimeout(() => setNotification({ message: '', type: '' }), 5000);
   };
 
-  const handleSaveProfile = async () => {
+  const toggleSectionEdit = (section) => {
+    setEditingSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const handleSaveProfile = async (section) => {
     try {
       setLoading(true);
       const response = await authService.updateProfile(formData);
       setUser(response.data.user);
-      setIsEditing(false);
+      setEditingSections(prev => ({
+        ...prev,
+        [section]: false
+      }));
       showNotification('Profile updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -121,12 +385,17 @@ function Profile() {
 
     try {
       setLoading(true);
+      // Get the token from your auth context or localStorage
+      const token = localStorage.getItem('token'); // or however you store it
+      
       await authService.changePassword({
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
-      });
+      }, token); // Pass the token here
+      
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       setShowChangePassword(false);
+      setShowPasswords({ current: false, new: false, confirm: false });
       showNotification('Password changed successfully!', 'success');
     } catch (error) {
       console.error('Error changing password:', error);
@@ -154,81 +423,84 @@ function Profile() {
 
   const styles = {
     container: {
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '30px',
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#f8f9fa',
-      minHeight: '100vh'
+      minHeight: 'calc(100vh - 40px)',
+      backgroundColor: '#0F1116',
+      color: 'white',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      padding: '20px',
+      paddingLeft: '270px',
+      marginLeft: '-150px'
     },
     notification: {
       padding: '12px 20px',
-      borderRadius: '6px',
+      borderRadius: '12px',
       marginBottom: '20px',
       position: 'fixed',
       top: '20px',
       right: '20px',
       zIndex: 1000,
-      animation: 'slideIn 0.3s ease'
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
     },
     notificationSuccess: {
-      backgroundColor: '#d4edda',
-      color: '#155724',
-      border: '1px solid #c3e6cb'
+      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.1))',
+      color: '#4ade80',
+      borderColor: 'rgba(34, 197, 94, 0.3)'
     },
     notificationError: {
-      backgroundColor: '#f8d7da',
-      color: '#721c24',
-      border: '1px solid #f5c6cb'
+      background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1))',
+      color: '#f87171',
+      borderColor: 'rgba(239, 68, 68, 0.3)'
     },
     header: {
-      marginBottom: '30px'
+      position: 'relative',
+      zIndex: 10,
+      marginBottom: '30px',
+      padding: '0 0 20px 0',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
     headerTop: {
       display: 'flex',
-      justifyContent: 'space-between',
+      justifyContent: 'flex-start',
       alignItems: 'center',
       marginBottom: '20px'
     },
     title: {
-      fontSize: '32px',
+      fontSize: '28px',
       fontWeight: 'bold',
-      color: '#333',
-      margin: 0
-    },
-    editButton: {
-      backgroundColor: '#007bff',
       color: 'white',
-      border: 'none',
-      padding: '10px 20px',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500',
-      transition: 'background-color 0.2s ease'
+      margin: 0,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px'
     },
     profileHeader: {
+      background: 'rgba(26, 28, 32, 0.8)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      padding: '30px',
       display: 'flex',
       alignItems: 'flex-start',
       gap: '20px',
-      backgroundColor: 'white',
-      padding: '30px',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)'
     },
     avatarLarge: {
       width: '80px',
       height: '80px',
       borderRadius: '50%',
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
       color: 'white',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       fontSize: '32px',
       fontWeight: 'bold',
-      flexShrink: 0
+      flexShrink: 0,
+      boxShadow: '0 8px 24px rgba(59, 130, 246, 0.4)'
     },
     userDetails: {
       flex: 1
@@ -236,11 +508,11 @@ function Profile() {
     userName: {
       fontSize: '24px',
       fontWeight: 'bold',
-      color: '#333',
+      color: 'white',
       margin: '0 0 8px 0'
     },
     userMeta: {
-      color: '#666',
+      color: '#9ca3af',
       fontSize: '14px',
       margin: '0 0 16px 0'
     },
@@ -249,22 +521,24 @@ function Profile() {
     },
     progressLabel: {
       fontSize: '14px',
-      color: '#666',
+      color: '#d1d5db',
       marginBottom: '6px'
     },
     progressBar: {
       width: '200px',
       height: '8px',
-      backgroundColor: '#e9ecef',
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
       borderRadius: '4px',
       overflow: 'hidden'
     },
     progressFill: {
       height: '100%',
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
       transition: 'width 0.3s ease'
     },
     content: {
+      position: 'relative',
+      zIndex: 10,
       display: 'grid',
       gridTemplateColumns: '2fr 1fr',
       gap: '30px',
@@ -276,17 +550,21 @@ function Profile() {
       gap: '20px'
     },
     section: {
-      backgroundColor: 'white',
+      background: 'rgba(26, 28, 32, 0.8)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
       padding: '24px',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
     },
     sectionTitle: {
       fontSize: '18px',
       fontWeight: 'bold',
-      color: '#333',
-      margin: '0 0 20px 0'
+      color: 'white',
+      margin: '0 0 20px 0',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px'
     },
     formGroup: {
       marginBottom: '20px'
@@ -296,61 +574,68 @@ function Profile() {
       marginBottom: '6px',
       fontSize: '14px',
       fontWeight: '500',
-      color: '#333'
+      color: '#d1d5db'
     },
     input: {
       width: '100%',
-      padding: '10px 12px',
-      border: '1px solid #e9ecef',
-      borderRadius: '6px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease'
+      transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)'
     },
     textarea: {
       width: '100%',
-      padding: '10px 12px',
-      border: '1px solid #e9ecef',
-      borderRadius: '6px',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
       fontSize: '14px',
       minHeight: '80px',
       resize: 'vertical',
       boxSizing: 'border-box',
-      transition: 'border-color 0.2s ease'
+      transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)'
     },
     primaryButton: {
-      backgroundColor: '#007bff',
+      background: 'linear-gradient(to right, #3b82f6, #2563eb)',
       color: 'white',
       border: 'none',
-      padding: '10px 20px',
-      borderRadius: '6px',
+      padding: '12px 24px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: '500',
+      fontWeight: '600',
       marginRight: '10px',
-      transition: 'background-color 0.2s ease'
+      transition: 'all 0.3s ease',
+      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
     },
     secondaryButton: {
-      backgroundColor: '#6c757d',
+      backgroundColor: '#6b7280',
       color: 'white',
       border: 'none',
-      padding: '10px 20px',
-      borderRadius: '6px',
+      padding: '12px 24px',
+      borderRadius: '8px',
       cursor: 'pointer',
       fontSize: '14px',
-      fontWeight: '500',
-      transition: 'background-color 0.2s ease'
+      fontWeight: '600',
+      transition: 'all 0.3s ease'
     },
     changePasswordButton: {
-      backgroundColor: '#ffc107',
-      color: '#212529',
+      backgroundColor: '#f59e0b',
+      color: 'white',
       border: 'none',
       padding: '8px 16px',
       borderRadius: '6px',
       cursor: 'pointer',
       fontSize: '13px',
       fontWeight: '500',
-      transition: 'background-color 0.2s ease'
+      transition: 'all 0.3s ease'
     },
     sidebar: {
       display: 'flex',
@@ -358,46 +643,39 @@ function Profile() {
       gap: '20px'
     },
     statCard: {
-      backgroundColor: '#f8f9fa',
+      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08))',
+      border: '1px solid rgba(59, 130, 246, 0.25)',
+      backdropFilter: 'blur(20px)',
       padding: '16px',
-      borderRadius: '8px',
-      textAlign: 'center',
-      border: '1px solid #e9ecef'
+      borderRadius: '12px',
+      textAlign: 'center'
     },
     statNumber: {
       fontSize: '24px',
       fontWeight: 'bold',
-      color: '#007bff',
+      color: '#3b82f6',
       margin: '0 0 4px 0'
     },
     statLabel: {
       fontSize: '12px',
-      color: '#666',
+      color: '#9ca3af',
       margin: 0,
       textTransform: 'uppercase',
       letterSpacing: '0.5px'
     },
-    infoCard: {
-      backgroundColor: '#f8f9fa',
-      padding: '16px',
-      borderRadius: '8px',
-      fontSize: '14px',
-      color: '#333',
-      border: '1px solid #e9ecef'
-    },
-    // NEW: Migrated Dashboard Overview Styles
     overviewSection: {
-      backgroundColor: 'white',
+      background: 'rgba(26, 28, 32, 0.8)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
       padding: '24px',
-      borderRadius: '12px',
-      border: '1px solid #e9ecef',
-      boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-      marginBottom: '20px'
+      marginBottom: '20px',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)'
     },
     overviewTitle: {
       fontSize: '20px',
       fontWeight: 'bold',
-      color: '#333',
+      color: 'white',
       margin: '0 0 20px 0',
       display: 'flex',
       alignItems: 'center',
@@ -410,16 +688,17 @@ function Profile() {
       marginBottom: '20px'
     },
     userInfoSection: {
-      backgroundColor: 'white',
-      border: '1px solid #e9ecef',
-      borderRadius: '8px',
-      padding: '16px'
+      background: 'linear-gradient(135deg, rgba(51, 65, 85, 0.12), rgba(30, 41, 59, 0.08))',
+      border: '1px solid rgba(51, 65, 85, 0.25)',
+      borderRadius: '12px',
+      padding: '16px',
+      backdropFilter: 'blur(20px)'
     },
     userInfoTitle: {
       margin: '0 0 12px 0',
       fontSize: '16px',
       fontWeight: 'bold',
-      color: '#333'
+      color: 'white'
     },
     userInfoGrid: {
       display: 'grid',
@@ -434,23 +713,23 @@ function Profile() {
     },
     userInfoLabel: {
       fontSize: '12px',
-      color: '#666',
+      color: '#9ca3af',
       fontWeight: '500'
     },
     userInfoValue: {
       fontSize: '14px',
-      color: '#333',
+      color: '#d1d5db',
       fontWeight: '400'
     },
     bioSection: {
       marginTop: '12px',
       paddingTop: '12px',
-      borderTop: '1px solid #f1f3f4'
+      borderTop: '1px solid rgba(255, 255, 255, 0.1)'
     },
     bioText: {
       margin: '4px 0 0 0',
       fontSize: '14px',
-      color: '#333',
+      color: '#d1d5db',
       lineHeight: '1.4'
     },
     skillsContainer: {
@@ -461,35 +740,36 @@ function Profile() {
     languageTag: {
       display: 'inline-flex',
       alignItems: 'center',
-      backgroundColor: '#007bff',
-      color: 'white',
+      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.1))',
+      color: '#93c5fd',
       padding: '4px 8px',
       borderRadius: '16px',
       fontSize: '12px',
       fontWeight: '500',
-      gap: '4px'
+      gap: '4px',
+      border: '1px solid rgba(59, 130, 246, 0.3)'
     },
     topicTag: {
       display: 'inline-flex',
       alignItems: 'center',
-      backgroundColor: '#28a745',
-      color: 'white',
+      background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(22, 163, 74, 0.1))',
+      color: '#4ade80',
       padding: '4px 8px',
       borderRadius: '16px',
       fontSize: '12px',
       fontWeight: '500',
-      gap: '4px'
+      gap: '4px',
+      border: '1px solid rgba(34, 197, 94, 0.3)'
     },
     skillLevel: {
       fontSize: '10px',
       opacity: 0.8
     },
     emptySkills: {
-      color: '#666',
+      color: '#9ca3af',
       fontSize: '14px',
       fontStyle: 'italic'
     },
-    // NEW: Stats Container (migrated from Dashboard)
     statsContainer: {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -497,40 +777,86 @@ function Profile() {
       marginBottom: '30px'
     },
     dashboardStatCard: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
+      background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.08))',
+      border: '1px solid rgba(59, 130, 246, 0.25)',
+      borderRadius: '12px',
       padding: '20px',
-      textAlign: 'center'
+      textAlign: 'center',
+      backdropFilter: 'blur(20px)',
+      transition: 'all 0.3s ease'
     },
     statValue: {
       fontSize: '24px',
       fontWeight: 'bold',
-      color: '#007bff',
+      color: '#3b82f6',
       marginBottom: '5px'
     },
     statLabelDashboard: {
-      color: '#666',
+      color: '#9ca3af',
       fontSize: '14px'
     },
-    // NEW: Recent Activity styles (migrated from Dashboard)
     activitySection: {
-      backgroundColor: 'white',
-      border: '1px solid #dee2e6',
-      borderRadius: '8px',
+      background: 'rgba(26, 28, 32, 0.8)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
       padding: '20px',
-      marginBottom: '20px'
+      marginBottom: '20px',
+      backdropFilter: 'blur(20px)'
     },
     emptyState: {
       textAlign: 'center',
-      color: '#666',
+      color: '#9ca3af',
       fontSize: '14px',
       padding: '40px 20px'
+    },
+    passwordSection: {
+      padding: '20px',
+      background: 'linear-gradient(135deg, rgba(51, 65, 85, 0.12), rgba(30, 41, 59, 0.08))',
+      borderRadius: '12px',
+      border: '1px solid rgba(51, 65, 85, 0.25)',
+      backdropFilter: 'blur(20px)'
+    },
+    passwordContainer: {
+      position: 'relative',
+      display: 'flex',
+      alignItems: 'center'
+    },
+    passwordInput: {
+      width: '100%',
+      padding: '12px 50px 12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.2)',
+      borderRadius: '8px',
+      fontSize: '14px',
+      boxSizing: 'border-box',
+      transition: 'all 0.3s ease',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      color: 'white',
+      backdropFilter: 'blur(8px)'
+    },
+    eyeToggle: {
+      position: 'absolute',
+      right: '12px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      background: 'none',
+      border: 'none',
+      color: '#9ca3af',
+      cursor: 'pointer',
+      padding: '4px',
+      borderRadius: '4px',
+      transition: 'color 0.3s ease',
+      fontSize: '18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }
   };
 
   return (
     <div style={styles.container}>
+      {/* Background Code Symbols */}
+      <BackgroundSymbols />
+
       {/* Notification */}
       {notification.message && (
         <div style={{
@@ -545,14 +871,10 @@ function Profile() {
       {/* Header Section */}
       <div style={styles.header}>
         <div style={styles.headerTop}>
-          <h1 style={styles.title}>Profile</h1>
-          <button
-            style={styles.editButton}
-            onClick={() => setIsEditing(!isEditing)}
-            disabled={loading}
-          >
-            {isEditing ? 'Cancel' : 'Edit Profile'}
-          </button>
+          <h1 style={styles.title}>
+            <User size={28} style={{ color: '#3b82f6' }} />
+            Profile
+          </h1>
         </div>
 
         <div style={styles.profileHeader}>
@@ -588,16 +910,20 @@ function Profile() {
         </div>
       </div>
 
-      {/* NEW: Dashboard Overview Section (migrated from Dashboard) */}
+      {/* Dashboard Overview Section */}
       <div style={styles.overviewSection}>
         <h3 style={styles.overviewTitle}>
-          🎯 Dashboard Overview
+          <Target size={20} style={{ color: '#3b82f6' }} />
+          Dashboard Overview
         </h3>
         
         {/* User Profile Information */}
         <div style={styles.userInfoContainer}>
           <div style={styles.userInfoSection}>
-            <h4 style={styles.userInfoTitle}>👤 Profile Info</h4>
+            <h4 style={styles.userInfoTitle}>
+              <User size={16} style={{ color: '#3b82f6', marginRight: '8px' }} />
+              Profile Info
+            </h4>
             <div style={styles.userInfoGrid}>
               <div style={styles.userInfoItem}>
                 <span style={styles.userInfoLabel}>Experience:</span>
@@ -628,7 +954,7 @@ function Profile() {
           </div>
 
           <div style={styles.userInfoSection}>
-            <h4 style={styles.userInfoTitle}>💻 Programming Languages</h4>
+            <h4 style={styles.userInfoTitle}>Programming Languages</h4>
             {user?.programming_languages && user.programming_languages.length > 0 ? (
               <div style={styles.skillsContainer}>
                 {user.programming_languages.map(lang => (
@@ -644,7 +970,7 @@ function Profile() {
           </div>
 
           <div style={styles.userInfoSection}>
-            <h4 style={styles.userInfoTitle}>🎯 Areas of Interest</h4>
+            <h4 style={styles.userInfoTitle}>Areas of Interest</h4>
             {user?.topics && user.topics.length > 0 ? (
               <div style={styles.skillsContainer}>
                 {user.topics.map(topic => (
@@ -660,7 +986,7 @@ function Profile() {
           </div>
         </div>
 
-        {/* NEW: Quick Stats (migrated from Dashboard) */}
+        {/* Quick Stats */}
         <div style={styles.statsContainer}>
           <div style={styles.dashboardStatCard}>
             <div style={styles.statValue}>
@@ -688,9 +1014,12 @@ function Profile() {
           </div>
         </div>
 
-        {/* NEW: Recent Activity (migrated from Dashboard) */}
+        {/* Recent Activity */}
         <div style={styles.activitySection}>
-          <h3 style={styles.sectionTitle}>🎯 Recent Activity</h3>
+          <h3 style={styles.sectionTitle}>
+            <Target size={18} style={{ color: '#10b981' }} />
+            Recent Activity
+          </h3>
           <div style={styles.emptyState}>
             No recent activity yet. Start by joining a project or connecting with other developers!
           </div>
@@ -702,11 +1031,41 @@ function Profile() {
         <div style={styles.mainContent}>
           {/* Personal Information */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Personal Information</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{...styles.sectionTitle, margin: 0}}>
+                <User size={18} style={{ color: '#3b82f6' }} />
+                Personal Information
+              </h3>
+              <button
+                onClick={() => toggleSectionEdit('personal')}
+                style={{
+                  background: 'rgba(59, 130, 246, 0.15)',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  borderRadius: '8px',
+                  color: '#3b82f6',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(59, 130, 246, 0.25)';
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(59, 130, 246, 0.15)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                <SquarePen size={16} />
+              </button>
+            </div>
             
             <div style={styles.formGroup}>
               <label style={styles.label}>Full Name</label>
-              {isEditing ? (
+              {editingSections.personal ? (
                 <input
                   type="text"
                   name="full_name"
@@ -716,7 +1075,7 @@ function Profile() {
                   placeholder="Enter your full name"
                 />
               ) : (
-                <p style={{ margin: 0, color: '#333', fontSize: '14px' }}>
+                <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px' }}>
                   {user?.full_name || 'Not specified'}
                 </p>
               )}
@@ -724,7 +1083,7 @@ function Profile() {
 
             <div style={styles.formGroup}>
               <label style={styles.label}>Bio</label>
-              {isEditing ? (
+              {editingSections.personal ? (
                 <textarea
                   name="bio"
                   value={formData.bio}
@@ -733,7 +1092,7 @@ function Profile() {
                   placeholder="Tell us about yourself..."
                 />
               ) : (
-                <p style={{ margin: 0, color: '#333', fontSize: '14px', lineHeight: '1.5' }}>
+                <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px', lineHeight: '1.5' }}>
                   {user?.bio || 'No bio provided'}
                 </p>
               )}
@@ -741,7 +1100,7 @@ function Profile() {
 
             <div style={styles.formGroup}>
               <label style={styles.label}>Years of Experience</label>
-              {isEditing ? (
+              {editingSections.personal ? (
                 <input
                   type="number"
                   name="years_experience"
@@ -752,20 +1111,42 @@ function Profile() {
                   max="50"
                 />
               ) : (
-                <p style={{ margin: 0, color: '#333', fontSize: '14px' }}>
+                <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px' }}>
                   {user?.years_experience || 0} years
                 </p>
               )}
             </div>
 
-            {isEditing && (
+            {editingSections.personal && (
               <div>
                 <button
                   style={styles.primaryButton}
-                  onClick={handleSaveProfile}
+                  onClick={() => handleSaveProfile('personal')}
                   disabled={loading}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                  }}
                 >
                   {loading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  style={styles.secondaryButton}
+                  onClick={() => toggleSectionEdit('personal')}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#4b5563';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#6b7280';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Cancel
                 </button>
               </div>
             )}
@@ -773,11 +1154,41 @@ function Profile() {
 
           {/* Social Links */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Social Links</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{...styles.sectionTitle, margin: 0}}>
+                <Users size={18} style={{ color: '#10b981' }} />
+                Social Links
+              </h3>
+              <button
+                onClick={() => toggleSectionEdit('social')}
+                style={{
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                  borderRadius: '8px',
+                  color: '#10b981',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(16, 185, 129, 0.25)';
+                  e.target.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(16, 185, 129, 0.15)';
+                  e.target.style.transform = 'translateY(0)';
+                }}
+              >
+                <SquarePen size={16} />
+              </button>
+            </div>
             
             <div style={styles.formGroup}>
               <label style={styles.label}>GitHub Username</label>
-              {isEditing ? (
+              {editingSections.social ? (
                 <input
                   type="text"
                   name="github_username"
@@ -787,13 +1198,13 @@ function Profile() {
                   placeholder="Enter your GitHub username"
                 />
               ) : (
-                <p style={{ margin: 0, color: '#333', fontSize: '14px' }}>
+                <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px' }}>
                   {user?.github_username ? (
                     <a 
                       href={`https://github.com/${user.github_username}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#007bff', textDecoration: 'none' }}
+                      style={{ color: '#3b82f6', textDecoration: 'none' }}
                     >
                       @{user.github_username}
                     </a>
@@ -804,7 +1215,7 @@ function Profile() {
 
             <div style={styles.formGroup}>
               <label style={styles.label}>LinkedIn URL</label>
-              {isEditing ? (
+              {editingSections.social ? (
                 <input
                   type="url"
                   name="linkedin_url"
@@ -814,13 +1225,13 @@ function Profile() {
                   placeholder="https://linkedin.com/in/yourprofile"
                 />
               ) : (
-                <p style={{ margin: 0, color: '#333', fontSize: '14px' }}>
+                <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px' }}>
                   {user?.linkedin_url ? (
                     <a 
                       href={user.linkedin_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ color: '#007bff', textDecoration: 'none' }}
+                      style={{ color: '#3b82f6', textDecoration: 'none' }}
                     >
                       View LinkedIn Profile
                     </a>
@@ -828,19 +1239,64 @@ function Profile() {
                 </p>
               )}
             </div>
+
+            {editingSections.social && (
+              <div>
+                <button
+                  style={styles.primaryButton}
+                  onClick={() => handleSaveProfile('social')}
+                  disabled={loading}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                  }}
+                >
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  style={styles.secondaryButton}
+                  onClick={() => toggleSectionEdit('social')}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#4b5563';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#6b7280';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Security Settings */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Security</h3>
+            <h3 style={styles.sectionTitle}>
+              <Shield size={18} style={{ color: '#f59e0b' }} />
+              Security
+            </h3>
             
             <div style={{ marginBottom: '16px' }}>
               <label style={styles.label}>Password</label>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ color: '#666', fontSize: '14px' }}>••••••••</span>
+                <span style={{ color: '#9ca3af', fontSize: '14px' }}>••••••••</span>
                 <button
                   style={styles.changePasswordButton}
                   onClick={() => setShowChangePassword(!showChangePassword)}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = '#d97706';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = '#f59e0b';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
                 >
                   Change Password
                 </button>
@@ -848,43 +1304,90 @@ function Profile() {
             </div>
 
             {showChangePassword && (
-              <div style={{ 
-                padding: '20px', 
-                backgroundColor: '#f8f9fa', 
-                borderRadius: '6px',
-                border: '1px solid #e9ecef'
-              }}>
+              <div style={styles.passwordSection}>
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Current Password</label>
-                  <input
-                    type="password"
-                    name="currentPassword"
-                    value={passwordData.currentPassword}
-                    onChange={handlePasswordChange}
-                    style={styles.input}
-                  />
+                  <div style={styles.passwordContainer}>
+                    <input
+                      type={showPasswords.current ? "text" : "password"}
+                      name="currentPassword"
+                      value={passwordData.currentPassword}
+                      onChange={handlePasswordChange}
+                      style={styles.passwordInput}
+                      placeholder="Enter your current password"
+                    />
+                    <button
+                      type="button"
+                      style={styles.eyeToggle}
+                      onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#d1d5db';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#9ca3af';
+                      }}
+                    >
+                      {showPasswords.current ? <Eye size={20} /> : <EyeOff size={20} />}
+                    </button>
+                  </div>
                 </div>
                 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>New Password</label>
-                  <input
-                    type="password"
-                    name="newPassword"
-                    value={passwordData.newPassword}
-                    onChange={handlePasswordChange}
-                    style={styles.input}
-                  />
+                  <div style={styles.passwordContainer}>
+                    <input
+                      type={showPasswords.new ? "text" : "password"}
+                      name="newPassword"
+                      value={passwordData.newPassword}
+                      onChange={handlePasswordChange}
+                      style={styles.passwordInput}
+                      placeholder="Enter your new password"
+                    />
+                    <button
+                      type="button"
+                      style={styles.eyeToggle}
+                      onClick={() => setShowPasswords(prev => ({ 
+                        ...prev, 
+                        new: !prev.new,
+                        confirm: !prev.confirm 
+                      }))}
+                      onMouseEnter={(e) => { e.target.style.color = '#d1d5db'; }}
+                      onMouseLeave={(e) => { e.target.style.color = '#9ca3af'; }}
+                    >
+                      {showPasswords.new ? <Eye size={20} /> : <EyeOff size={20} />}
+                    </button>
+                  </div>
                 </div>
                 
                 <div style={styles.formGroup}>
                   <label style={styles.label}>Confirm New Password</label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={passwordData.confirmPassword}
-                    onChange={handlePasswordChange}
-                    style={styles.input}
-                  />
+                  <div style={styles.passwordContainer}>
+                    <input
+                      type={showPasswords.confirm ? "text" : "password"}
+                      name="confirmPassword"
+                      value={passwordData.confirmPassword}
+                      onChange={handlePasswordChange}
+                      style={styles.passwordInput}
+                      placeholder="Confirm your new password"
+                    />
+                    <button
+                      type="button"
+                      style={styles.eyeToggle}
+                      onClick={() => setShowPasswords(prev => ({ 
+                        ...prev, 
+                        new: !prev.new,
+                        confirm: !prev.new 
+                      }))}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#d1d5db';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#9ca3af';
+                      }}
+                    >
+                      {showPasswords.confirm ? <Eye size={20} /> : <EyeOff size={20} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -892,6 +1395,14 @@ function Profile() {
                     style={styles.primaryButton}
                     onClick={handleChangePassword}
                     disabled={loading}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                    }}
                   >
                     {loading ? 'Changing...' : 'Change Password'}
                   </button>
@@ -900,6 +1411,15 @@ function Profile() {
                     onClick={() => {
                       setShowChangePassword(false);
                       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                      setShowPasswords({ current: false, new: false, confirm: false });
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#4b5563';
+                      e.target.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#6b7280';
+                      e.target.style.transform = 'translateY(0)';
                     }}
                   >
                     Cancel
@@ -914,7 +1434,10 @@ function Profile() {
         <div style={styles.sidebar}>
           {/* Quick Stats */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Quick Stats</h3>
+            <h3 style={styles.sectionTitle}>
+              <Settings size={18} style={{ color: '#8b5cf6' }} />
+              Quick Stats
+            </h3>
             
             <div style={styles.statCard}>
               <h4 style={styles.statNumber}>{getProfileCompletionPercentage()}%</h4>
@@ -938,11 +1461,14 @@ function Profile() {
 
           {/* Account Information */}
           <div style={styles.section}>
-            <h3 style={styles.sectionTitle}>Account Information</h3>
+            <h3 style={styles.sectionTitle}>
+              <Calendar size={18} style={{ color: '#06b6d4' }} />
+              Account Information
+            </h3>
             
             <div style={{ marginBottom: '12px' }}>
               <label style={styles.label}>Member Since</label>
-              <p style={{ margin: 0, color: '#333', fontSize: '14px' }}>
+              <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px' }}>
                 {new Date(user?.created_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
@@ -953,7 +1479,7 @@ function Profile() {
 
             <div style={{ marginBottom: '12px' }}>
               <label style={styles.label}>Last Updated</label>
-              <p style={{ margin: 0, color: '#333', fontSize: '14px' }}>
+              <p style={{ margin: 0, color: '#d1d5db', fontSize: '14px' }}>
                 {new Date(user?.updated_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
@@ -964,7 +1490,7 @@ function Profile() {
 
             <div>
               <label style={styles.label}>Account ID</label>
-              <p style={{ margin: 0, color: '#666', fontSize: '12px', fontFamily: 'monospace' }}>
+              <p style={{ margin: 0, color: '#9ca3af', fontSize: '12px', fontFamily: 'monospace' }}>
                 {user?.id}
               </p>
             </div>
@@ -973,11 +1499,17 @@ function Profile() {
           {/* Profile Tips */}
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>Profile Tips</h3>
-            <div style={styles.infoCard}>
-              <p style={{ margin: '0 0 12px 0', fontWeight: '500', color: '#333' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(5, 150, 105, 0.08))',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              borderRadius: '12px',
+              padding: '16px',
+              backdropFilter: 'blur(20px)'
+            }}>
+              <p style={{ margin: '0 0 12px 0', fontWeight: '500', color: '#d1d5db' }}>
                 Complete your profile to:
               </p>
-              <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: '1.6' }}>
+              <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: '1.6', color: '#9ca3af' }}>
                 <li>Get better project recommendations</li>
                 <li>Connect with like-minded collaborators</li>
                 <li>Showcase your skills and experience</li>
@@ -989,26 +1521,14 @@ function Profile() {
       </div>
 
       <style jsx>{`
-        @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-
         input:focus, textarea:focus {
           outline: none;
-          border-color: #007bff;
-          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
         }
 
         button:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         button:disabled {
