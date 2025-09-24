@@ -139,7 +139,7 @@ const createChatRoom = async (req, res) => {
   }
 };
 
-// Get messages for a specific chat room
+// Get messages for a specific chat room - FIXED VERSION
 const getRoomMessages = async (req, res) => {
   try {
     const { projectId, roomId } = req.params;
@@ -178,7 +178,7 @@ const getRoomMessages = async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    // Get messages with user info and reply data
+    // Get messages with user info first
     const { data: messages, error } = await supabase
       .from('chat_messages')
       .select(`
@@ -188,15 +188,6 @@ const getRoomMessages = async (req, res) => {
           username,
           full_name,
           avatar_url
-        ),
-        reply_to:chat_messages!reply_to_message_id (
-          id,
-          content,
-          user:users!user_id (
-            id,
-            username,
-            full_name
-          )
         )
       `)
       .eq('room_id', roomId)
@@ -212,8 +203,39 @@ const getRoomMessages = async (req, res) => {
       });
     }
 
+    // Now get reply data for messages that have replies
+    const processedMessages = [];
+    
+    for (const message of messages || []) {
+      let processedMessage = { ...message };
+      
+      // If message has a reply_to_message_id, fetch the reply data
+      if (message.reply_to_message_id) {
+        const { data: replyToMessage, error: replyError } = await supabase
+          .from('chat_messages')
+          .select(`
+            id,
+            content,
+            user:users!user_id (
+              id,
+              username,
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq('id', message.reply_to_message_id)
+          .single();
+
+        if (!replyError && replyToMessage) {
+          processedMessage.reply_to = replyToMessage;
+        }
+      }
+      
+      processedMessages.push(processedMessage);
+    }
+
     // Reverse to show oldest first
-    const sortedMessages = (messages || []).reverse();
+    const sortedMessages = processedMessages.reverse();
 
     res.json({
       success: true,
@@ -238,7 +260,7 @@ const getRoomMessages = async (req, res) => {
   }
 };
 
-// Send a message to a chat room
+// Send a message to a chat room - FIXED VERSION
 const sendMessage = async (req, res) => {
   try {
     const { projectId, roomId } = req.params;
@@ -284,7 +306,7 @@ const sendMessage = async (req, res) => {
       });
     }
 
-    // Create the message
+    // Create the message first
     const { data: message, error } = await supabase
       .from('chat_messages')
       .insert({
@@ -301,15 +323,6 @@ const sendMessage = async (req, res) => {
           username,
           full_name,
           avatar_url
-        ),
-        reply_to:chat_messages!reply_to_message_id (
-          id,
-          content,
-          user:users!user_id (
-            id,
-            username,
-            full_name
-          )
         )
       `)
       .single();
@@ -323,10 +336,34 @@ const sendMessage = async (req, res) => {
       });
     }
 
+    // If this message is a reply, fetch the reply data
+    let processedMessage = { ...message };
+    
+    if (message.reply_to_message_id) {
+      const { data: replyToMessage, error: replyError } = await supabase
+        .from('chat_messages')
+        .select(`
+          id,
+          content,
+          user:users!user_id (
+            id,
+            username,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', message.reply_to_message_id)
+        .single();
+
+      if (!replyError && replyToMessage) {
+        processedMessage.reply_to = replyToMessage;
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: 'Message sent successfully',
-      data: message
+      data: processedMessage
     });
 
   } catch (error) {
@@ -339,7 +376,7 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// Edit a message
+// Edit a message - FIXED VERSION
 const editMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -407,10 +444,17 @@ const editMessage = async (req, res) => {
       });
     }
 
+    // Process the message to clean up reply_to data
+    let processedMessage = updatedMessage;
+    if (!updatedMessage.reply_to || !updatedMessage.reply_to.id || !updatedMessage.reply_to.content) {
+      const { reply_to, ...messageWithoutReply } = updatedMessage;
+      processedMessage = messageWithoutReply;
+    }
+
     res.json({
       success: true,
       message: 'Message updated successfully',
-      data: updatedMessage
+      data: processedMessage
     });
 
   } catch (error) {

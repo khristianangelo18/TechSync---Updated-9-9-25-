@@ -1,4 +1,4 @@
-// backend/utils/socketHandler.js
+// backend/utils/socketHandler.js - COMPLETE FIXED VERSION
 require('dotenv').config(); // Load environment variables first
 const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
@@ -104,7 +104,7 @@ const setupSocketHandlers = (io) => {
       }
     });
 
-    // Handle sending messages (ONLY to project members)
+    // Handle sending messages (ONLY to project members) - FIXED VERSION
     socket.on('send_message', async (data) => {
       try {
         const { roomId, projectId, content, messageType = 'text', replyToMessageId } = data;
@@ -136,7 +136,7 @@ const setupSocketHandlers = (io) => {
           return;
         }
 
-        // Save message to database
+        // Save message to database first
         const { data: message, error: messageError } = await supabase
           .from('chat_messages')
           .insert({
@@ -153,16 +153,6 @@ const setupSocketHandlers = (io) => {
               username,
               full_name,
               avatar_url
-            ),
-            reply_to:chat_messages!reply_to_message_id (
-              id,
-              content,
-              message_type,
-              user:users!user_id (
-                id,
-                username,
-                full_name
-              )
             )
           `)
           .single();
@@ -173,9 +163,33 @@ const setupSocketHandlers = (io) => {
           return;
         }
 
+        // If this message is a reply, fetch the reply data separately (same as API fix)
+        let processedMessage = { ...message };
+        
+        if (message.reply_to_message_id) {
+          const { data: replyToMessage, error: replyError } = await supabase
+            .from('chat_messages')
+            .select(`
+              id,
+              content,
+              user:users!user_id (
+                id,
+                username,
+                full_name,
+                avatar_url
+              )
+            `)
+            .eq('id', message.reply_to_message_id)
+            .single();
+
+          if (!replyError && replyToMessage) {
+            processedMessage.reply_to = replyToMessage;
+          }
+        }
+
         // Broadcast message to all users in the room (ONLY project members)
         io.to(`room_${roomId}`).emit('new_message', {
-          message,
+          message: processedMessage,
           roomId,
           projectId
         });
@@ -189,7 +203,7 @@ const setupSocketHandlers = (io) => {
       }
     });
 
-    // Handle message editing (only message owner)
+    // Handle message editing (only message owner) - FIXED VERSION
     socket.on('edit_message', async (data) => {
       try {
         const { messageId, content } = data;
@@ -223,15 +237,6 @@ const setupSocketHandlers = (io) => {
               username,
               full_name,
               avatar_url
-            ),
-            reply_to:chat_messages!reply_to_message_id (
-              id,
-              content,
-              user:users!user_id (
-                id,
-                username,
-                full_name
-              )
             )
           `)
           .single();
@@ -241,9 +246,33 @@ const setupSocketHandlers = (io) => {
           return;
         }
 
+        // If this message is a reply, fetch the reply data separately (same as API fix)
+        let processedMessage = { ...updatedMessage };
+        
+        if (updatedMessage.reply_to_message_id) {
+          const { data: replyToMessage, error: replyError } = await supabase
+            .from('chat_messages')
+            .select(`
+              id,
+              content,
+              user:users!user_id (
+                id,
+                username,
+                full_name,
+                avatar_url
+              )
+            `)
+            .eq('id', updatedMessage.reply_to_message_id)
+            .single();
+
+          if (!replyError && replyToMessage) {
+            processedMessage.reply_to = replyToMessage;
+          }
+        }
+
         // Broadcast updated message to room
         io.to(`room_${message.room_id}`).emit('message_edited', {
-          message: updatedMessage,
+          message: processedMessage,
           roomId: message.room_id,
           projectId: message.chat_rooms.project_id
         });

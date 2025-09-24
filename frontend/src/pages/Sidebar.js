@@ -1,5 +1,5 @@
-// frontend/src/pages/Sidebar.js - FIXED DASHBOARD HIGHLIGHTING
-import React, { useState } from 'react';
+// frontend/src/pages/Sidebar.js - WITH TOGGLE FUNCTIONALITY
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -21,6 +21,19 @@ function Sidebar() {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // NEW STATE: For sidebar collapse functionality
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // NEW: Listen for sidebar toggle events from Dashboard
+  useEffect(() => {
+    const handleSidebarToggle = (event) => {
+      setIsCollapsed(event.detail.collapsed);
+    };
+
+    window.addEventListener('sidebarToggle', handleSidebarToggle);
+    return () => window.removeEventListener('sidebarToggle', handleSidebarToggle);
+  }, []);
 
   // Main navigation items (for all users)
   const mainNavItems = [
@@ -108,7 +121,7 @@ function Sidebar() {
 
   const styles = {
     sidebar: {
-      width: '250px',
+      width: isCollapsed ? '60px' : '250px', // Dynamic width based on collapse state
       height: '100vh',
       backgroundColor: '#0F1116',
       borderRight: '1px solid rgba(255, 255, 255, 0.1)',
@@ -118,7 +131,8 @@ function Sidebar() {
       left: 0,
       top: 0,
       zIndex: 1000,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      transition: 'width 0.3s ease' // Smooth transition
     },
     backgroundSymbols: {
       position: 'absolute',
@@ -139,12 +153,13 @@ function Sidebar() {
     logo: {
       position: 'relative',
       zIndex: 10,
-      padding: '24px 20px',
+      padding: isCollapsed ? '24px 10px' : '24px 20px', // Adjust padding for collapsed state
       borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
       background: 'rgba(26, 28, 32, 0.95)',
       backdropFilter: 'blur(20px)',
       display: 'flex',
-      justifyContent: 'center'
+      justifyContent: isCollapsed ? 'center' : 'center', // Center logo in both states
+      transition: 'padding 0.3s ease'
     },
     logoContainer: {
       display: 'flex',
@@ -173,7 +188,10 @@ function Sidebar() {
       fontWeight: 'bold',
       color: 'white',
       margin: 0,
-      letterSpacing: '-0.025em'
+      letterSpacing: '-0.025em',
+      opacity: isCollapsed ? 0 : 1, // Hide text when collapsed
+      transition: 'opacity 0.3s ease',
+      whiteSpace: 'nowrap'
     },
     nav: {
       position: 'relative',
@@ -192,15 +210,16 @@ function Sidebar() {
       position: 'relative',
       display: 'flex',
       alignItems: 'center',
-      padding: '12px 20px',
+      padding: isCollapsed ? '12px 10px' : '12px 20px', // Adjust padding for collapsed state
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       textDecoration: 'none',
       color: '#d1d5db',
       borderRadius: '0',
-      margin: '0 12px',
+      margin: isCollapsed ? '0 6px' : '0 12px', // Adjust margins for collapsed state
       marginBottom: '4px',
-      backdropFilter: 'blur(8px)'
+      backdropFilter: 'blur(8px)',
+      justifyContent: isCollapsed ? 'center' : 'flex-start' // Center icons when collapsed
     },
     navItemActive: {
       backgroundColor: 'rgba(59, 130, 246, 0.15)',
@@ -219,15 +238,16 @@ function Sidebar() {
       position: 'relative',
       display: 'flex',
       alignItems: 'center',
-      padding: '12px 20px',
+      padding: isCollapsed ? '12px 10px' : '12px 20px', // Adjust padding for collapsed state
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       textDecoration: 'none',
       color: '#d1d5db',
       borderRadius: '0',
-      margin: '0 12px',
+      margin: isCollapsed ? '0 6px' : '0 12px', // Adjust margins for collapsed state
       marginBottom: '4px',
-      backdropFilter: 'blur(8px)'
+      backdropFilter: 'blur(8px)',
+      justifyContent: isCollapsed ? 'center' : 'flex-start' // Center icons when collapsed
     },
     adminNavItemActive: {
       backgroundColor: 'rgba(239, 68, 68, 0.15)',
@@ -245,8 +265,9 @@ function Sidebar() {
     adminSeparator: {
       height: '1px',
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      margin: '16px 20px',
-      borderRadius: '1px'
+      margin: isCollapsed ? '16px 10px' : '16px 20px', // Adjust margins for collapsed state
+      borderRadius: '1px',
+      transition: 'margin 0.3s ease'
     },
     bottomNav: {
       borderTop: '1px solid rgba(255, 255, 255, 0.1)',
@@ -256,24 +277,29 @@ function Sidebar() {
       position: 'relative',
       zIndex: 10,
       borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-      padding: '20px 16px',
+      padding: isCollapsed ? '20px 8px' : '20px 16px', // Adjust padding for collapsed state
       background: 'rgba(26, 28, 32, 0.95)',
-      backdropFilter: 'blur(20px)'
+      backdropFilter: 'blur(20px)',
+      transition: 'padding 0.3s ease'
     },
     userItem: {
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'space-between'
+      justifyContent: isCollapsed ? 'center' : 'space-between', // Center when collapsed
+      flexDirection: isCollapsed ? 'column' : 'row', // Stack vertically when collapsed
+      gap: isCollapsed ? '8px' : '0'
     },
     userInfo: {
       display: 'flex',
       alignItems: 'center',
       cursor: 'pointer',
-      flex: 1,
-      padding: '10px 12px',
+      flex: isCollapsed ? 'none' : 1,
+      padding: isCollapsed ? '8px' : '10px 12px',
       borderRadius: '12px',
       transition: 'all 0.3s ease',
-      backdropFilter: 'blur(8px)'
+      backdropFilter: 'blur(8px)',
+      flexDirection: isCollapsed ? 'column' : 'row', // Stack vertically when collapsed
+      gap: isCollapsed ? '6px' : '12px'
     },
     userInfoHover: {
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -290,30 +316,41 @@ function Sidebar() {
       justifyContent: 'center',
       fontSize: '16px',
       fontWeight: 'bold',
-      marginRight: '12px',
+      marginRight: isCollapsed ? '0' : '12px', // Remove margin when collapsed
       flexShrink: 0,
-      border: '2px solid rgba(96, 165, 250, 0.3)'
+      border: '2px solid rgba(96, 165, 250, 0.3)',
+      transition: 'margin 0.3s ease'
+    },
+    userDetails: {
+      display: isCollapsed ? 'none' : 'block', // Hide user details when collapsed
+      transition: 'opacity 0.3s ease'
     },
     userName: {
       fontSize: '14px',
       fontWeight: '600',
       color: 'white',
-      lineHeight: 1.2
+      lineHeight: 1.2,
+      textAlign: isCollapsed ? 'center' : 'left'
     },
     userRole: {
       fontSize: '12px',
       color: '#9ca3af',
       textTransform: 'capitalize',
-      marginTop: '2px'
+      marginTop: '2px',
+      textAlign: isCollapsed ? 'center' : 'left'
     },
     icon: {
-      marginRight: '12px',
+      marginRight: isCollapsed ? '0' : '12px', // Remove margin when collapsed
       width: '20px',
-      height: '20px'
+      height: '20px',
+      transition: 'margin 0.3s ease'
     },
     label: {
       fontSize: '14px',
-      fontWeight: '500'
+      fontWeight: '500',
+      opacity: isCollapsed ? 0 : 1, // Hide labels when collapsed
+      transition: 'opacity 0.3s ease',
+      whiteSpace: 'nowrap'
     },
     threeDots: {
       background: 'rgba(255, 255, 255, 0.05)',
@@ -321,10 +358,11 @@ function Sidebar() {
       fontSize: '16px',
       color: '#9ca3af',
       cursor: 'pointer',
-      padding: '6px 8px',
+      padding: isCollapsed ? '4px' : '6px 8px', // Smaller padding when collapsed
       borderRadius: '8px',
       transition: 'all 0.3s ease',
-      backdropFilter: 'blur(8px)'
+      backdropFilter: 'blur(8px)',
+      display: isCollapsed ? 'none' : 'block' // Hide three dots when collapsed
     },
     threeDotsHover: {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -334,15 +372,17 @@ function Sidebar() {
     userMenu: {
       position: 'absolute',
       bottom: '100%',
-      left: '20px',
-      right: '20px',
+      left: isCollapsed ? '70px' : '20px', // Adjust position when collapsed
+      right: isCollapsed ? 'auto' : '20px',
+      width: isCollapsed ? '200px' : 'auto', // Fixed width when collapsed
       backgroundColor: '#1a1c20',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       borderRadius: '12px',
       boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
       zIndex: 1001,
       overflow: 'hidden',
-      backdropFilter: 'blur(20px)'
+      backdropFilter: 'blur(20px)',
+      transition: 'all 0.3s ease'
     },
     menuItem: {
       display: 'flex',
@@ -374,8 +414,105 @@ function Sidebar() {
       padding: '2px 6px',
       borderRadius: '8px',
       fontWeight: 'bold',
-      border: '1px solid rgba(239, 68, 68, 0.3)'
+      border: '1px solid rgba(239, 68, 68, 0.3)',
+      opacity: isCollapsed ? 0 : 1, // Hide badge when collapsed
+      transition: 'opacity 0.3s ease'
+    },
+    // NEW: Tooltip styles for collapsed state
+    tooltip: {
+      position: 'absolute',
+      left: '100%',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      marginLeft: '8px',
+      backgroundColor: '#374151',
+      color: 'white',
+      padding: '6px 12px',
+      borderRadius: '6px',
+      fontSize: '12px',
+      fontWeight: '500',
+      whiteSpace: 'nowrap',
+      zIndex: 1002,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+      opacity: 0,
+      visibility: 'hidden',
+      transition: 'all 0.2s ease',
+      pointerEvents: 'none'
+    },
+    tooltipVisible: {
+      opacity: 1,
+      visibility: 'visible'
+    },
+    tooltipArrow: {
+      position: 'absolute',
+      left: '-4px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      width: 0,
+      height: 0,
+      borderTop: '4px solid transparent',
+      borderBottom: '4px solid transparent',
+      borderRight: '4px solid #374151'
     }
+  };
+
+  // NEW: Component for navigation items with tooltips
+  const NavItem = ({ item, isAdmin = false, isActiveItem, onNavigate }) => {
+    const [showTooltip, setShowTooltip] = useState(false);
+    const IconComponent = item.icon;
+    const itemStyles = isAdmin ? styles.adminNavItem : styles.navItem;
+    const activeStyles = isAdmin ? styles.adminNavItemActive : styles.navItemActive;
+    const hoverStyles = isAdmin ? styles.adminNavItemHover : styles.navItemHover;
+
+    return (
+      <div
+        style={{
+          ...itemStyles,
+          ...(isActiveItem ? activeStyles : {}),
+          position: 'relative'
+        }}
+        onClick={() => onNavigate(item.path)}
+        onMouseEnter={(e) => {
+          if (isCollapsed) {
+            setShowTooltip(true);
+          }
+          if (!isActiveItem) {
+            Object.assign(e.target.style, hoverStyles);
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (isCollapsed) {
+            setShowTooltip(false);
+          }
+          if (!isActiveItem) {
+            e.target.style.backgroundColor = 'transparent';
+            e.target.style.borderRadius = '0';
+            e.target.style.transform = 'translateX(0)';
+          }
+        }}
+      >
+        <IconComponent size={20} style={styles.icon} />
+        <span style={styles.label}>{item.label}</span>
+        {user?.role === 'admin' && item.id === 'admin' && (
+          <span style={styles.adminBadge}>
+            ADMIN
+          </span>
+        )}
+        
+        {/* Tooltip for collapsed state */}
+        {isCollapsed && (
+          <div 
+            style={{
+              ...styles.tooltip,
+              ...(showTooltip ? styles.tooltipVisible : {})
+            }}
+          >
+            {item.label}
+            <div style={styles.tooltipArrow} />
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -430,109 +567,42 @@ function Sidebar() {
       <nav style={styles.nav}>
         <div style={styles.navSection}>
           {/* Main Navigation Items (for all users) */}
-          {mainNavItems.map((item) => {
-            const isActiveItem = isActive(item.path);
-            const IconComponent = item.icon;
-            return (
-              <div
-                key={item.id}
-                style={{
-                  ...styles.navItem,
-                  ...(isActiveItem ? styles.navItemActive : {})
-                }}
-                onClick={() => handleNavigation(item.path)}
-                onMouseEnter={(e) => {
-                  if (!isActiveItem) {
-                    Object.assign(e.target.style, styles.navItemHover);
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActiveItem) {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.borderRadius = '0';
-                    e.target.style.transform = 'translateX(0)';
-                  }
-                }}
-              >
-                <IconComponent size={20} style={styles.icon} />
-                <span style={styles.label}>{item.label}</span>
-              </div>
-            );
-          })}
+          {mainNavItems.map((item) => (
+            <NavItem
+              key={item.id}
+              item={item}
+              isActiveItem={isActive(item.path)}
+              onNavigate={handleNavigation}
+            />
+          ))}
 
           {/* Admin/Moderator Navigation Items (only for admin/moderator) */}
           {adminNavItems.length > 0 && (
             <>
               <div style={styles.adminSeparator}></div>
-              {adminNavItems.map((item) => {
-                const isActiveItem = isActive(item.path);
-                const IconComponent = item.icon;
-                return (
-                  <div
-                    key={item.id}
-                    style={{
-                      ...styles.adminNavItem,
-                      ...(isActiveItem ? styles.adminNavItemActive : {})
-                    }}
-                    onClick={() => handleNavigation(item.path)}
-                    onMouseEnter={(e) => {
-                      if (!isActiveItem) {
-                        Object.assign(e.target.style, styles.adminNavItemHover);
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActiveItem) {
-                        e.target.style.backgroundColor = 'transparent';
-                        e.target.style.borderRadius = '0';
-                        e.target.style.transform = 'translateX(0)';
-                      }
-                    }}
-                  >
-                    <IconComponent size={20} style={styles.icon} />
-                    <span style={styles.label}>{item.label}</span>
-                    {user?.role === 'admin' && item.id === 'admin' && (
-                      <span style={styles.adminBadge}>
-                        ADMIN
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
+              {adminNavItems.map((item) => (
+                <NavItem
+                  key={item.id}
+                  item={item}
+                  isAdmin={true}
+                  isActiveItem={isActive(item.path)}
+                  onNavigate={handleNavigation}
+                />
+              ))}
             </>
           )}
         </div>
 
         {/* Bottom Navigation - Help Center */}
         <div style={{ ...styles.navSection, ...styles.bottomNav }}>
-          {bottomNavItems.map((item) => {
-            const isActiveItem = isActive(item.path);
-            const IconComponent = item.icon;
-            return (
-              <div
-                key={item.id}
-                style={{
-                  ...styles.navItem,
-                  ...(isActiveItem ? styles.navItemActive : {})
-                }}
-                onClick={() => handleNavigation(item.path)}
-                onMouseEnter={(e) => {
-                  if (!isActiveItem) {
-                    Object.assign(e.target.style, styles.navItemHover);
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActiveItem) {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.borderRadius = '0';
-                    e.target.style.transform = 'translateX(0)';
-                  }
-                }}
-              >
-                <IconComponent size={20} style={styles.icon} />
-                <span style={styles.label}>{item.label}</span>
-              </div>
-            );
-          })}
+          {bottomNavItems.map((item) => (
+            <NavItem
+              key={item.id}
+              item={item}
+              isActiveItem={isActive(item.path)}
+              onNavigate={handleNavigation}
+            />
+          ))}
         </div>
       </nav>
 
@@ -554,7 +624,7 @@ function Sidebar() {
               {user?.full_name?.charAt(0)?.toUpperCase() || 
                user?.username?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div>
+            <div style={styles.userDetails}>
               <div style={styles.userName}>
                 {user?.full_name || user?.username || 'User'}
               </div>
@@ -566,6 +636,8 @@ function Sidebar() {
               )}
             </div>
           </div>
+          
+          {/* Three dots menu - hidden when collapsed */}
           <button
             style={styles.threeDots}
             onClick={handleThreeDotsClick}

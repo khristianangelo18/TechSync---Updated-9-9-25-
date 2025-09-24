@@ -331,6 +331,8 @@ const ChatInterface = ({ projectId }) => {
                         marginBottom: '16px',
                         display: 'flex',
                         flexDirection: 'column',
+                        alignItems: isOwnMessage ? 'flex-end' : 'flex-start', // This properly aligns the entire message
+                        width: '100%'
                       }}
                       onMouseEnter={(e) => {
                         const actions = e.currentTarget.querySelector('.message-actions');
@@ -341,8 +343,8 @@ const ChatInterface = ({ projectId }) => {
                         if (actions) actions.style.opacity = '0';
                       }}
                     >
-                      {/* Reply indicator */}
-                      {message.reply_to && message.reply_to.user && (
+                      {/* Reply indicator - now properly handles backend data */}
+                      {message.reply_to && (
                         <div style={{ 
                           marginBottom: '8px',
                           padding: '8px 12px',
@@ -351,14 +353,41 @@ const ChatInterface = ({ projectId }) => {
                           maxWidth: '300px',
                           backgroundColor: 'rgba(59, 130, 246, 0.1)',
                           border: '1px solid rgba(59, 130, 246, 0.2)',
-                          color: '#93c5fd'
+                          color: '#93c5fd',
+                          alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
+                          width: 'fit-content'
                         }}>
-                          <div style={{ marginBottom: '4px', fontWeight: '600' }}>
-                            Replying to {getUserDisplayName(message.reply_to.user)}
+                          <div style={{ 
+                            marginBottom: '4px', 
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6M3 10l6-6"/>
+                            </svg>
+                            {isOwnMessage ? 'You replied to' : 'Replying to'} {
+                              message.reply_to.user 
+                                ? getUserDisplayName(message.reply_to.user) 
+                                : (message.reply_to.username || message.reply_to.full_name || 'someone')
+                            }
                           </div>
-                          <div>
-                            "{message.reply_to.content || 'Message content unavailable'}"
-                          </div>
+                          {(message.reply_to.content || message.reply_to.message) && (
+                            <div style={{ 
+                              fontStyle: 'italic',
+                              opacity: 0.8,
+                              borderLeft: '2px solid rgba(59, 130, 246, 0.4)',
+                              paddingLeft: '8px',
+                              marginLeft: '2px',
+                              fontSize: '11px',
+                              maxHeight: '60px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
+                            }}>
+                              "{message.reply_to.content || message.reply_to.message}"
+                            </div>
+                          )}
                         </div>
                       )}
                       
@@ -366,8 +395,8 @@ const ChatInterface = ({ projectId }) => {
                         display: 'flex',
                         gap: '8px',
                         flexDirection: isOwnMessage ? 'row-reverse' : 'row',
-                        alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
-                        alignItems: 'flex-end'
+                        alignItems: 'flex-end',
+                        maxWidth: '70%' // Limit message width for better readability
                       }}>
                         {/* Avatar */}
                         <div style={{ 
@@ -406,7 +435,7 @@ const ChatInterface = ({ projectId }) => {
                             )}
                           </div>
                           
-                          <div style={{ position: 'relative'}}>
+                          <div style={{ position: 'relative', display: 'flex', justifyContent: isOwnMessage ? 'flex-end' : 'flex-start' }}>
                             <div style={{
                               padding: '10px 14px',
                               borderRadius: '16px',
@@ -417,6 +446,7 @@ const ChatInterface = ({ projectId }) => {
                               borderBottomRightRadius: isOwnMessage ? '6px' : '16px',
                               borderBottomLeftRadius: isOwnMessage ? '16px' : '6px',
                               width: 'fit-content',
+                              maxWidth: '100%'
                             }}>
                               {message.content || 'Message content unavailable'}
                             </div>

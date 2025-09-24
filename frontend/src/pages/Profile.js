@@ -362,13 +362,39 @@ function Profile() {
   const handleSaveProfile = async (section) => {
     try {
       setLoading(true);
-      const response = await authService.updateProfile(formData);
-      setUser(response.data.user);
-      setEditingSections(prev => ({
-        ...prev,
-        [section]: false
-      }));
-      showNotification('Profile updated successfully!', 'success');
+      const token = localStorage.getItem('token');
+      
+      const cleanedData = {
+        full_name: formData.full_name || '',
+        bio: formData.bio || '',
+        github_username: formData.github_username || '',
+        linkedin_url: formData.linkedin_url || '',
+        years_experience: formData.years_experience || 0
+      };
+      
+      const response = await authService.updateProfile(cleanedData, token);
+      
+      // Debug the actual response structure
+      console.log('Full response:', response);
+      console.log('response.data:', response.data);
+      console.log('response.data.user:', response.data.user);
+      console.log('response.user:', response.user);
+      
+      // Try different possible structures
+      const updatedUser = response.data?.user || response.user || response.data;
+      
+      if (updatedUser) {
+        setUser(updatedUser);
+        setEditingSections(prev => ({
+          ...prev,
+          [section]: false
+        }));
+        showNotification('Profile updated successfully!', 'success');
+      } else {
+        console.error('No user data found in response');
+        showNotification('Profile updated but user data not returned', 'warning');
+      }
+      
     } catch (error) {
       console.error('Error updating profile:', error);
       showNotification(error.response?.data?.message || 'Failed to update profile', 'error');
