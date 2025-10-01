@@ -1,11 +1,97 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Eye, EyeOff, Home } from 'lucide-react';
+
+// Isolated background styles - never changes
+const backgroundStyles = {
+  backgroundLayer: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 1
+  },
+  figmaBackground: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden'
+  },
+  codeSymbol: {
+    position: 'absolute',
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontStyle: 'normal',
+    fontWeight: 900,
+    fontSize: '24px',
+    lineHeight: '29px',
+    userSelect: 'none',
+    pointerEvents: 'none'
+  },
+  backgroundPattern: {
+    position: 'absolute',
+    inset: 0,
+    zIndex: 0,
+    opacity: 0.1
+  }
+};
+
+// Completely isolated background component - no dependencies on parent state
+const IsolatedAnimatedBackground = React.memo(() => (
+  <>
+    {/* Background Pattern */}
+    <svg 
+      style={backgroundStyles.backgroundPattern}
+      viewBox="0 0 1440 1024"
+      preserveAspectRatio="none"
+    >
+      <path
+        d="M0,400 Q200,300 400,350 T800,320 Q1000,280 1200,340 L1440,360 L1440,1024 L0,1024 Z"
+        fill="rgba(255,255,255,0.02)"
+        stroke="rgba(255,255,255,0.05)"
+        strokeWidth="1"
+      />
+      <path
+        d="M0,600 Q300,500 600,550 T1200,520 L1440,540 L1440,1024 L0,1024 Z"
+        fill="rgba(255,255,255,0.02)"
+        stroke="rgba(255,255,255,0.05)"
+        strokeWidth="1"
+      />
+    </svg>
+
+    {/* Animated Code Symbols Background */}
+    <div style={backgroundStyles.backgroundLayer}>
+      <div style={backgroundStyles.figmaBackground}>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '78%', top: '85%', color: '#3E4A6B', transform: 'rotate(-25deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '58%', top: '75%', color: '#6D798F', transform: 'rotate(10deg)'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '35%', top: '5%', color: '#454B68', transform: 'rotate(-35deg)'}}>&#60;/&#62;</div>
+      </div>
+    </div>
+  </>
+));
 
 function Login() {
   const [formData, setFormData] = useState({
-    identifier: '', // This can be username or email
+    identifier: '',
     password: ''
   });
   const [isRegistering, setIsRegistering] = useState(false);
@@ -20,48 +106,38 @@ function Login() {
     linkedin_url: ''
   });
   
-  // Password visibility toggles
   const [showPassword, setShowPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-  
-  // Form validation state
   const [validationErrors, setValidationErrors] = useState({});
   const [isFormValid, setIsFormValid] = useState(false);
-  
-  // Password error state
   const [passwordError, setPasswordError] = useState('');
 
   const { login, register, loading, error, isAuthenticated, clearError } = useAuth();
   const navigate = useNavigate();
 
-  // Check URL parameters to determine if we should show signup form
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const mode = urlParams.get('mode');
     if (mode === 'signup') {
       setIsRegistering(true);
-      window.scrollTo(0, 0);;
+      window.scrollTo(0, 0);
     }
   }, []);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
 
-  // Clear errors when switching between login/register
   useEffect(() => {
     clearError();
     setValidationErrors({});
     setPasswordError('');
   }, [isRegistering, clearError]);
 
-  // Check for password errors from auth context
   useEffect(() => {
     if (error && !isRegistering) {
-      // Check if the error is specifically about incorrect password/credentials
       if (error.toLowerCase().includes('password') ||
           error.toLowerCase().includes('incorrect') ||
           error.toLowerCase().includes('invalid credentials') ||
@@ -69,12 +145,11 @@ function Login() {
           error.toLowerCase().includes('unauthorized') ||
           error.toLowerCase().includes('login failed')) {
         setPasswordError('Incorrect username or password. Please try again.');
-        clearError(); // Clear the general error since we're showing password-specific error
+        clearError();
       }
     }
   }, [error, isRegistering, clearError]);
 
-  // Validation functions
   const validateUsername = (username) => {
     if (!username || username.length < 3 || username.length > 50) {
       return 'Username must be between 3-50 characters';
@@ -120,7 +195,7 @@ function Login() {
   };
 
   const validateLinkedInUrl = (url) => {
-    if (!url) return null; // Optional field
+    if (!url) return null;
     const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9-_]+\/?$/;
     if (!linkedinRegex.test(url)) {
       return 'Please enter a valid LinkedIn profile URL';
@@ -129,14 +204,13 @@ function Login() {
   };
 
   const validateGitHubUsername = (username) => {
-    if (!username) return null; // Optional field
+    if (!username) return null;
     if (!/^[a-zA-Z0-9-_]+$/.test(username)) {
       return 'GitHub username can only contain letters, numbers, hyphens, and underscores';
     }
     return null;
   };
 
-  // Real-time validation for registration form using useCallback to prevent dependency issues
   const validateRegistrationForm = useCallback((data) => {
     const errors = {};
     
@@ -155,7 +229,6 @@ function Login() {
     const fullNameError = validateFullName(data.full_name);
     if (fullNameError) errors.full_name = fullNameError;
 
-    // Optional fields validation - only validate if user entered something
     if (data.github_username && data.github_username.trim()) {
       const githubError = validateGitHubUsername(data.github_username);
       if (githubError) errors.github_username = githubError;
@@ -167,12 +240,10 @@ function Login() {
     }
 
     return errors;
-  }, []); // Empty dependency array since validation functions don't change
+  }, []);
 
-  // Update validation when registration data changes
   useEffect(() => {
     if (isRegistering) {
-      // Only validate fields that have been touched/filled
       const touchedFields = {};
       Object.keys(registerData).forEach(key => {
         if (registerData[key] && registerData[key].trim()) {
@@ -182,7 +253,6 @@ function Login() {
 
       const errors = validateRegistrationForm(touchedFields);
       
-      // Only show errors for fields that have content or have been touched
       const filteredErrors = {};
       Object.keys(errors).forEach(key => {
         if (registerData[key] && registerData[key].trim()) {
@@ -192,36 +262,23 @@ function Login() {
       
       setValidationErrors(filteredErrors);
       
-      // Form is valid if all required fields are filled and have no errors
       const requiredFieldsFilled = registerData.username.trim() && 
                                   registerData.email.trim() && 
                                   registerData.password.trim() && 
                                   registerData.confirmPassword.trim() && 
                                   registerData.full_name.trim();
       
-      // Check that there are no validation errors for any field (including optional ones that have content)
       const hasNoErrors = Object.keys(filteredErrors).length === 0;
       
       setIsFormValid(requiredFieldsFilled && hasNoErrors);
-      
-      // Debug logging
-      console.log('Form validation check:', {
-        requiredFieldsFilled,
-        hasNoErrors,
-        errors: filteredErrors,
-        isFormValid: requiredFieldsFilled && hasNoErrors,
-        registerData
-      });
     }
   }, [registerData, isRegistering, validateRegistrationForm]);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     
-    // Clear previous password error
     setPasswordError('');
     
-    // Basic login validation
     if (!formData.identifier || !formData.password) {
       setValidationErrors({
         form: 'Please fill in all required fields'
@@ -231,7 +288,6 @@ function Login() {
     
     const result = await login(formData);
     if (result && result.success) {
-      // Check if user needs onboarding
       if (result.data?.user?.needsOnboarding) {
         navigate('/onboarding');
       } else {
@@ -243,47 +299,28 @@ function Login() {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('Form submission attempted:', { registerData, isFormValid, validationErrors });
-    
-    // Validate form before submission
     const errors = validateRegistrationForm(registerData);
     if (Object.keys(errors).length > 0) {
-      console.log('Form validation failed:', errors);
       setValidationErrors(errors);
       return;
     }
 
-    // Check required fields
     if (!registerData.username.trim() || !registerData.email.trim() || 
         !registerData.password.trim() || !registerData.confirmPassword.trim() || !registerData.full_name.trim()) {
-      console.log('Required fields missing');
       setValidationErrors({
         form: 'Please fill in all required fields'
       });
       return;
     }
 
-    // Clear validation errors
     setValidationErrors({});
-    
-    console.log('Attempting registration with:', {
-      ...registerData,
-      password: '[HIDDEN]' // Don't log the actual password
-    });
     
     try {
       const result = await register(registerData);
-      console.log('Registration result:', result);
       
       if (result && result.success) {
-        console.log('Registration successful, navigating to onboarding');
-        // New users always need onboarding
         navigate('/onboarding');
       } else {
-        console.log('Registration failed:', result);
-        console.log('Backend validation errors:', result?.errors);
-        
-        // If backend returns specific field errors, show them
         if (result?.errors && Array.isArray(result.errors)) {
           const fieldErrors = {};
           result.errors.forEach(err => {
@@ -293,17 +330,12 @@ function Login() {
           });
           setValidationErrors(fieldErrors);
         } else {
-          // Show general error message
           setValidationErrors({
             form: result?.message || 'Registration failed. Please try again.'
           });
         }
       }
     } catch (err) {
-      console.error('Registration error caught:', err);
-      console.error('Error response:', err?.response?.data);
-      
-      // Stay on registration form and show error
       setValidationErrors({
         form: err?.response?.data?.message || 'Registration failed. Please try again.'
       });
@@ -315,7 +347,6 @@ function Login() {
       ...formData,
       [e.target.name]: e.target.value
     });
-    // Clear form-level errors and password errors when user starts typing
     if (validationErrors.form) {
       setValidationErrors({});
     }
@@ -331,7 +362,6 @@ function Login() {
       [name]: value
     });
     
-    // Clear field-specific error when user starts typing
     if (validationErrors[name]) {
       setValidationErrors(prev => {
         const newErrors = { ...prev };
@@ -341,7 +371,8 @@ function Login() {
     }
   };
 
-  const styles = {
+  // Memoize styles WITHOUT any dynamic values
+  const styles = useMemo(() => ({
     pageContainer: {
       minHeight: '100vh',
       backgroundColor: '#0F1116',
@@ -354,43 +385,15 @@ function Login() {
       justifyContent: 'center',
       padding: '2rem 1rem'
     },
-    backgroundLayer: {
-      position: 'absolute',
-      inset: 0,
-      zIndex: 1
-    },
-    figmaBackground: {
-      position: 'absolute',
-      width: '100%',
-      height: '100%',
-      overflow: 'hidden'
-    },
-    codeSymbol: {
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none'
-    },
-    backgroundPattern: {
-      position: 'absolute',
-      inset: 0,
-      zIndex: 0,
-      opacity: 0.1
-    },
     container: {
       position: 'relative',
       zIndex: 10,
       maxWidth: '380px',
       width: '100%',
-      background: 'rgba(26, 28, 32, 0.95)',
+      background: 'linear-gradient(135deg, rgba(42, 46, 57, 0.95) 0%, rgba(28, 31, 38, 0.98) 50%, rgba(20, 22, 28, 1) 100%)',
       backdropFilter: 'blur(20px)',
       border: '1px solid rgba(255, 255, 255, 0.1)',
       borderRadius: '16px',
-      padding: isRegistering ? '1.5rem 1.75rem' : '2.5rem 2rem',
       boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)'
     },
     logoSection: {
@@ -398,7 +401,6 @@ function Login() {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '0.75rem',
-      marginBottom: isRegistering ? '1rem' : '1.5rem',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       padding: '0.5rem',
@@ -407,37 +409,25 @@ function Login() {
     logoIcon: {
       width: '40px',
       height: '40px',
-      background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-      borderRadius: '10px',
-      transform: 'rotate(45deg)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       transition: 'transform 0.3s ease'
     },
-    logoInner: {
-      width: '20px',
-      height: '20px',
-      background: 'white',
-      borderRadius: '3px',
-      transform: 'rotate(-45deg)'
-    },
-    logoText: {
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      letterSpacing: '-0.025em',
-      color: 'white'
+    logoImage: {
+      width: '200%',
+      height: '200%',
+      objectFit: 'contain'
     },
     title: {
       textAlign: 'center',
-      marginBottom: isRegistering ? '1rem' : '2rem',
       fontSize: '1.5rem',
       fontWeight: '600',
       color: 'white',
       letterSpacing: '-0.025em'
     },
     formGroup: {
-      marginBottom: isRegistering ? '0.75rem' : '1.25rem'
+      // No marginBottom here
     },
     label: {
       display: 'block',
@@ -458,12 +448,6 @@ function Login() {
       boxSizing: 'border-box',
       transition: 'all 0.3s ease',
       backdropFilter: 'blur(8px)'
-    },
-    inputFocused: {
-      outline: 'none',
-      borderColor: '#3b82f6',
-      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)',
-      background: 'rgba(55, 65, 81, 0.7)'
     },
     inputError: {
       width: '100%',
@@ -489,11 +473,6 @@ function Login() {
       marginBottom: '1rem',
       transition: 'all 0.3s ease',
       letterSpacing: '0.025em'
-    },
-    buttonHover: {
-      background: 'linear-gradient(to right, #374151, #1f2937)',
-      transform: 'translateY(-2px)',
-      boxShadow: '0 8px 25px rgba(0, 0, 0, 0.3)'
     },
     buttonDisabled: {
       background: 'rgba(107, 114, 128, 0.5)',
@@ -536,7 +515,6 @@ function Login() {
     },
     switchText: {
       textAlign: 'center',
-      marginTop: isRegistering ? '1.5rem' : '2rem',
       color: '#9ca3af',
       fontSize: '14px'
     },
@@ -546,9 +524,6 @@ function Login() {
       textDecoration: 'none',
       fontWeight: '500',
       transition: 'color 0.3s ease'
-    },
-    linkHover: {
-      color: '#93c5fd'
     },
     helpText: {
       fontSize: '11px',
@@ -563,21 +538,6 @@ function Login() {
       display: 'flex',
       alignItems: 'center',
       gap: '0.25rem'
-    },
-    divider: {
-      display: 'flex',
-      alignItems: 'center',
-      margin: '1.5rem 0',
-      color: '#6b7280'
-    },
-    dividerLine: {
-      flex: 1,
-      height: '1px',
-      background: 'rgba(255, 255, 255, 0.1)'
-    },
-    dividerText: {
-      padding: '0 1rem',
-      fontSize: '14px'
     },
     passwordContainer: {
       position: 'relative',
@@ -624,9 +584,112 @@ function Login() {
       alignItems: 'center',
       justifyContent: 'center'
     }
-  };
+  }), []); // Empty dependency - no dynamic values
 
   const hoverStyles = `
+    /* FLOATING BACKGROUND SYMBOLS */
+    @keyframes floatAround1 {
+      0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+      25% { transform: translate(30px, -20px) rotate(-5deg); }
+      50% { transform: translate(-15px, 25px) rotate(-15deg); }
+      75% { transform: translate(20px, 10px) rotate(-8deg); }
+    }
+
+    @keyframes floatAround2 {
+      0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+      33% { transform: translate(-25px, 15px) rotate(-30deg); }
+      66% { transform: translate(35px, -10px) rotate(-45deg); }
+    }
+
+    @keyframes floatAround3 {
+      0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+      20% { transform: translate(-20px, -30px) rotate(40deg); }
+      40% { transform: translate(25px, 20px) rotate(28deg); }
+      60% { transform: translate(-10px, -15px) rotate(38deg); }
+      80% { transform: translate(15px, 25px) rotate(30deg); }
+    }
+
+    @keyframes floatAround4 {
+      0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+      50% { transform: translate(-40px, 30px) rotate(35deg); }
+    }
+
+    @keyframes floatAround5 {
+      0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+      25% { transform: translate(20px, -25px) rotate(30deg); }
+      50% { transform: translate(-30px, 20px) rotate(18deg); }
+      75% { transform: translate(25px, 15px) rotate(28deg); }
+    }
+
+    @keyframes floatAround6 {
+      0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+      33% { transform: translate(-15px, -20px) rotate(30deg); }
+      66% { transform: translate(30px, 25px) rotate(20deg); }
+    }
+
+    @keyframes driftSlow {
+      0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+      25% { transform: translate(-35px, 20px) rotate(-25deg); }
+      50% { transform: translate(20px, -30px) rotate(-15deg); }
+      75% { transform: translate(-10px, 35px) rotate(-22deg); }
+    }
+
+    @keyframes gentleDrift {
+      0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+      50% { transform: translate(25px, -40px) rotate(-2deg); }
+    }
+
+    @keyframes spiralFloat {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(20px, -20px) rotate(5deg); }
+      50% { transform: translate(0px, -40px) rotate(10deg); }
+      75% { transform: translate(-20px, -20px) rotate(5deg); }
+    }
+
+    @keyframes waveMotion {
+      0%, 100% { transform: translate(0, 0) rotate(15deg); }
+      25% { transform: translate(30px, 10px) rotate(20deg); }
+      50% { transform: translate(15px, -25px) rotate(10deg); }
+      75% { transform: translate(-15px, 10px) rotate(18deg); }
+    }
+
+    @keyframes circularDrift {
+      0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+      25% { transform: translate(25px, 0px) rotate(-40deg); }
+      50% { transform: translate(25px, 25px) rotate(-50deg); }
+      75% { transform: translate(0px, 25px) rotate(-42deg); }
+    }
+
+    .floating-symbol {
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+    }
+
+    .floating-symbol:nth-child(1) { animation: floatAround1 15s infinite; }
+    .floating-symbol:nth-child(2) { animation: floatAround2 18s infinite; animation-delay: -2s; }
+    .floating-symbol:nth-child(3) { animation: floatAround3 12s infinite; animation-delay: -5s; }
+    .floating-symbol:nth-child(4) { animation: floatAround4 20s infinite; animation-delay: -8s; }
+    .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(6) { animation: floatAround6 14s infinite; animation-delay: -7s; }
+    .floating-symbol:nth-child(7) { animation: driftSlow 22s infinite; animation-delay: -10s; }
+    .floating-symbol:nth-child(8) { animation: gentleDrift 19s infinite; animation-delay: -1s; }
+    .floating-symbol:spiralFloat 17s infinite; animation-delay: -6s; }
+    .floating-symbol:nth-child(10) { animation: waveMotion 13s infinite; animation-delay: -4s; }
+    .floating-symbol:nth-child(11) { animation: circularDrift 21s infinite; animation-delay: -9s; }
+    .floating-symbol:nth-child(12) { animation: floatAround1 16s infinite; animation-delay: -2s; }
+    .floating-symbol:nth-child(13) { animation: floatAround2 18s infinite; animation-delay: -11s; }
+    .floating-symbol:nth-child(14) { animation: floatAround3 14s infinite; animation-delay: -5s; }
+    .floating-symbol:nth-child(15) { animation: floatAround4 19s infinite; animation-delay: -7s; }
+    .floating-symbol:nth-child(16) { animation: floatAround5 23s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(17) { animation: driftSlow 15s infinite; animation-delay: -8s; }
+    .floating-symbol:nth-child(18) { animation: gentleDrift 17s infinite; animation-delay: -1s; }
+    .floating-symbol:nth-child(19) { animation: spiralFloat 20s infinite; animation-delay: -12s; }
+    .floating-symbol:nth-child(20) { animation: waveMotion 18s infinite; animation-delay: -6s; }
+    .floating-symbol:nth-child(21) { animation: circularDrift 16s infinite; animation-delay: -4s; }
+    .floating-symbol:nth-child(22) { animation: floatAround1 14s infinite; animation-delay: -9s; }
+    .floating-symbol:nth-child(23) { animation: floatAround2 16s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(24) { animation: driftSlow 18s infinite; animation-delay: -7s; }
+
     .login-input:focus {
       outline: none !important;
       border-color: #3b82f6 !important;
@@ -664,12 +727,30 @@ function Login() {
       transform: rotate(45deg) scale(1.1) !important;
     }
     
-    .back-to-home-button:hover {
-      background: rgba(15, 17, 22, 1) !important;
-      border-color: rgba(59, 130, 246, 0.6) !important;
-      color: #ffffff !important;
-      transform: translateY(-3px) !important;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 0 0 1px rgba(59, 130, 246, 0.3) !important;
+    .enhanced-home-button:hover {
+      background: linear-gradient(135deg, rgba(31, 35, 40, 0.98), rgba(20, 22, 26, 1)) !important;
+      border-color: rgba(59, 130, 246, 0.4) !important;
+      transform: translateY(-4px) scale(1.02) !important;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(59, 130, 246, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 0 0 1px rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    .enhanced-home-button:hover .button-glow {
+      opacity: 1 !important;
+    }
+    
+    .enhanced-home-button:hover .icon-container {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.15)) !important;
+      transform: scale(1.1) rotate(5deg) !important;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2) !important;
+    }
+    
+    .enhanced-home-button:hover .button-text {
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2)) brightness(1.1) !important;
+    }
+    
+    .enhanced-home-button:active {
+      transform: translateY(-2px) scale(1.01) !important;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     
     input::placeholder {
@@ -685,7 +766,6 @@ function Login() {
           {`
             ${hoverStyles}
             
-            /* Force no scroll for login page only */
             body {
               overflow: hidden !important;
             }
@@ -708,7 +788,6 @@ function Login() {
           padding: '0.5rem'
         }}>
         
-        {/* Back to Home Button - Outside Container */}
         <div style={{
           position: 'fixed',
           top: '2rem',
@@ -718,104 +797,99 @@ function Login() {
           <button
             onClick={() => navigate('/')}
             style={{
-              padding: '1rem 1.5rem',
-              background: 'rgba(15, 17, 22, 0.95)',
+              padding: '0.875rem 1.75rem',
+              background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.98))',
               backdropFilter: 'blur(24px)',
-              color: '#e5e7eb',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              borderRadius: '16px',
-              fontSize: '0.95rem',
+              color: '#f8fafc',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: '20px',
+              fontSize: '0.925rem',
               fontWeight: '600',
               cursor: 'pointer',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-              letterSpacing: '0.025em'
+              gap: '0.625rem',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(59, 130, 246, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+              letterSpacing: '0.02em',
+              position: 'relative',
+              overflow: 'hidden'
             }}
-            className="back-to-home-button"
+            className="enhanced-home-button"
           >
-            <Home size={18} strokeWidth={2.5} />
-            Home
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.03), rgba(147, 51, 234, 0.02))',
+              borderRadius: '19px',
+              opacity: 0,
+              transition: 'opacity 0.4s ease',
+              zIndex: 1
+            }} className="button-glow" />
+            
+            <div style={{
+              position: 'relative',
+              zIndex: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '22px',
+              height: '22px',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.08))',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+            }} className="icon-container">
+              <Home size={16} strokeWidth={2.5} style={{
+                filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+              }} />
+            </div>
+            
+            <span style={{
+              position: 'relative',
+              zIndex: 2,
+              background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+              filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+            }} className="button-text">
+              Home
+            </span>
           </button>
         </div>
         
-        {/* Background Layer with Code Symbols */}
-        <div style={styles.backgroundLayer}>
-          <div style={styles.figmaBackground}>
-            <div style={{...styles.codeSymbol, left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-            <div style={{...styles.codeSymbol, left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-          </div>
-        </div>
-
-        {/* Background Pattern */}
-        <svg 
-          style={styles.backgroundPattern}
-          viewBox="0 0 1440 1024"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0,400 Q200,300 400,350 T800,320 Q1000,280 1200,340 L1440,360 L1440,1024 L0,1024 Z"
-            fill="rgba(255,255,255,0.02)"
-            stroke="rgba(255,255,255,0.05)"
-            strokeWidth="1"
-          />
-          <path
-            d="M0,600 Q300,500 600,550 T1200,520 L1440,540 L1440,1024 L0,1024 Z"
-            fill="rgba(255,255,255,0.02)"
-            stroke="rgba(255,255,255,0.05)"
-            strokeWidth="1"
-          />
-        </svg>
+        <IsolatedAnimatedBackground />
 
         <div style={{
-          position: 'relative',
-          zIndex: 10,
-          maxWidth: '380px',
-          width: '100%',
-          background: 'rgba(26, 28, 32, 0.95)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '2.5rem 2rem',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-          maxHeight: 'calc(100vh - 1rem)',
-          overflowY: 'auto'
+          ...styles.container,
+          padding: '2.5rem 2rem'
         }}>
           <div 
-            style={styles.logoSection}
+            style={{
+              ...styles.logoSection,
+              marginBottom: '1.5rem'
+            }}
             className="logo-section"
             onClick={() => navigate('/')}
             title="Go back to TechSync homepage"
           >
             <div style={styles.logoIcon} className="logo-icon">
-              <div style={styles.logoInner} />
+              <img 
+                src="/images/logo/TechSyncLogo.png" 
+                alt="TechSync Logo" 
+                style={styles.logoImage}
+              />
             </div>
-            <span style={styles.logoText}>TechSync</span>
           </div>
           
           <h2 style={{
-            textAlign: 'center',
-            marginBottom: '1rem',
-            fontSize: '1.5rem',
-            fontWeight: '600',
-            color: 'white',
-            letterSpacing: '-0.025em'
+            ...styles.title,
+            marginBottom: '1rem'
           }}>Sign In with TechSync</h2>
           
           {error && <div style={styles.error}>{error}</div>}
@@ -891,10 +965,8 @@ function Login() {
           </form>
           
           <div style={{
-            textAlign: 'center',
-            marginTop: '1rem',
-            color: '#9ca3af',
-            fontSize: '14px'
+            ...styles.switchText,
+            marginTop: '2rem'
           }}>
             Don't have an account?{' '}
             <span 
@@ -916,7 +988,6 @@ function Login() {
     <div style={styles.pageContainer}>
       <style>{hoverStyles}</style>
       
-      {/* Back to Home Button - Outside Container */}
       <div style={{
         position: 'fixed',
         top: '2rem',
@@ -926,91 +997,106 @@ function Login() {
         <button
           onClick={() => navigate('/')}
           style={{
-            padding: '1rem 1.5rem',
-            background: 'rgba(15, 17, 22, 0.95)',
+            padding: '0.875rem 1.75rem',
+            background: 'linear-gradient(135deg, rgba(26, 28, 32, 0.95), rgba(15, 17, 22, 0.98))',
             backdropFilter: 'blur(24px)',
-            color: '#e5e7eb',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            borderRadius: '16px',
-            fontSize: '0.95rem',
+            color: '#f8fafc',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '20px',
+            fontSize: '0.925rem',
             fontWeight: '600',
             cursor: 'pointer',
-            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75rem',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-            letterSpacing: '0.025em'
+            gap: '0.625rem',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(59, 130, 246, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            letterSpacing: '0.02em',
+            position: 'relative',
+            overflow: 'hidden'
           }}
-          className="back-to-home-button"
+          className="enhanced-home-button"
         >
-          <Home size={18} strokeWidth={2.5} />
-          Home
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.03), rgba(147, 51, 234, 0.02))',
+            borderRadius: '19px',
+            opacity: 0,
+            transition: 'opacity 0.4s ease',
+            zIndex: 1
+          }} className="button-glow" />
+          
+          <div style={{
+            position: 'relative',
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '22px',
+            height: '22px',
+            borderRadius: '6px',
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.08))',
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+          }} className="icon-container">
+            <Home size={16} strokeWidth={2.5} style={{
+              filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2))',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+            }} />
+          </div>
+          
+          <span style={{
+            position: 'relative',
+            zIndex: 2,
+            background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            filter: 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1))',
+            transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+          }} className="button-text">
+            Home
+          </span>
         </button>
       </div>
       
-      {/* Background Layer with Code Symbols */}
-      <div style={styles.backgroundLayer}>
-        <div style={styles.figmaBackground}>
-          <div style={{...styles.codeSymbol, left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-        </div>
-      </div>
+      <IsolatedAnimatedBackground />
 
-      {/* Background Pattern */}
-      <svg 
-        style={styles.backgroundPattern}
-        viewBox="0 0 1440 1024"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M0,400 Q200,300 400,350 T800,320 Q1000,280 1200,340 L1440,360 L1440,1024 L0,1024 Z"
-          fill="rgba(255,255,255,0.02)"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth="1"
-        />
-        <path
-          d="M0,600 Q300,500 600,550 T1200,520 L1440,540 L1440,1024 L0,1024 Z"
-          fill="rgba(255,255,255,0.02)"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth="1"
-        />
-      </svg>
-
-      <div style={styles.container}>
+      <div style={{
+        ...styles.container,
+        padding: '1.5rem 1.75rem'
+      }}>
         <div 
-          style={styles.logoSection}
+          style={{
+            ...styles.logoSection,
+            marginBottom: '1rem'
+          }}
           className="logo-section"
           onClick={() => navigate('/')}
           title="Go back to TechSync homepage"
         >
           <div style={styles.logoIcon} className="logo-icon">
-            <div style={styles.logoInner} />
+            <img 
+              src="/images/logo/TechSyncLogo.png" 
+              alt="TechSync Logo" 
+              style={styles.logoImage}
+            />
           </div>
-          <span style={styles.logoText}>TechSync</span>
         </div>
         
-        <h2 style={styles.title}>Sign Up with TechSync</h2>
+        <h2 style={{
+          ...styles.title,
+          marginBottom: '1rem'
+        }}>Sign Up with TechSync</h2>
         
         {error && <div style={styles.error}>{error}</div>}
         {validationErrors.form && <div style={styles.error}>{validationErrors.form}</div>}
         
         <form onSubmit={handleRegisterSubmit}>
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>Username</label>
             <input
               type="text"
@@ -1033,7 +1119,7 @@ function Login() {
             </div>
           </div>
 
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>Full Name</label>
             <input
               type="text"
@@ -1050,7 +1136,7 @@ function Login() {
             )}
           </div>
           
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>Email Address</label>
             <input
               type="email"
@@ -1070,7 +1156,7 @@ function Login() {
             )}
           </div>
           
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>Password</label>
             <div style={styles.passwordContainer}>
               <input
@@ -1108,7 +1194,7 @@ function Login() {
             </div>
           </div>
           
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>Re-enter Password</label>
             <div style={styles.passwordContainer}>
               <input
@@ -1145,7 +1231,7 @@ function Login() {
             </div>
           </div>
           
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>Short Bio (Optional)</label>
             <input
               type="text"
@@ -1161,7 +1247,7 @@ function Login() {
             </div>
           </div>
           
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>GitHub Username (Optional)</label>
             <input
               type="text"
@@ -1183,7 +1269,7 @@ function Login() {
             </div>
           </div>
           
-          <div style={styles.formGroup}>
+          <div style={{ marginBottom: '0.75rem' }}>
             <label style={styles.label}>LinkedIn URL (Optional)</label>
             <input
               type="url"
@@ -1217,19 +1303,12 @@ function Login() {
           >
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
-          
-          {/* Debug info - remove this in production */}
-          {process.env.NODE_ENV === 'development' && (
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
-              Debug: Form Valid = {isFormValid ? 'Yes' : 'No'} | 
-              Errors = {Object.keys(validationErrors).length} | 
-              Loading = {loading ? 'Yes' : 'No'} |
-              IsRegistering = {isRegistering ? 'Yes' : 'No'}
-            </div>
-          )}
         </form>
         
-        <div style={styles.switchText}>
+        <div style={{
+          ...styles.switchText,
+          marginTop: '1.5rem'
+        }}>
           Already have an account?{' '}
           <span 
             style={styles.link}

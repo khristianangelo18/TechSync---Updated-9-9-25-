@@ -1,4 +1,4 @@
-// frontend/src/pages/Dashboard.js - COMPLETE VERSION WITH CUSTOM SCROLLBAR
+// frontend/src/pages/Dashboard.js - COMPLETE VERSION WITH CHALLENGE MODAL
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import SkillMatchingAPI from '../services/skillMatchingAPI';
 import CreateProject from './CreateProject';
 import NotificationDropdown from '../components/Notifications/NotificationDropdown';
 import AIChatInterface from '../components/AIChat/AIChatInterface';
+import ProjectChallengeInterface from '../components/ProjectChallengeInterface'; // ADD THIS IMPORT
 import { Plus, Bell, Rocket, Code, Users, BookOpen, HelpCircle, LockKeyhole } from 'lucide-react';
 
 // Enhanced Project Card Component with subtle themed colors
@@ -189,7 +190,6 @@ const EnhancedProjectCard = ({
         </button>
       </div>
 
-
       {showScoreModal && createPortal(
         <div style={styles.modal} onClick={() => setShowScoreModal(false)}>
           <div
@@ -278,7 +278,7 @@ const EnhancedProjectCard = ({
   );
 };
 
-// Background symbols component - ALIGNED WITH FRIENDS AND PROJECTS
+// Background symbols component - ENHANCED WITH FLOATING ANIMATIONS
 const BackgroundSymbols = () => (
   <div style={{
     position: 'fixed',
@@ -289,7 +289,7 @@ const BackgroundSymbols = () => (
     zIndex: 1,
     pointerEvents: 'none'
   }}>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -300,7 +300,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -311,7 +311,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -322,7 +322,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -333,7 +333,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -344,7 +344,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -355,7 +355,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -366,7 +366,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -377,7 +377,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -388,7 +388,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -399,7 +399,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -410,7 +410,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -421,7 +421,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -432,7 +432,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -443,7 +443,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -454,7 +454,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -465,7 +465,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -476,7 +476,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -487,7 +487,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -498,7 +498,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -509,7 +509,7 @@ const BackgroundSymbols = () => (
       pointerEvents: 'none',
       left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
     }}>&#60;/&#62;</div>
-    <div style={{
+    <div className="floating-symbol" style={{
       position: 'absolute',
       fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       fontStyle: 'normal',
@@ -542,6 +542,10 @@ function Dashboard() {
   const [showAIProjectPreview, setShowAIProjectPreview] = useState(false);
   const [aiPreviewProject, setAiPreviewProject] = useState(null);
 
+  // ADD THESE NEW STATES FOR CHALLENGE MODAL
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [selectedProjectForChallenge, setSelectedProjectForChallenge] = useState(null);
+
   const { 
     unreadCount, 
     notifications, 
@@ -551,11 +555,10 @@ function Dashboard() {
   // Subtle color variants for project cards - aligned with dark theme
   const colorVariants = ['slate', 'zinc', 'neutral', 'stone', 'gray', 'blue'];
 
-  // Custom scrollbar styles for the project preview modal
+  // Custom scrollbar styles for the project preview modal + dropdown styling + FLOATING ANIMATIONS
   const customScrollbarStyles = `
     /* Custom scrollbar for the project preview modal */
     .project-preview-modal {
-      /* For Webkit browsers (Chrome, Safari, Edge) */
       scrollbar-width: thin;
       scrollbar-color: rgba(59, 130, 246, 0.6) rgba(255, 255, 255, 0.05);
     }
@@ -617,17 +620,169 @@ function Dashboard() {
       border-radius: 10px;
     }
 
-    /* Additional styling for smooth scrolling */
     .project-preview-modal {
       scroll-behavior: smooth;
     }
 
-    /* For Firefox */
     @supports (scrollbar-width: thin) {
       .project-preview-modal {
         scrollbar-width: thin;
         scrollbar-color: rgba(59, 130, 246, 0.8) rgba(255, 255, 255, 0.05);
       }
+    }
+
+    /* Dark theme dropdown styles - FIX FOR WHITE BACKGROUND ISSUE */
+    select option {
+      background-color: #1a1c20 !important;
+      color: #e2e8f0 !important;
+      padding: 8px 12px !important;
+      border: none !important;
+    }
+
+    select option:hover {
+      background-color: #2563eb !important;
+      color: white !important;
+    }
+
+    select option:checked {
+      background-color: #3b82f6 !important;
+      color: white !important;
+    }
+
+    /* For Firefox */
+    select {
+      color-scheme: dark;
+    }
+
+    /* Additional styles for better dropdown appearance */
+    select::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    select::-webkit-scrollbar-track {
+      background: #1a1c20;
+    }
+
+    select::-webkit-scrollbar-thumb {
+      background: #3b82f6;
+      border-radius: 4px;
+    }
+
+    select::-webkit-scrollbar-thumb:hover {
+      background: #2563eb;
+    }
+
+    /* FLOATING BACKGROUND SYMBOLS ANIMATIONS */
+    @keyframes floatAround1 {
+      0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+      25% { transform: translate(30px, -20px) rotate(-5deg); }
+      50% { transform: translate(-15px, 25px) rotate(-15deg); }
+      75% { transform: translate(20px, 10px) rotate(-8deg); }
+    }
+
+    @keyframes floatAround2 {
+      0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+      33% { transform: translate(-25px, 15px) rotate(-30deg); }
+      66% { transform: translate(35px, -10px) rotate(-45deg); }
+    }
+
+    @keyframes floatAround3 {
+      0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+      20% { transform: translate(-20px, -30px) rotate(40deg); }
+      40% { transform: translate(25px, 20px) rotate(28deg); }
+      60% { transform: translate(-10px, -15px) rotate(38deg); }
+      80% { transform: translate(15px, 25px) rotate(30deg); }
+    }
+
+    @keyframes floatAround4 {
+      0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+      50% { transform: translate(-40px, 30px) rotate(35deg); }
+    }
+
+    @keyframes floatAround5 {
+      0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+      25% { transform: translate(20px, -25px) rotate(30deg); }
+      50% { transform: translate(-30px, 20px) rotate(18deg); }
+      75% { transform: translate(25px, 15px) rotate(28deg); }
+    }
+
+    @keyframes floatAround6 {
+      0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+      33% { transform: translate(-15px, -20px) rotate(30deg); }
+      66% { transform: translate(30px, 25px) rotate(20deg); }
+    }
+
+    @keyframes driftSlow {
+      0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+      25% { transform: translate(-35px, 20px) rotate(-25deg); }
+      50% { transform: translate(20px, -30px) rotate(-15deg); }
+      75% { transform: translate(-10px, 35px) rotate(-22deg); }
+    }
+
+    @keyframes gentleDrift {
+      0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+      50% { transform: translate(25px, -40px) rotate(-2deg); }
+    }
+
+    @keyframes spiralFloat {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(20px, -20px) rotate(5deg); }
+      50% { transform: translate(0px, -40px) rotate(10deg); }
+      75% { transform: translate(-20px, -20px) rotate(5deg); }
+    }
+
+    @keyframes waveMotion {
+      0%, 100% { transform: translate(0, 0) rotate(15deg); }
+      25% { transform: translate(30px, 10px) rotate(20deg); }
+      50% { transform: translate(15px, -25px) rotate(10deg); }
+      75% { transform: translate(-15px, 10px) rotate(18deg); }
+    }
+
+    @keyframes circularDrift {
+      0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+      25% { transform: translate(25px, 0px) rotate(-40deg); }
+      50% { transform: translate(25px, 25px) rotate(-50deg); }
+      75% { transform: translate(0px, 25px) rotate(-42deg); }
+    }
+    @keyframes globalLogoRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .global-loading-spinner {
+      animation: globalLogoRotate 2s linear infinite;
+    }
+    .floating-symbol {
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+    }
+
+    .floating-symbol:nth-child(1) { animation: floatAround1 15s infinite; }
+    .floating-symbol:nth-child(2) { animation: floatAround2 18s infinite; animation-delay: -2s; }
+    .floating-symbol:nth-child(3) { animation: floatAround3 12s infinite; animation-delay: -5s; }
+    .floating-symbol:nth-child(4) { animation: floatAround4 20s infinite; animation-delay: -8s; }
+    .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(6) { animation: floatAround6 14s infinite; animation-delay: -7s; }
+    .floating-symbol:nth-child(7) { animation: driftSlow 22s infinite; animation-delay: -10s; }
+    .floating-symbol:nth-child(8) { animation: gentleDrift 19s infinite; animation-delay: -1s; }
+    .floating-symbol:nth-child(9) { animation: spiralFloat 17s infinite; animation-delay: -6s; }
+    .floating-symbol:nth-child(10) { animation: waveMotion 13s infinite; animation-delay: -4s; }
+    .floating-symbol:nth-child(11) { animation: circularDrift 21s infinite; animation-delay: -9s; }
+    .floating-symbol:nth-child(12) { animation: floatAround1 16s infinite; animation-delay: -2s; }
+    .floating-symbol:nth-child(13) { animation: floatAround2 18s infinite; animation-delay: -11s; }
+    .floating-symbol:nth-child(14) { animation: floatAround3 14s infinite; animation-delay: -5s; }
+    .floating-symbol:nth-child(15) { animation: floatAround4 19s infinite; animation-delay: -7s; }
+    .floating-symbol:nth-child(16) { animation: floatAround5 23s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(17) { animation: driftSlow 15s infinite; animation-delay: -8s; }
+    .floating-symbol:nth-child(18) { animation: gentleDrift 17s infinite; animation-delay: -1s; }
+    .floating-symbol:nth-child(19) { animation: spiralFloat 20s infinite; animation-delay: -12s; }
+    .floating-symbol:nth-child(20) { animation: waveMotion 18s infinite; animation-delay: -6s; }
+    .floating-symbol:nth-child(21) { animation: circularDrift 16s infinite; animation-delay: -4s; }
+
+    /* ADD BLUR EFFECT FOR CHALLENGE MODAL BACKDROP */
+    .dashboard-blur {
+      filter: blur(3px);
+      transition: filter 0.3s ease;
     }
   `;
 
@@ -664,6 +819,22 @@ function Dashboard() {
     window.addEventListener('aiProjectPreview', handleAIProjectPreview);
     return () => window.removeEventListener('aiProjectPreview', handleAIProjectPreview);
   }, []);
+
+  // ADD EFFECT TO MANAGE BODY SCROLL AND BLUR FOR CHALLENGE MODAL
+  useEffect(() => {
+    if (showChallengeModal) {
+      document.body.style.overflow = 'hidden';
+      document.querySelector('.dashboard-container')?.classList.add('dashboard-blur');
+    } else {
+      document.body.style.overflow = 'unset';
+      document.querySelector('.dashboard-container')?.classList.remove('dashboard-blur');
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+      document.querySelector('.dashboard-container')?.classList.remove('dashboard-blur');
+    };
+  }, [showChallengeModal]);
 
   useEffect(() => {
     let filtered = [...recommendedProjects];
@@ -805,6 +976,7 @@ function Dashboard() {
     }
   };
 
+  // MODIFY THE handleJoinProject FUNCTION TO SHOW MODAL INSTEAD OF NAVIGATE
   const handleJoinProject = async (project, event) => {
     event.stopPropagation();
 
@@ -820,11 +992,27 @@ function Dashboard() {
         console.warn('Failed to update recommendation feedback:', feedbackError);
       }
       
-      navigate(`/projects/${project.projectId}/join`);
+      // CHANGED: Show modal instead of navigate
+      setSelectedProjectForChallenge(project);
+      setShowChallengeModal(true);
       
     } catch (error) {
       console.error('Error joining project:', error);
     }
+  };
+
+  // ADD CHALLENGE MODAL CLOSE HANDLER
+  const handleCloseChallengeModal = () => {
+    setShowChallengeModal(false);
+    setSelectedProjectForChallenge(null);
+  };
+
+  // ADD SUCCESS HANDLER FOR CHALLENGE COMPLETION
+  const handleChallengeSuccess = () => {
+    setShowChallengeModal(false);
+    setSelectedProjectForChallenge(null);
+    // Optionally refresh recommendations or navigate to project
+    // navigate(`/projects/${selectedProjectForChallenge?.projectId}`);
   };
 
   const styles = {
@@ -933,6 +1121,21 @@ function Dashboard() {
       maxHeight: '90%',
       overflow: 'auto',
       border: '1px solid rgba(255, 255, 255, 0.1)'
+    },
+    // ADD CHALLENGE MODAL STYLES
+    challengeModalBackdrop: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backdropFilter: 'blur(4px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 3000,
+      animation: 'fadeIn 0.3s ease-out'
     },
     welcomeSection: {
       position: 'relative',
@@ -1200,7 +1403,7 @@ function Dashboard() {
     highlightsContainer: {
       marginBottom: '12px',
       display: 'flex',
-      flexDirection: 'column',   // 👈 stack vertically
+      flexDirection: 'column',
       gap: '6px'
     },
     highlightChip: {
@@ -1208,11 +1411,11 @@ function Dashboard() {
       borderRadius: '12px',
       fontSize: '11px',
       fontWeight: '500',
-      minWidth: '140px',   // 👈 ensures consistent base width
+      minWidth: '140px',
       alignSelf: 'flex-start'
     },
     cardFooter: {
-      marginTop: 'auto',   // pushes footer to bottom
+      marginTop: 'auto',
       display: 'flex',
       flexDirection: 'column',
       gap: '12px'
@@ -1296,13 +1499,15 @@ function Dashboard() {
       color: '#9ca3af',
       cursor: 'not-allowed'
     },
-    loadingSpinner: {
+    loading: {
+      position: 'relative',
+      zIndex: 10,
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      height: '200px',
-      color: '#9ca3af',
-      fontSize: '16px'
+      minHeight: '400px',
+      fontSize: '16px',
+      color: '#9ca3af'
     },
     emptyState: {
       textAlign: 'center',
@@ -1344,12 +1549,14 @@ function Dashboard() {
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
       gap: '20px',
-      marginBottom: '20px'
+      marginBottom: '20px',
+      alignItems: 'start'
     },
     filterGroup: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '6px'
+      gap: '6px',
+      alignSelf: 'start'
     },
     filterLabel: {
       fontSize: '12px',
@@ -1357,13 +1564,37 @@ function Dashboard() {
       color: '#d1d5db'
     },
     filterSelect: {
-      padding: '8px 12px',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '6px',
-      fontSize: '13px',
-      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      padding: '12px 16px',
+      border: '1px solid rgba(255, 255, 255, 0.15)',
+      borderRadius: '10px',
+      fontSize: '14px',
+      fontWeight: '500',
+      backgroundColor: 'rgba(255, 255, 255, 0.08)',
       color: 'white',
-      backdropFilter: 'blur(8px)'
+      backdropFilter: 'blur(12px)',
+      cursor: 'pointer',
+      transition: 'all 0.3s ease',
+      appearance: 'none',
+      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+      backgroundPosition: 'right 12px center',
+      backgroundRepeat: 'no-repeat',
+      backgroundSize: '16px',
+      paddingRight: '40px',
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+      outline: 'none'
+    },
+    filterSelectHover: {
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      border: '1px solid rgba(59, 130, 246, 0.4)',
+      boxShadow: '0 6px 20px rgba(59, 130, 246, 0.15)',
+      transform: 'translateY(-1px)',
+      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`
+    },
+    filterSelectFocus: {
+      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      border: '1px solid rgba(59, 130, 246, 0.6)',
+      boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1), 0 6px 20px rgba(59, 130, 246, 0.2)',
+      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%233b82f6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`
     },
     sortButtons: {
       display: 'flex',
@@ -1371,14 +1602,15 @@ function Dashboard() {
       flexWrap: 'wrap'
     },
     sortButton: {
-      padding: '6px 12px',
+      padding: '12px 16px',
       border: '1px solid rgba(255, 255, 255, 0.2)',
-      borderRadius: '6px',
-      fontSize: '12px',
+      borderRadius: '10px',
+      fontSize: '14px',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
       backgroundColor: 'rgba(255, 255, 255, 0.05)',
-      color: '#d1d5db'
+      color: '#d1d5db',
+      fontWeight: '500'
     },
     sortButtonActive: {
       backgroundColor: '#3b82f6',
@@ -1523,11 +1755,12 @@ function Dashboard() {
 
   return (
     <>
-      {/* Add custom scrollbar styles */}
+      {/* Add custom scrollbar styles + floating animations */}
       <style dangerouslySetInnerHTML={{ __html: customScrollbarStyles }} />
       
-      <div style={styles.container}>
-        {/* Background Code Symbols - Now consistent across tabs */}
+      {/* ADD CLASS FOR BLUR EFFECT */}
+      <div className="dashboard-container" style={styles.container}>
+        {/* Background Code Symbols - Now with floating animations */}
         <BackgroundSymbols />
 
         {/* Header Section */}
@@ -1686,6 +1919,18 @@ function Dashboard() {
                               style={styles.filterSelect}
                               value={filterLanguage}
                               onChange={(e) => setFilterLanguage(e.target.value)}
+                              onMouseEnter={(e) => {
+                                Object.assign(e.target.style, styles.filterSelectHover);
+                              }}
+                              onMouseLeave={(e) => {
+                                Object.assign(e.target.style, styles.filterSelect);
+                              }}
+                              onFocus={(e) => {
+                                Object.assign(e.target.style, styles.filterSelectFocus);
+                              }}
+                              onBlur={(e) => {
+                                Object.assign(e.target.style, styles.filterSelect);
+                              }}
                             >
                               <option value="all">All Languages</option>
                               {getAvailableLanguages().map(lang => (
@@ -1701,6 +1946,18 @@ function Dashboard() {
                               style={styles.filterSelect}
                               value={filterDifficulty}
                               onChange={(e) => setFilterDifficulty(e.target.value)}
+                              onMouseEnter={(e) => {
+                                Object.assign(e.target.style, styles.filterSelectHover);
+                              }}
+                              onMouseLeave={(e) => {
+                                Object.assign(e.target.style, styles.filterSelect);
+                              }}
+                              onFocus={(e) => {
+                                Object.assign(e.target.style, styles.filterSelectFocus);
+                              }}
+                              onBlur={(e) => {
+                                Object.assign(e.target.style, styles.filterSelect);
+                              }}
                             >
                               <option value="all">All Difficulties</option>
                               <option value="easy">Easy</option>
@@ -1785,8 +2042,25 @@ function Dashboard() {
 
                 {/* Project Grid */}
                 {loadingRecommendations ? (
-                  <div style={styles.loadingSpinner}>
-                    Loading personalized recommendations...
+                  <div style={styles.loading}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }} className="global-loading-spinner">
+                      <img 
+                        src="/images/logo/TechSyncLogo.png" 
+                        alt="TechSync Logo" 
+                        style={{
+                          width: '125%',
+                          height: '125%',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </div>
+                    <span>Loading personalized recommendation...</span>
                   </div>
                 ) : filteredProjects.length > 0 ? (
                   <div style={styles.recommendationsGrid}>
@@ -2291,6 +2565,26 @@ function Dashboard() {
           document.body
         )}
       </div>
+
+      {/* ADD CHALLENGE MODAL PORTAL */}
+      {showChallengeModal && selectedProjectForChallenge && createPortal(
+        <div style={styles.challengeModalBackdrop}>
+          <ProjectChallengeInterface
+            projectId={selectedProjectForChallenge.projectId}
+            onClose={handleCloseChallengeModal}
+            onSuccess={handleChallengeSuccess}
+          />
+        </div>,
+        document.body
+      )}
+
+      {/* ADD FADE IN ANIMATION FOR CHALLENGE MODAL */}
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </>
   );
 }

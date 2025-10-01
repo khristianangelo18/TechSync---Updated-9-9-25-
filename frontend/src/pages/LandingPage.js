@@ -67,9 +67,9 @@ const LandingPage = () => {
       ? newStepOrFunction(activeStep) 
       : newStepOrFunction;
     
-    // Immediate step change for proper card drawing effect
-    setActiveStep(newStep);
-    setTimeout(() => setIsTransitioning(false), 1000);
+    // Smooth crossfade timing
+    setTimeout(() => setActiveStep(newStep), 400);
+    setTimeout(() => setIsTransitioning(false), 1200);
   };
 
   const handleLoginClick = () => {
@@ -151,111 +151,322 @@ const LandingPage = () => {
             border-color: rgba(255, 255, 255, 0.4) !important;
           }
 
-          /* Card drawing animation system like dealing cards */
+          /* FLOATING BACKGROUND SYMBOLS */
+          @keyframes floatAround1 {
+            0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+            25% { transform: translate(30px, -20px) rotate(-5deg); }
+            50% { transform: translate(-15px, 25px) rotate(-15deg); }
+            75% { transform: translate(20px, 10px) rotate(-8deg); }
+          }
+
+          @keyframes floatAround2 {
+            0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+            33% { transform: translate(-25px, 15px) rotate(-30deg); }
+            66% { transform: translate(35px, -10px) rotate(-45deg); }
+          }
+
+          @keyframes floatAround3 {
+            0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+            20% { transform: translate(-20px, -30px) rotate(40deg); }
+            40% { transform: translate(25px, 20px) rotate(28deg); }
+            60% { transform: translate(-10px, -15px) rotate(38deg); }
+            80% { transform: translate(15px, 25px) rotate(30deg); }
+          }
+
+          @keyframes floatAround4 {
+            0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+            50% { transform: translate(-40px, 30px) rotate(35deg); }
+          }
+
+          @keyframes floatAround5 {
+            0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+            25% { transform: translate(20px, -25px) rotate(30deg); }
+            50% { transform: translate(-30px, 20px) rotate(18deg); }
+            75% { transform: translate(25px, 15px) rotate(28deg); }
+          }
+
+          @keyframes floatAround6 {
+            0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+            33% { transform: translate(-15px, -20px) rotate(30deg); }
+            66% { transform: translate(30px, 25px) rotate(20deg); }
+          }
+
+          @keyframes driftSlow {
+            0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+            25% { transform: translate(-35px, 20px) rotate(-25deg); }
+            50% { transform: translate(20px, -30px) rotate(-15deg); }
+            75% { transform: translate(-10px, 35px) rotate(-22deg); }
+          }
+
+          @keyframes gentleDrift {
+            0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+            50% { transform: translate(25px, -40px) rotate(-2deg); }
+          }
+
+          @keyframes spiralFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -20px) rotate(5deg); }
+            50% { transform: translate(0px, -40px) rotate(10deg); }
+            75% { transform: translate(-20px, -20px) rotate(5deg); }
+          }
+
+          @keyframes waveMotion {
+            0%, 100% { transform: translate(0, 0) rotate(15deg); }
+            25% { transform: translate(30px, 10px) rotate(20deg); }
+            50% { transform: translate(15px, -25px) rotate(10deg); }
+            75% { transform: translate(-15px, 10px) rotate(18deg); }
+          }
+
+          @keyframes circularDrift {
+            0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+            25% { transform: translate(25px, 0px) rotate(-40deg); }
+            50% { transform: translate(25px, 25px) rotate(-50deg); }
+            75% { transform: translate(0px, 25px) rotate(-42deg); }
+          }
+
+          .floating-symbol {
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+          }
+
+          .floating-symbol:nth-child(1) { animation: floatAround1 15s infinite; }
+          .floating-symbol:nth-child(2) { animation: floatAround2 18s infinite; animation-delay: -2s; }
+          .floating-symbol:nth-child(3) { animation: floatAround3 12s infinite; animation-delay: -5s; }
+          .floating-symbol:nth-child(4) { animation: floatAround4 20s infinite; animation-delay: -8s; }
+          .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -3s; }
+          .floating-symbol:nth-child(6) { animation: floatAround6 14s infinite; animation-delay: -7s; }
+          .floating-symbol:nth-child(7) { animation: driftSlow 22s infinite; animation-delay: -10s; }
+          .floating-symbol:nth-child(8) { animation: gentleDrift 19s infinite; animation-delay: -1s; }
+          .floating-symbol:nth-child(9) { animation: spiralFloat 17s infinite; animation-delay: -6s; }
+          .floating-symbol:nth-child(10) { animation: waveMotion 13s infinite; animation-delay: -4s; }
+          .floating-symbol:nth-child(11) { animation: circularDrift 21s infinite; animation-delay: -9s; }
+          .floating-symbol:nth-child(12) { animation: floatAround1 16s infinite; animation-delay: -2s; }
+          .floating-symbol:nth-child(13) { animation: floatAround2 18s infinite; animation-delay: -11s; }
+          .floating-symbol:nth-child(14) { animation: floatAround3 14s infinite; animation-delay: -5s; }
+          .floating-symbol:nth-child(15) { animation: floatAround4 19s infinite; animation-delay: -7s; }
+          .floating-symbol:nth-child(16) { animation: floatAround5 23s infinite; animation-delay: -3s; }
+          .floating-symbol:nth-child(17) { animation: driftSlow 15s infinite; animation-delay: -8s; }
+          .floating-symbol:nth-child(18) { animation: gentleDrift 17s infinite; animation-delay: -1s; }
+          .floating-symbol:nth-child(19) { animation: spiralFloat 20s infinite; animation-delay: -12s; }
+          .floating-symbol:nth-child(20) { animation: waveMotion 18s infinite; animation-delay: -6s; }
+          .floating-symbol:nth-child(21) { animation: circularDrift 16s infinite; animation-delay: -4s; }
+
+          /* ULTRA SMOOTH CROSSFADE SYSTEM */
           .card-container {
             position: relative;
-            perspective: 1200px;
+            perspective: 1000px;
             transform-style: preserve-3d;
             overflow: visible;
           }
 
-          /* Card drawing animations - all cards slide in from different directions */
-          @keyframes drawMainCard {
+          /* SMOOTH CROSSFADE TRANSITIONS */
+          @keyframes smoothFadeIn {
             0% {
               opacity: 0;
-              transform: translateX(200px) translateY(-50px) scale(0.7) rotateY(15deg);
-            }
-            60% {
-              opacity: 0.8;
-              transform: translateX(50px) translateY(-10px) scale(0.9) rotateY(5deg);
+              transform: scale(0.98);
+              filter: blur(1px);
             }
             100% {
               opacity: 1;
-              transform: translateX(0) translateY(0) scale(1) rotateY(0deg);
+              transform: scale(1);
+              filter: blur(0px);
             }
           }
 
-          @keyframes drawLeftCard {
+          @keyframes smoothFadeOut {
             0% {
-              opacity: 0;
-              transform: translateY(-50%) translateX(-150px) scale(0.5) rotateY(-45deg);
+              opacity: 1;
+              transform: scale(1);
+              filter: blur(0px);
             }
             100% {
-              opacity: 0.3;
-              transform: translateY(-50%) translateX(0) scale(0.75) rotateY(-25deg);
+              opacity: 0;
+              transform: scale(1.02);
+              filter: blur(1px);
             }
           }
 
-          @keyframes drawRightCard {
+          /* SIDE CARD SMOOTH UPDATE */
+          @keyframes smoothSideUpdate {
             0% {
-              opacity: 0;
-              transform: translateY(-50%) translateX(150px) scale(0.5) rotateY(45deg);
+              opacity: 0.4;
+            }
+            50% {
+              opacity: 0.25;
             }
             100% {
-              opacity: 0.3;
-              transform: translateY(-50%) translateX(0) scale(0.75) rotateY(25deg);
+              opacity: 0.4;
             }
           }
 
-          /* Card animation classes */
+          /* ULTRA GENTLE BREATHING */
+          @keyframes ultraGentlePulse {
+            0%, 100% {
+              transform: scale(1);
+            }
+            50% {
+              transform: scale(1.005);
+            }
+          }
+
+          /* CARD ANIMATION CLASSES */
           .main-card {
-            will-change: transform, opacity;
+            will-change: transform, opacity, filter;
+            transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           }
 
-          .main-card.draw-in {
-            animation: drawMainCard 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          .main-card:not(.smooth-fade-in):not(.smooth-fade-out) {
+            animation: ultraGentlePulse 6s ease-in-out infinite;
+          }
+
+          .main-card.smooth-fade-out {
+            animation: smoothFadeOut 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          }
+
+          .main-card.smooth-fade-in {
+            animation: smoothFadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            animation-delay: 0.4s;
           }
 
           .side-card {
-            will-change: transform, opacity;
+            will-change: opacity;
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           }
 
-          .side-card.draw-left {
-            animation: drawLeftCard 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-            animation-delay: 0.1s;
+          .side-card.smooth-updating {
+            animation: smoothSideUpdate 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
           }
 
-          .side-card.draw-right {
-            animation: drawRightCard 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-            animation-delay: 0.2s;
-          }
-
-          /* Content cascade within cards */
+          /* ENHANCED CONTENT CASCADE */
           .content-cascade {
             opacity: 1;
-            transform: translateY(0);
-            transition: all 0.3s ease;
+            transform: translateY(0) scale(1);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
           }
 
           .content-cascade.hide {
             opacity: 0;
-            transform: translateY(15px);
+            transform: translateY(20px) scale(0.95);
           }
 
           .content-cascade.show {
-            animation: contentFadeInUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            animation: contentFadeInUp 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
           }
 
           @keyframes contentFadeInUp {
             0% {
               opacity: 0;
-              transform: translateY(15px);
+              transform: translateY(25px) scale(0.9);
+              filter: blur(2px);
+            }
+            60% {
+              opacity: 0.8;
+              transform: translateY(5px) scale(0.98);
+              filter: blur(0.5px);
             }
             100% {
               opacity: 1;
-              transform: translateY(0);
+              transform: translateY(0) scale(1);
+              filter: blur(0px);
             }
           }
 
-          /* Stagger delays for content cascade */
-          .cascade-delay-1 { animation-delay: 0.4s; }
-          .cascade-delay-2 { animation-delay: 0.5s; }
-          .cascade-delay-3 { animation-delay: 0.6s; }
-          .cascade-delay-4 { animation-delay: 0.7s; }
-          .cascade-delay-5 { animation-delay: 0.8s; }
-          .cascade-delay-6 { animation-delay: 0.9s; }
-          .cascade-delay-7 { animation-delay: 1.0s; }
-          .cascade-delay-8 { animation-delay: 1.1s; }
+          /* ENHANCED STAGGER DELAYS */
+          .cascade-delay-1 { animation-delay: 0.5s; }
+          .cascade-delay-2 { animation-delay: 0.65s; }
+          .cascade-delay-3 { animation-delay: 0.8s; }
+          .cascade-delay-4 { animation-delay: 0.95s; }
+          .cascade-delay-5 { animation-delay: 1.1s; }
+          .cascade-delay-6 { animation-delay: 1.25s; }
+          .cascade-delay-7 { animation-delay: 1.4s; }
+          .cascade-delay-8 { animation-delay: 1.55s; }
+
+          /* ENHANCED HOVER EFFECTS */
+          .enhanced-hover-left:hover {
+            opacity: 0.6 !important;
+            transform: translateY(-50%) translateX(-10px) scale(0.8) rotateY(-15deg) translateZ(20px) !important;
+            filter: brightness(1.1) !important;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+          }
+
+          .enhanced-hover-right:hover {
+            opacity: 0.6 !important;
+            transform: translateY(-50%) translateX(10px) scale(0.8) rotateY(15deg) translateZ(20px) !important;
+            filter: brightness(1.1) !important;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+          }
+
+          .enhanced-hover-main:hover {
+            transform: translateY(-5px) scale(1.02) rotateY(0deg) translateZ(10px) !important;
+            filter: brightness(1.05) !important;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
+          }
+
+          /* GLOW EFFECT FOR ACTIVE CARD */
+          .main-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1), rgba(59, 130, 246, 0.1));
+            border-radius: 27px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+          }
+
+          .main-card:not(.draw-in)::before {
+            opacity: 1;
+            animation: glowPulse 4s ease-in-out infinite;
+          }
+
+          @keyframes glowPulse {
+            0%, 100% {
+              opacity: 0.3;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.6;
+              transform: scale(1.02);
+            }
+          }
+
+          /* PROGRESS DOTS ENHANCEMENT */
+          .progress-dot {
+            position: relative;
+          }
+
+          .progress-dot::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+          }
+
+          .progress-dot.active::before {
+            opacity: 1;
+            animation: dotGlow 2s ease-in-out infinite;
+          }
+
+          @keyframes dotGlow {
+            0%, 100% {
+              opacity: 0.3;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.7;
+              transform: scale(1.2);
+            }
+          }
         `}
       </style>
       
@@ -299,7 +510,7 @@ const LandingPage = () => {
       {/* Code symbols background */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
         <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -310,7 +521,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -321,7 +532,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -332,7 +543,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -343,7 +554,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -354,7 +565,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -365,7 +576,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -376,7 +587,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -387,7 +598,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -398,7 +609,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -409,7 +620,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -420,7 +631,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -431,7 +642,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -442,7 +653,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -453,7 +664,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -464,7 +675,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -476,7 +687,7 @@ const LandingPage = () => {
             left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
           }}>&#60;/&#62;</div>
           {/* Additional symbols */}
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -487,7 +698,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -498,7 +709,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -509,7 +720,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -520,7 +731,7 @@ const LandingPage = () => {
             pointerEvents: 'none',
             left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
           }}>&#60;/&#62;</div>
-          <div style={{
+          <div className="floating-symbol" style={{
             position: 'absolute',
             fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
             fontStyle: 'normal',
@@ -562,28 +773,23 @@ const LandingPage = () => {
         padding: '1rem 2rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            width: '32px',
-            height: '32px',
-            background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-            borderRadius: '4px',
-            transform: 'rotate(45deg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <div style={{
-              width: '16px',
-              height: '16px',
-              background: 'white',
-              borderRadius: '2px',
-              transform: 'rotate(-45deg)'
-            }} />
-          </div>
+          <img 
+            src="/images/logo/TechSyncLogo.png"
+            alt="TechSync Logo"
+            style={{
+              width: '40px',
+              height: '40px',
+              objectFit: 'contain'
+            }}
+          />
           <span style={{
             fontSize: '1.25rem',
             fontWeight: 'bold',
-            letterSpacing: '-0.025em'
+            letterSpacing: '-0.025em',
+            background: 'linear-gradient(135deg, #4b5563, #6b7280, #9ca3af, #eef0f4ff)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
           }}>TechSync</span>
         </div>
 
@@ -703,27 +909,24 @@ const LandingPage = () => {
             fontSize: '4rem',
             fontWeight: 'bold',
             lineHeight: 1.1,
-            margin: '0 0 1rem 0'
-          }}>
+            margin: '0 0 1rem 0',
+            background: 'linear-gradient(135deg, #4b5563, #6b7280, #9ca3af, #eef0f4ff)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+            }}>
             Code with <span style={{
-              background: 'linear-gradient(to right, #60a5fa, #a855f7, #3b82f6)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>PURPOSE</span>, Learn with <span style={{
-              background: 'linear-gradient(to right, #a78bfa, #ec4899, #a855f7)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text'
-            }}>PRECISION</span>
+                background: 'linear-gradient(to right, #60a5fa, #a855f7, #3b82f6)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>PURPOSE</span>, Learn with <span style={{
+                background: 'linear-gradient(to right, #a78bfa, #ec4899, #a855f7)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>PRECISION</span>
           </h1>
-          <div style={{
-            fontSize: '2rem',
-            fontFamily: 'Courier New, monospace',
-            color: '#9ca3af',
-            margin: '1rem 0 2rem 0'
-          }}>&lt;techsync/&gt;</div>
-          
           <p style={{
             fontSize: '1.5rem',
             color: '#d1d5db',
@@ -837,25 +1040,25 @@ const LandingPage = () => {
             padding: '0 2rem',
             minHeight: '420px',
             position: 'relative',
-            perspective: '1200px'
+            perspective: '1500px'
           }}>
             
-            {/* LEFT CARD - DRAWS IN FROM LEFT */}
+            {/* LEFT CARD - ULTRA SMOOTH */}
             <div
               key={`left-card-${activeStep}`}
-              className={`side-card ${isTransitioning ? 'draw-left' : ''}`}
+              className={`side-card enhanced-hover-left ${isTransitioning ? 'smooth-updating' : ''}`}
               style={{
                 position: 'absolute',
                 left: '12%',
                 top: '50%',
-                transform: 'translateY(-50%) scale(0.75) rotateY(-25deg)',
-                opacity: isTransitioning ? 0 : 0.3,
+                transform: 'translateY(-50%) scale(0.75) rotateY(-15deg)',
+                opacity: 0.4,
                 cursor: 'pointer',
                 zIndex: 1,
                 width: '220px',
                 height: '380px',
                 background: 'rgba(255, 255, 255, 0.03)',
-                backdropFilter: 'blur(10px)',
+                backdropFilter: 'blur(15px)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '20px',
                 padding: '1.5rem',
@@ -864,23 +1067,12 @@ const LandingPage = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                pointerEvents: isTransitioning ? 'none' : 'auto'
+                pointerEvents: isTransitioning ? 'none' : 'auto',
+                boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)'
               }}
               onClick={() => {
                 if (!isTransitioning) {
                   handleStepChange(activeStep === 0 ? steps.length - 1 : activeStep - 1);
-                }
-              }}
-              onMouseEnter={(e) => {
-                if (!isTransitioning) {
-                  e.currentTarget.style.opacity = '0.5';
-                  e.currentTarget.style.transform = 'translateY(-50%) scale(0.8) rotateY(-15deg)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isTransitioning) {
-                  e.currentTarget.style.opacity = '0.3';
-                  e.currentTarget.style.transform = 'translateY(-50%) scale(0.75) rotateY(-25deg)';
                 }
               }}
             >
@@ -903,17 +1095,17 @@ const LandingPage = () => {
               </h3>
             </div>
 
-            {/* CENTER CARD - MAIN DRAWING CARD */}
+            {/* CENTER CARD - ULTRA SMOOTH CROSSFADE */}
             <div 
               key={`main-card-${activeStep}`}
-              className={`main-card ${isTransitioning ? 'draw-in' : ''}`}
+              className={`main-card enhanced-hover-main ${isTransitioning ? 'smooth-fade-in' : ''}`}
               style={{
                 position: 'relative',
                 zIndex: 3,
                 width: '380px',
                 height: '400px',
                 background: 'rgba(255, 255, 255, 0.05)',
-                backdropFilter: 'blur(15px)',
+                backdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '25px',
                 padding: '2rem',
@@ -922,11 +1114,11 @@ const LandingPage = () => {
                 alignItems: 'center',
                 textAlign: 'center',
                 opacity: isTransitioning ? 0 : 1,
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                boxShadow: '0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.05)',
                 overflow: 'visible'
               }}
             >
-              {/* BACKGROUND NUMBER - ALWAYS CENTERED */}
+              {/* BACKGROUND NUMBER */}
               <div 
                 style={{
                   fontSize: '7rem',
@@ -941,12 +1133,11 @@ const LandingPage = () => {
                   userSelect: 'none',
                   pointerEvents: 'none'
                 }}
-                className={isTransitioning ? 'show cascade-delay-1' : ''}
               >
                 {steps[activeStep].number}
               </div>
               
-              {/* CONTENT WITH CASCADES */}
+              {/* CONTENT */}
               <div style={{
                 position: 'relative',
                 zIndex: 2,
@@ -971,7 +1162,6 @@ const LandingPage = () => {
                     zIndex: 3,
                     marginTop: '2rem'
                   }}
-                  className={`content-cascade ${isTransitioning ? 'show cascade-delay-2' : ''}`}
                 >
                   {steps[activeStep].title}
                 </h3>
@@ -983,7 +1173,6 @@ const LandingPage = () => {
                     lineHeight: 1.4,
                     marginBottom: '0.8rem'
                   }}
-                  className={`content-cascade ${isTransitioning ? 'show cascade-delay-3' : ''}`}
                 >
                   {steps[activeStep].description}
                 </p>
@@ -996,7 +1185,6 @@ const LandingPage = () => {
                     marginBottom: '1rem',
                     fontStyle: 'italic'
                   }}
-                  className={`content-cascade ${isTransitioning ? 'show cascade-delay-4' : ''}`}
                 >
                   {steps[activeStep].extendedContent}
                 </p>
@@ -1028,7 +1216,7 @@ const LandingPage = () => {
                         lineHeight: 1.3,
                         transition: 'all 0.3s ease'
                       }} 
-                      className={`content-cascade feature-tag ${isTransitioning ? `show cascade-delay-${5 + index}` : ''}`}
+                      className="feature-tag"
                     >
                       {feature}
                     </div>
@@ -1037,22 +1225,22 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* RIGHT CARD - DRAWS IN FROM RIGHT */}
+            {/* RIGHT CARD - ULTRA SMOOTH */}
             <div
               key={`right-card-${activeStep}`}
-              className={`side-card ${isTransitioning ? 'draw-right' : ''}`}
+              className={`side-card enhanced-hover-right ${isTransitioning ? 'smooth-updating' : ''}`}
               style={{
                 position: 'absolute',
                 right: '12%',
                 top: '50%',
-                transform: 'translateY(-50%) scale(0.75) rotateY(25deg)',
-                opacity: isTransitioning ? 0 : 0.3,
+                transform: 'translateY(-50%) scale(0.75) rotateY(15deg)',
+                opacity: 0.4,
                 cursor: 'pointer',
                 zIndex: 1,
                 width: '220px',
                 height: '380px',
                 background: 'rgba(255, 255, 255, 0.03)',
-                backdropFilter: 'blur(10px)',
+                backdropFilter: 'blur(15px)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
                 borderRadius: '20px',
                 padding: '1.5rem',
@@ -1061,23 +1249,12 @@ const LandingPage = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 textAlign: 'center',
-                pointerEvents: isTransitioning ? 'none' : 'auto'
+                pointerEvents: isTransitioning ? 'none' : 'auto',
+                boxShadow: '0 15px 35px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.05)'
               }}
               onClick={() => {
                 if (!isTransitioning) {
                   handleStepChange((activeStep + 1) % steps.length);
-                }
-              }}
-              onMouseEnter={(e) => {
-                if (!isTransitioning) {
-                  e.currentTarget.style.opacity = '0.5';
-                  e.currentTarget.style.transform = 'translateY(-50%) scale(0.8) rotateY(15deg)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isTransitioning) {
-                  e.currentTarget.style.opacity = '0.3';
-                  e.currentTarget.style.transform = 'translateY(-50%) scale(0.75) rotateY(25deg)';
                 }
               }}
             >
@@ -1101,7 +1278,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Progress Indicators */}
+          {/* Enhanced Progress Indicators */}
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -1124,7 +1301,7 @@ const LandingPage = () => {
                   boxShadow: index === activeStep ? '0 0 20px rgba(107, 114, 128, 0.4)' : 'none',
                   pointerEvents: isTransitioning ? 'none' : 'auto'
                 }}
-                className="progress-dot"
+                className={`progress-dot ${index === activeStep ? 'active' : ''}`}
                 onClick={() => {
                   if (!isTransitioning) {
                     handleStepChange(index);

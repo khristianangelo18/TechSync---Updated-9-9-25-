@@ -1,4 +1,4 @@
-// frontend/src/pages/Sidebar.js - WITH TOGGLE FUNCTIONALITY
+// frontend/src/pages/Sidebar.js - WITH FLOATING BACKGROUND SYMBOLS
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -169,12 +169,14 @@ function Sidebar() {
     logoIcon: {
       width: '32px',
       height: '32px',
-      background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-      borderRadius: '6px',
-      transform: 'rotate(45deg)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
+    },
+    logoImage: {
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain'
     },
     logoIconInner: {
       width: '16px',
@@ -517,37 +519,108 @@ function Sidebar() {
 
   return (
     <div style={styles.sidebar}>
-      {/* Background Code Symbols */}
+      {/* Add CSS for floating animations */}
+      <style>
+        {`
+          /* FLOATING BACKGROUND SYMBOLS ANIMATIONS */
+          @keyframes floatAround1 {
+            0%, 100% { transform: translate(0, 0) rotate(-15deg); }
+            25% { transform: translate(20px, -15px) rotate(-10deg); }
+            50% { transform: translate(-10px, 20px) rotate(-20deg); }
+            75% { transform: translate(15px, 5px) rotate(-12deg); }
+          }
+
+          @keyframes floatAround2 {
+            0%, 100% { transform: translate(0, 0) rotate(20deg); }
+            33% { transform: translate(-20px, 10px) rotate(25deg); }
+            66% { transform: translate(25px, -8px) rotate(15deg); }
+          }
+
+          @keyframes floatAround3 {
+            0%, 100% { transform: translate(0, 0) rotate(-25deg); }
+            20% { transform: translate(-15px, -20px) rotate(-20deg); }
+            40% { transform: translate(20px, 15px) rotate(-30deg); }
+            60% { transform: translate(-8px, -10px) rotate(-22deg); }
+            80% { transform: translate(12px, 18px) rotate(-28deg); }
+          }
+
+          @keyframes floatAround4 {
+            0%, 100% { transform: translate(0, 0) rotate(30deg); }
+            50% { transform: translate(-30px, 25px) rotate(35deg); }
+          }
+
+          @keyframes floatAround5 {
+            0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+            25% { transform: translate(15px, -20px) rotate(-5deg); }
+            50% { transform: translate(-25px, 15px) rotate(-15deg); }
+            75% { transform: translate(20px, 10px) rotate(-8deg); }
+          }
+
+          @keyframes floatAround6 {
+            0%, 100% { transform: translate(0, 0) rotate(15deg); }
+            33% { transform: translate(-12px, -15px) rotate(20deg); }
+            66% { transform: translate(25px, 20px) rotate(10deg); }
+          }
+
+          @keyframes driftSlow {
+            0%, 100% { transform: translate(0, 0) rotate(35deg); }
+            25% { transform: translate(-25px, 15px) rotate(40deg); }
+            50% { transform: translate(15px, -25px) rotate(30deg); }
+            75% { transform: translate(-8px, 30px) rotate(38deg); }
+          }
+
+          @keyframes gentleDrift {
+            0%, 100% { transform: translate(0, 0) rotate(-20deg); }
+            50% { transform: translate(20px, -30px) rotate(-15deg); }
+          }
+
+          .floating-symbol {
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+          }
+
+          .floating-symbol:nth-child(1) { animation: floatAround1 12s infinite; }
+          .floating-symbol:nth-child(2) { animation: floatAround2 15s infinite; animation-delay: -2s; }
+          .floating-symbol:nth-child(3) { animation: floatAround3 10s infinite; animation-delay: -4s; }
+          .floating-symbol:nth-child(4) { animation: floatAround4 18s infinite; animation-delay: -6s; }
+          .floating-symbol:nth-child(5) { animation: floatAround5 14s infinite; animation-delay: -1s; }
+          .floating-symbol:nth-child(6) { animation: floatAround6 11s infinite; animation-delay: -5s; }
+          .floating-symbol:nth-child(7) { animation: driftSlow 20s infinite; animation-delay: -8s; }
+          .floating-symbol:nth-child(8) { animation: gentleDrift 16s infinite; animation-delay: -3s; }
+        `}
+      </style>
+
+      {/* Background Code Symbols - Enhanced with floating animations */}
       <div style={styles.backgroundSymbols}>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '25%', top: '15%', color: '#2E3344', transform: 'rotate(-15deg)'
         }}>&#60;/&#62;</div>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '75%', top: '30%', color: '#ABB5CE', transform: 'rotate(20deg)'
         }}>&#60;/&#62;</div>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '15%', top: '45%', color: '#6C758E', transform: 'rotate(-25deg)'
         }}>&#60;/&#62;</div>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '85%', top: '60%', color: '#292A2E', transform: 'rotate(30deg)'
         }}>&#60;/&#62;</div>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '35%', top: '75%', color: '#3A4158', transform: 'rotate(-10deg)'
         }}>&#60;/&#62;</div>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '65%', top: '85%', color: '#5A6B8C', transform: 'rotate(15deg)'
         }}>&#60;/&#62;</div>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '10%', top: '25%', color: '#4F5A7A', transform: 'rotate(35deg)'
         }}>&#60;/&#62;</div>
-        <div style={{
+        <div className="floating-symbol" style={{
           ...styles.codeSymbol,
           left: '90%', top: '40%', color: '#8A94B8', transform: 'rotate(-20deg)'
         }}>&#60;/&#62;</div>
@@ -557,7 +630,11 @@ function Sidebar() {
       <div style={styles.logo}>
         <div style={styles.logoContainer}>
           <div style={styles.logoIcon}>
-            <div style={styles.logoIconInner} />
+            <img 
+              src="/images/logo/TechSyncLogo.png" 
+              alt="TechSync Logo" 
+              style={styles.logoImage}
+            />
           </div>
           <h1 style={styles.logoText}>TechSync</h1>
         </div>

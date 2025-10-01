@@ -1,35 +1,89 @@
 // frontend/src/pages/Onboarding.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { onboardingService } from '../services/onboardingService';
 import { ArrowLeft } from 'lucide-react';
 
+// Isolated background styles - never changes
+const backgroundStyles = {
+  backgroundLayer: {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 1
+  },
+  figmaBackground: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden'
+  },
+  codeSymbol: {
+    position: 'absolute',
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontStyle: 'normal',
+    fontWeight: 900,
+    fontSize: '24px',
+    lineHeight: '29px',
+    userSelect: 'none',
+    pointerEvents: 'none'
+  }
+};
+
+// Completely isolated background component
+const IsolatedAnimatedBackground = React.memo(() => (
+  <div style={backgroundStyles.backgroundLayer}>
+    <div style={backgroundStyles.figmaBackground}>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '78%', top: '85%', color: '#3E4A6B', transform: 'rotate(-25deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '58%', top: '75%', color: '#6D798F', transform: 'rotate(10deg)'}}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{...backgroundStyles.codeSymbol, left: '35%', top: '5%', color: '#454B68', transform: 'rotate(-35deg)'}}>&#60;/&#62;</div>
+    </div>
+  </div>
+));
+
 function Onboarding() {
   const { user, token, updateUser, refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  // State management
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Data state
   const [programmingLanguages, setProgrammingLanguages] = useState([]);
   const [topics, setTopics] = useState([]);
   const [selectedLanguages, setSelectedLanguages] = useState([]);
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [yearsExperience, setYearsExperience] = useState(0);
 
-  // Load initial data
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        setLoading(true);
+        setInitialLoading(true);
         setError('');
 
-        // Load programming languages and topics in parallel
         const [languagesResponse, topicsResponse] = await Promise.all([
           onboardingService.getProgrammingLanguages(),
           onboardingService.getTopics()
@@ -51,14 +105,13 @@ function Onboarding() {
         console.error('Error loading onboarding data:', error);
         setError('Failed to load onboarding data. Please refresh the page.');
       } finally {
-        setLoading(false);
+        setInitialLoading(false);
       }
     };
 
     loadInitialData();
   }, []);
 
-  // Handle language selection
   const handleLanguageToggle = (language) => {
     const isSelected = selectedLanguages.find(l => l.language_id === language.id);
     
@@ -68,12 +121,11 @@ function Onboarding() {
       setSelectedLanguages([...selectedLanguages, {
         language_id: language.id,
         name: language.name,
-        proficiency_level: 'intermediate' // default
+        proficiency_level: 'intermediate'
       }]);
     }
   };
 
-  // Handle proficiency change
   const handleProficiencyChange = (languageId, level) => {
     setSelectedLanguages(selectedLanguages.map(lang => 
       lang.language_id === languageId 
@@ -82,7 +134,6 @@ function Onboarding() {
     ));
   };
 
-  // Handle topic selection
   const handleTopicToggle = (topic) => {
     const isSelected = selectedTopics.find(t => t.topic_id === topic.id);
     
@@ -92,13 +143,12 @@ function Onboarding() {
       setSelectedTopics([...selectedTopics, {
         topic_id: topic.id,
         name: topic.name,
-        interest_level: 'high', // default
-        experience_level: 'intermediate' // default
+        interest_level: 'high',
+        experience_level: 'intermediate'
       }]);
     }
   };
 
-  // Handle interest level change for a topic
   const handleInterestChange = (topicId, level) => {
     setSelectedTopics(selectedTopics.map(topic => 
       topic.topic_id === topicId 
@@ -107,7 +157,6 @@ function Onboarding() {
     ));
   };
 
-  // Handle experience level change for a topic
   const handleTopicExperienceChange = (topicId, level) => {
     setSelectedTopics(selectedTopics.map(topic => 
       topic.topic_id === topicId 
@@ -116,14 +165,12 @@ function Onboarding() {
     ));
   };
 
-  // FIXED: Complete onboarding with proper error handling
   const handleCompleteOnboarding = async () => {
     try {
       setLoading(true);
       setError('');
       setSuccessMessage('');
 
-      // Validate selections before submission
       if (selectedLanguages.length === 0) {
         setError('Please select at least one programming language.');
         return;
@@ -134,51 +181,30 @@ function Onboarding() {
         return;
       }
 
-      console.log('Starting onboarding completion with:', {
-        languages: selectedLanguages,
-        topics: selectedTopics,
-        years_experience: yearsExperience
-      });
-
-      // Complete onboarding with all data
       const result = await onboardingService.completeOnboarding({
         languages: selectedLanguages,
         topics: selectedTopics,
         years_experience: yearsExperience
       }, token);
 
-      console.log('Onboarding completion result:', result);
-
       if (result.success) {
         setSuccessMessage('Onboarding completed successfully!');
         
-        // Update user context with the returned user data
         if (result.data?.user) {
-          console.log('Updating user context with:', result.data.user);
-          
-          // Use complete replacement to ensure needsOnboarding is updated
           await updateUser(result.data.user, true);
-          
-          console.log('User context updated successfully');
         } else {
-          console.log('No user data in response, refreshing user profile');
-          // Fallback: refresh user profile
           await refreshUser();
         }
         
-        // Redirect to dashboard after success
         setTimeout(() => {
-          console.log('Navigating to dashboard...');
           navigate('/');
         }, 1500);
       } else {
         const errorMsg = result.message || 'Failed to complete onboarding. Please try again.';
-        console.error('Onboarding completion failed:', errorMsg);
         setError(errorMsg);
       }
 
     } catch (error) {
-      console.error('Onboarding completion error:', error);
       const errorMessage = error.message || 'Failed to complete onboarding. Please try again.';
       setError(errorMessage);
     } finally {
@@ -186,261 +212,7 @@ function Onboarding() {
     }
   };
 
-  // Themed Loading Component matching App.js
-  const ThemedOnboardingLoadingScreen = () => {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#0F1116',
-        color: 'white',
-        position: 'relative',
-        overflow: 'hidden',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center'
-      }}>
-        <style>
-          {`
-            @keyframes pulse {
-              0%, 100% {
-                opacity: 1;
-              }
-              50% {
-                opacity: 0.5;
-              }
-            }
-            
-            @keyframes rotate {
-              from {
-                transform: rotate(0deg);
-              }
-              to {
-                transform: rotate(360deg);
-              }
-            }
-            
-            @keyframes slideProgress {
-              0% {
-                transform: translateX(-100px);
-              }
-              50% {
-                transform: translateX(140px);
-              }
-              100% {
-                transform: translateX(-100px);
-              }
-            }
-            
-            .loading-spinner {
-              animation: rotate 2s linear infinite;
-            }
-            
-            .loading-text {
-              animation: pulse 1.5s ease-in-out infinite;
-            }
-          `}
-        </style>
-
-        {/* Background Elements */}
-        <svg 
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            pointerEvents: 'none',
-            zIndex: 0
-          }}
-          viewBox="0 0 1440 1024"
-          preserveAspectRatio="none"
-        >
-          <path
-            d="M0,400 Q200,300 400,350 T800,320 Q1000,280 1200,340 L1440,360 L1440,1024 L0,1024 Z"
-            fill="rgba(255,255,255,0.02)"
-            stroke="rgba(255,255,255,0.05)"
-            strokeWidth="1"
-            opacity={0.02}
-          />
-          <path
-            d="M0,600 Q300,500 600,550 T1200,520 L1440,540 L1440,1024 L0,1024 Z"
-            fill="rgba(255,255,255,0.02)"
-            stroke="rgba(255,255,255,0.05)"
-            strokeWidth="1"
-            opacity={0.015}
-          />
-        </svg>
-
-        {/* Code symbols background */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
-          <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-            }}>&#60;/&#62;</div>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-            }}>&#60;/&#62;</div>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-            }}>&#60;/&#62;</div>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-            }}>&#60;/&#62;</div>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-            }}>&#60;/&#62;</div>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-            }}>&#60;/&#62;</div>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-            }}>&#60;/&#62;</div>
-            <div style={{
-              position: 'absolute',
-              fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontStyle: 'normal',
-              fontWeight: 900,
-              fontSize: '24px',
-              lineHeight: '29px',
-              userSelect: 'none',
-              pointerEvents: 'none',
-              left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-            }}>&#60;/&#62;</div>
-          </div>
-        </div>
-
-        {/* Main Loading Content */}
-        <div style={{
-          position: 'relative',
-          zIndex: 10,
-          textAlign: 'center'
-        }}>
-          {/* Logo */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.75rem',
-            marginBottom: '2rem'
-          }}>
-            <div style={{
-              width: '48px',
-              height: '48px',
-              background: 'linear-gradient(135deg, #60a5fa, #3b82f6)',
-              borderRadius: '6px',
-              transform: 'rotate(45deg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }} className="loading-spinner">
-              <div style={{
-                width: '24px',
-                height: '24px',
-                background: 'white',
-                borderRadius: '3px',
-                transform: 'rotate(-45deg)'
-              }} />
-            </div>
-            <span style={{
-              fontSize: '2rem',
-              fontWeight: 'bold',
-              letterSpacing: '-0.025em'
-            }}>TechSync</span>
-          </div>
-
-          {/* Loading Text */}
-          <h2 style={{
-            fontSize: '1.5rem',
-            fontWeight: '500',
-            color: '#d1d5db',
-            margin: '0 0 1rem 0'
-          }} className="loading-text">
-            Loading onboarding...
-          </h2>
-
-          {/* Progress Bar */}
-          <div style={{
-            width: '200px',
-            height: '4px',
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '2px',
-            margin: '0 auto',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              width: '60px',
-              height: '100%',
-              backgroundColor: '#60a5fa',
-              borderRadius: '2px',
-              animation: 'slideProgress 1.5s ease-in-out infinite',
-              background: 'linear-gradient(to right, #60a5fa, #3b82f6)'
-            }} />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Dark theme styles matching your design
-  const styles = {
+  const styles = useMemo(() => ({
     pageContainer: {
       minHeight: '100vh',
       backgroundColor: '#0F1116',
@@ -451,27 +223,6 @@ function Onboarding() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
-    },
-    backgroundLayer: {
-      position: 'fixed',
-      inset: 0,
-      zIndex: 1
-    },
-    figmaBackground: {
-      position: 'absolute',
-      width: '100%',
-      height: '100%',
-      overflow: 'hidden'
-    },
-    codeSymbol: {
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none'
     },
     container: {
       position: 'relative',
@@ -591,33 +342,11 @@ function Onboarding() {
       height: '18px',
       accentColor: '#3b82f6'
     },
-    topicItem: {
-      marginBottom: '1.25rem',
-      padding: '1.5rem',
-      backgroundColor: 'rgba(26, 28, 32, 0.8)',
-      backdropFilter: 'blur(20px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: '16px'
-    },
-    topicName: {
-      fontSize: '1.125rem',
-      fontWeight: 'bold',
-      color: 'white',
-      marginBottom: '1.25rem',
-      textAlign: 'center'
-    },
-    topicSection: {
-      marginBottom: '1.25rem'
-    },
     topicSectionTitle: {
       fontSize: '1rem',
       fontWeight: '600',
       color: '#e5e7eb',
       marginBottom: '0.75rem'
-    },
-    experienceContainer: {
-      textAlign: 'center',
-      padding: '1rem'
     },
     experienceTitle: {
       fontSize: '1.25rem',
@@ -771,9 +500,137 @@ function Onboarding() {
       background: '#60a5fa',
       flexShrink: 0
     }
-  };
+  }), []);
 
   const hoverStyles = `
+    /* GLOBAL SYNCHRONIZED LOGO ROTATION */
+    @keyframes globalLogoRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .global-loading-spinner {
+      animation: globalLogoRotate 2s linear infinite;
+    }
+
+    /* FLOATING BACKGROUND SYMBOLS */
+    @keyframes floatAround1 {
+      0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+      25% { transform: translate(30px, -20px) rotate(-5deg); }
+      50% { transform: translate(-15px, 25px) rotate(-15deg); }
+      75% { transform: translate(20px, 10px) rotate(-8deg); }
+    }
+
+    @keyframes floatAround2 {
+      0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+      33% { transform: translate(-25px, 15px) rotate(-30deg); }
+      66% { transform: translate(35px, -10px) rotate(-45deg); }
+    }
+
+    @keyframes floatAround3 {
+      0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+      20% { transform: translate(-20px, -30px) rotate(40deg); }
+      40% { transform: translate(25px, 20px) rotate(28deg); }
+      60% { transform: translate(-10px, -15px) rotate(38deg); }
+      80% { transform: translate(15px, 25px) rotate(30deg); }
+    }
+
+    @keyframes floatAround4 {
+      0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+      50% { transform: translate(-40px, 30px) rotate(35deg); }
+    }
+
+    @keyframes floatAround5 {
+      0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+      25% { transform: translate(20px, -25px) rotate(30deg); }
+      50% { transform: translate(-30px, 20px) rotate(18deg); }
+      75% { transform: translate(25px, 15px) rotate(28deg); }
+    }
+
+    @keyframes floatAround6 {
+      0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+      33% { transform: translate(-15px, -20px) rotate(30deg); }
+      66% { transform: translate(30px, 25px) rotate(20deg); }
+    }
+
+    @keyframes driftSlow {
+      0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+      25% { transform: translate(-35px, 20px) rotate(-25deg); }
+      50% { transform: translate(20px, -30px) rotate(-15deg); }
+      75% { transform: translate(-10px, 35px) rotate(-22deg); }
+    }
+
+    @keyframes gentleDrift {
+      0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+      50% { transform: translate(25px, -40px) rotate(-2deg); }
+    }
+
+    @keyframes spiralFloat {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      25% { transform: translate(20px, -20px) rotate(5deg); }
+      50% { transform: translate(0px, -40px) rotate(10deg); }
+      75% { transform: translate(-20px, -20px) rotate(5deg); }
+    }
+
+    @keyframes waveMotion {
+      0%, 100% { transform: translate(0, 0) rotate(15deg); }
+      25% { transform: translate(30px, 10px) rotate(20deg); }
+      50% { transform: translate(15px, -25px) rotate(10deg); }
+      75% { transform: translate(-15px, 10px) rotate(18deg); }
+    }
+
+    @keyframes circularDrift {
+      0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+      25% { transform: translate(25px, 0px) rotate(-40deg); }
+      50% { transform: translate(25px, 25px) rotate(-50deg); }
+      75% { transform: translate(0px, 25px) rotate(-42deg); }
+    }
+
+    .floating-symbol {
+      animation-timing-function: ease-in-out;
+      animation-iteration-count: infinite;
+    }
+
+    .floating-symbol:nth-child(1) { animation: floatAround1 15s infinite; }
+    .floating-symbol:nth-child(2) { animation: floatAround2 18s infinite; animation-delay: -2s; }
+    .floating-symbol:nth-child(3) { animation: floatAround3 12s infinite; animation-delay: -5s; }
+    .floating-symbol:nth-child(4) { animation: floatAround4 20s infinite; animation-delay: -8s; }
+    .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(6) { animation: floatAround6 14s infinite; animation-delay: -7s; }
+    .floating-symbol:nth-child(7) { animation: driftSlow 22s infinite; animation-delay: -10s; }
+    .floating-symbol:nth-child(8) { animation: gentleDrift 19s infinite; animation-delay: -1s; }
+    .floating-symbol:nth-child(9) { animation: spiralFloat 17s infinite; animation-delay: -6s; }
+    .floating-symbol:nth-child(10) { animation: waveMotion 13s infinite; animation-delay: -4s; }
+    .floating-symbol:nth-child(11) { animation: circularDrift 21s infinite; animation-delay: -9s; }
+    .floating-symbol:nth-child(12) { animation: floatAround1 16s infinite; animation-delay: -2s; }
+    .floating-symbol:nth-child(13) { animation: floatAround2 18s infinite; animation-delay: -11s; }
+    .floating-symbol:nth-child(14) { animation: floatAround3 14s infinite; animation-delay: -5s; }
+    .floating-symbol:nth-child(15) { animation: floatAround4 19s infinite; animation-delay: -7s; }
+    .floating-symbol:nth-child(16) { animation: floatAround5 23s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(17) { animation: driftSlow 15s infinite; animation-delay: -8s; }
+    .floating-symbol:nth-child(18) { animation: gentleDrift 17s infinite; animation-delay: -1s; }
+    .floating-symbol:nth-child(19) { animation: spiralFloat 20s infinite; animation-delay: -12s; }
+    .floating-symbol:nth-child(20) { animation: waveMotion 18s infinite; animation-delay: -6s; }
+    .floating-symbol:nth-child(21) { animation: circularDrift 16s infinite; animation-delay: -4s; }
+    .floating-symbol:nth-child(22) { animation: floatAround1 14s infinite; animation-delay: -9s; }
+    .floating-symbol:nth-child(23) { animation: floatAround2 16s infinite; animation-delay: -3s; }
+    .floating-symbol:nth-child(24) { animation: driftSlow 18s infinite; animation-delay: -7s; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    @keyframes slideProgress {
+      0% { transform: translateX(-100px); }
+      50% { transform: translateX(140px); }
+      100% { transform: translateX(-100px); }
+    }
+    
+    .loading-text {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
     .pill-button:hover:not(.selected) {
       background-color: rgba(255, 255, 255, 0.8) !important;
       transform: translateY(-2px) !important;
@@ -811,16 +668,82 @@ function Onboarding() {
     }
   `;
 
-  // Loading state with themed loading screen
-  if (loading && programmingLanguages.length === 0) {
-    return <ThemedOnboardingLoadingScreen />;
+  if (initialLoading) {
+    return (
+      <div style={styles.pageContainer}>
+        <style>{hoverStyles}</style>
+        <IsolatedAnimatedBackground />
+        <div style={{
+          position: 'relative',
+          zIndex: 10,
+          textAlign: 'center'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.75rem',
+            marginBottom: '2rem'
+          }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }} className="global-loading-spinner">
+              <img 
+                src="/images/logo/TechSyncLogo.png" 
+                alt="TechSync Logo" 
+                style={{
+                  width: '125%',
+                  height: '125%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+            <span style={{
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              letterSpacing: '-0.025em'
+            }}>TechSync</span>
+          </div>
+
+          <h2 style={{
+            fontSize: '1.5rem',
+            fontWeight: '500',
+            color: '#d1d5db',
+            margin: '0 0 1rem 0'
+          }} className="loading-text">
+            Loading onboarding...
+          </h2>
+
+          <div style={{
+            width: '200px',
+            height: '4px',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '2px',
+            margin: '0 auto',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: '60px',
+              height: '100%',
+              backgroundColor: '#60a5fa',
+              borderRadius: '2px',
+              animation: 'slideProgress 1.5s ease-in-out infinite',
+              background: 'linear-gradient(to right, #60a5fa, #3b82f6)'
+            }} />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div style={styles.pageContainer}>
       <style>{hoverStyles}</style>
       
-      {/* Back to Login Button - Outside Container */}
       <div style={{
         position: 'fixed',
         top: '2rem',
@@ -859,31 +782,9 @@ function Onboarding() {
         </button>
       </div>
       
-      {/* Background Layer with Code Symbols */}
-      <div style={styles.backgroundLayer}>
-        <div style={styles.figmaBackground}>
-          <div style={{...styles.codeSymbol, left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'}}>&#60;/&#62;</div>
-          <div style={{...styles.codeSymbol, left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'}}>&#60;/&#62;</div>
-        </div>
-      </div>
+      <IsolatedAnimatedBackground />
 
       <div style={styles.container}>
-        {/* Removed Back to Login Button from here */}
-
         {currentStep === 1 && (
           <div style={styles.header}>
             <h1 style={styles.title}>Welcome to TechSync, {user?.full_name}!</h1>
@@ -894,7 +795,6 @@ function Onboarding() {
         {error && <div style={styles.error}>{error}</div>}
         {successMessage && <div style={styles.success}>{successMessage}</div>}
 
-        {/* Step 1: Programming Languages */}
         {currentStep === 1 && (
           <div style={styles.stepContainer}>
             <h2 style={styles.stepTitle}>What Programming Languages are you most skilled at?</h2>
@@ -919,7 +819,6 @@ function Onboarding() {
               })}
             </div>
 
-            {/* Proficiency Selection */}
             {selectedLanguages.length > 0 && (
               <div style={styles.proficiencyContainer}>
                 <h3 style={styles.proficiencyTitle}>Set your proficiency level</h3>
@@ -948,7 +847,6 @@ function Onboarding() {
           </div>
         )}
 
-        {/* Step 2: Topics */}
         {currentStep === 2 && (
           <div style={styles.stepContainer}>
             <h2 style={styles.stepTitle}>What topics are you most interested in?</h2>
@@ -973,7 +871,6 @@ function Onboarding() {
               })}
             </div>
 
-            {/* Topic Interest and Experience Levels */}
             {selectedTopics.length > 0 && (
               <div style={styles.proficiencyContainer}>
                 <h3 style={styles.proficiencyTitle}>Customize your selections</h3>
@@ -1025,7 +922,6 @@ function Onboarding() {
           </div>
         )}
 
-        {/* Step 3: Years of Experience */}
         {currentStep === 3 && (
           <div style={styles.stepContainer}>
             <h2 style={styles.experienceTitle}>Enter your years of programming experience.</h2>
@@ -1050,7 +946,6 @@ function Onboarding() {
           </div>
         )}
 
-        {/* Step 4: Review */}
         {currentStep === 4 && (
           <div style={styles.stepContainer}>
             <h2 style={styles.stepTitle}>Review Your Information</h2>
@@ -1104,7 +999,6 @@ function Onboarding() {
           </div>
         )}
 
-        {/* Navigation Buttons */}
         <div style={styles.navigationButtons}>
           {currentStep > 1 && (
             <button

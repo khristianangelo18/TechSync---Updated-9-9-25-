@@ -1,253 +1,393 @@
-// frontend/src/pages/project/ProjectTasks.js - ALIGNED WITH DASHBOARD THEME
+// frontend/src/pages/project/ProjectTasks.js - WITH FLOATING ANIMATIONS - COMPLETE
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { taskService } from '../../services/taskService';
 import { projectService } from '../../services/projectService';
 
-// Background symbols component - SAME AS DASHBOARD
+// Background symbols component - WITH FLOATING ANIMATIONS
 const BackgroundSymbols = () => (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    zIndex: 1,
-    pointerEvents: 'none'
-  }}>
+  <>
+    <style>
+      {`
+        @keyframes floatAround1 {
+          0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+          25% { transform: translate(20px, -15px) rotate(-5deg); }
+          50% { transform: translate(-10px, 20px) rotate(-15deg); }
+          75% { transform: translate(15px, 5px) rotate(-8deg); }
+        }
+        @keyframes floatAround2 {
+          0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+          33% { transform: translate(-20px, 10px) rotate(-33deg); }
+          66% { transform: translate(25px, -8px) rotate(-42deg); }
+        }
+        @keyframes floatAround3 {
+          0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+          50% { transform: translate(-15px, 25px) rotate(39deg); }
+        }
+        @keyframes floatAround4 {
+          0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+          40% { transform: translate(18px, -20px) rotate(33deg); }
+          80% { transform: translate(-12px, 15px) rotate(23deg); }
+        }
+        @keyframes floatAround5 {
+          0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+          50% { transform: translate(22px, 20px) rotate(29deg); }
+        }
+        @keyframes floatAround6 {
+          0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+          33% { transform: translate(-18px, -15px) rotate(30deg); }
+          66% { transform: translate(20px, 18px) rotate(20deg); }
+        }
+        @keyframes floatAround7 {
+          0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+          25% { transform: translate(15px, 20px) rotate(-14deg); }
+          75% { transform: translate(-20px, -10px) rotate(-24deg); }
+        }
+        @keyframes floatAround8 {
+          0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+          50% { transform: translate(-25px, 25px) rotate(-2deg); }
+        }
+        @keyframes floatAround9 {
+          0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+          35% { transform: translate(20px, -18px) rotate(30deg); }
+          70% { transform: translate(-15px, 20px) rotate(20deg); }
+        }
+        @keyframes floatAround10 {
+          0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+          50% { transform: translate(18px, -22px) rotate(-11deg); }
+        }
+        @keyframes floatAround11 {
+          0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+          33% { transform: translate(-22px, 15px) rotate(-5deg); }
+          66% { transform: translate(20px, -18px) rotate(-15deg); }
+        }
+        @keyframes floatAround12 {
+          0%, 100% { transform: translate(0, 0) rotate(18.2deg); }
+          50% { transform: translate(-20px, 28px) rotate(23deg); }
+        }
+        @keyframes floatAround13 {
+          0%, 100% { transform: translate(0, 0) rotate(37.85deg); }
+          40% { transform: translate(25px, -15px) rotate(42deg); }
+          80% { transform: translate(-18px, 20px) rotate(32deg); }
+        }
+        @keyframes floatAround14 {
+          0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+          50% { transform: translate(20px, 25px) rotate(-32deg); }
+        }
+        @keyframes floatAround15 {
+          0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+          25% { transform: translate(-15px, -20px) rotate(-42deg); }
+          75% { transform: translate(22px, 18px) rotate(-32deg); }
+        }
+        @keyframes floatAround16 {
+          0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+          50% { transform: translate(-28px, 22px) rotate(-5deg); }
+        }
+        @keyframes floatAround17 {
+          0%, 100% { transform: translate(0, 0) rotate(15deg); }
+          33% { transform: translate(18px, -25px) rotate(20deg); }
+          66% { transform: translate(-20px, 20px) rotate(10deg); }
+        }
+        @keyframes floatAround18 {
+          0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+          50% { transform: translate(25px, -20px) rotate(-40deg); }
+        }
+        @keyframes floatAround19 {
+          0%, 100% { transform: translate(0, 0) rotate(30deg); }
+          40% { transform: translate(-22px, 18px) rotate(35deg); }
+          80% { transform: translate(20px, -15px) rotate(25deg); }
+        }
+        @keyframes floatAround20 {
+          0%, 100% { transform: translate(0, 0) rotate(-20deg); }
+          50% { transform: translate(-18px, 28px) rotate(-15deg); }
+        }
+        @keyframes floatAround21 {
+          0%, 100% { transform: translate(0, 0) rotate(40deg); }
+          33% { transform: translate(20px, -22px) rotate(45deg); }
+          66% { transform: translate(-25px, 18px) rotate(35deg); }
+        }
+        
+        @keyframes globalLogoRotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .floating-symbol {
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+        }
+        
+        .global-loading-spinner {
+          animation: globalLogoRotate 2s linear infinite;
+        }
+        
+        .floating-symbol:nth-child(1) { animation: floatAround1 12s infinite; }
+        .floating-symbol:nth-child(2) { animation: floatAround2 15s infinite; animation-delay: -2s; }
+        .floating-symbol:nth-child(3) { animation: floatAround3 18s infinite; animation-delay: -4s; }
+        .floating-symbol:nth-child(4) { animation: floatAround4 14s infinite; animation-delay: -6s; }
+        .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -1s; }
+        .floating-symbol:nth-child(6) { animation: floatAround6 13s infinite; animation-delay: -5s; }
+        .floating-symbol:nth-child(7) { animation: floatAround7 17s infinite; animation-delay: -8s; }
+        .floating-symbol:nth-child(8) { animation: floatAround8 19s infinite; animation-delay: -3s; }
+        .floating-symbol:nth-child(9) { animation: floatAround9 11s infinite; animation-delay: -7s; }
+        .floating-symbol:nth-child(10) { animation: floatAround10 20s infinite; animation-delay: -9s; }
+        .floating-symbol:nth-child(11) { animation: floatAround11 14s infinite; animation-delay: -4s; }
+        .floating-symbol:nth-child(12) { animation: floatAround12 16s infinite; animation-delay: -10s; }
+        .floating-symbol:nth-child(13) { animation: floatAround13 12s infinite; animation-delay: -2s; }
+        .floating-symbol:nth-child(14) { animation: floatAround14 15s infinite; animation-delay: -6s; }
+        .floating-symbol:nth-child(15) { animation: floatAround15 18s infinite; animation-delay: -5s; }
+        .floating-symbol:nth-child(16) { animation: floatAround16 13s infinite; animation-delay: -8s; }
+        .floating-symbol:nth-child(17) { animation: floatAround17 17s infinite; animation-delay: -3s; }
+        .floating-symbol:nth-child(18) { animation: floatAround18 14s infinite; animation-delay: -7s; }
+        .floating-symbol:nth-child(19) { animation: floatAround19 16s infinite; animation-delay: -4s; }
+        .floating-symbol:nth-child(20) { animation: floatAround20 19s infinite; animation-delay: -9s; }
+        .floating-symbol:nth-child(21) { animation: floatAround21 15s infinite; animation-delay: -6s; }
+      `}
+    </style>
+    
     <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
-    }}>&#60;/&#62;</div>
-  </div>
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 1,
+      pointerEvents: 'none'
+    }}>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '52.81%', top: '48.12%', color: '#2E3344'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '28.19%', top: '71.22%', color: '#292A2E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '95.09%', top: '48.12%', color: '#ABB5CE'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '86.46%', top: '15.33%', color: '#2E3344'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '7.11%', top: '80.91%', color: '#ABB5CE'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '48.06%', top: '8.5%', color: '#ABB5CE'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '72.84%', top: '4.42%', color: '#2E3344'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '9.6%', top: '0%', color: '#1F232E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '31.54%', top: '54.31%', color: '#6C758E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '25.28%', top: '15.89%', color: '#1F232E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '48.55%', top: '82.45%', color: '#292A2E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '24.41%', top: '92.02%', color: '#2E3344'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '0%', top: '12.8%', color: '#ABB5CE'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '81.02%', top: '94.27%', color: '#6C758E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '96.02%', top: '0%', color: '#2E3344'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '0.07%', top: '41.2%', color: '#6C758E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '15%', top: '35%', color: '#3A4158'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '65%', top: '25%', color: '#5A6B8C'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '85%', top: '65%', color: '#2B2F3E'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '42%', top: '35%', color: '#4F5A7A'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '12%', top: '60%', color: '#8A94B8'
+      }}>&#60;/&#62;</div>
+    </div>
+  </>
 );
 
 function ProjectTasks() {
@@ -267,7 +407,6 @@ function ProjectTasks() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [showSuccess, setShowSuccess] = useState(null);
 
-  // Form state for creating/editing tasks
   const [taskForm, setTaskForm] = useState({
     title: '',
     description: '',
@@ -279,33 +418,23 @@ function ProjectTasks() {
     due_date: ''
   });
 
-  // Fetch project details and members - FIXED
   useEffect(() => {
     const fetchProjectData = async () => {
       try {
         const projectResponse = await projectService.getProjectById(projectId);
         setProject(projectResponse.data.project);
         
-        // Fetch members with improved structure handling
         try {
           const membersResponse = await projectService.getProjectMembers(projectId);
-          console.log('📋 Members response:', membersResponse.data);
-          
-          // Extract owner and members from the response
           const { owner, members } = membersResponse.data;
           
           setProjectOwner(owner);
           setProjectMembers(members || []);
-          
-          console.log('✅ Project owner:', owner?.full_name || owner?.username);
-          console.log('✅ Project members:', members?.length || 0);
         } catch (memberError) {
-          console.log('Could not fetch project members:', memberError);
           setProjectMembers([]);
           setProjectOwner(null);
         }
       } catch (error) {
-        console.error('Error fetching project data:', error);
         setError('Failed to load project data');
       }
     };
@@ -313,11 +442,10 @@ function ProjectTasks() {
     fetchProjectData();
   }, [projectId]);
 
-  // Fetch tasks function with useCallback to prevent infinite re-renders
   const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null); // Clear any previous errors
+      setError(null);
       
       const response = await taskService.getProjectTasks(projectId, {
         sort_by: sortBy,
@@ -325,72 +453,48 @@ function ProjectTasks() {
       });
       
       setTasks(response.data.tasks || []);
-      console.log('✅ Tasks loaded successfully:', response.data.tasks?.length || 0, 'tasks');
     } catch (error) {
-      console.error('Error fetching tasks:', error);
       setError('Failed to load tasks');
     } finally {
       setLoading(false);
     }
   }, [projectId, sortBy, sortOrder]);
 
-  // Fetch tasks when dependencies change
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
 
-  // Success message helper
   const showSuccessMessage = (message) => {
     setShowSuccess(message);
     setTimeout(() => setShowSuccess(null), 3000);
   };
 
-  // Create new task
   const createTask = async () => {
     try {
-      console.log('🚀 Creating task with form data:', taskForm);
-      
-      // Prepare task data with proper validation handling
       const taskData = {
-        title: taskForm.title.trim(), // Required field
-        description: taskForm.description.trim() || undefined, // Send undefined instead of empty string
+        title: taskForm.title.trim(),
+        description: taskForm.description.trim() || undefined,
         task_type: taskForm.task_type || 'development',
         priority: taskForm.priority || 'medium',
         status: taskForm.status || 'todo',
-        // Handle assigned_to - send undefined instead of empty string for UUID validation
         assigned_to: taskForm.assigned_to && taskForm.assigned_to.trim() ? taskForm.assigned_to.trim() : undefined,
-        // Handle estimated_hours - convert to integer or send undefined
         estimated_hours: taskForm.estimated_hours && taskForm.estimated_hours.trim() ? parseInt(taskForm.estimated_hours) : undefined,
-        // Handle due_date - ensure proper ISO format or send undefined
-        due_date: taskForm.due_date && taskForm.due_date.trim() ? 
-          new Date(taskForm.due_date).toISOString() : undefined
+        due_date: taskForm.due_date && taskForm.due_date.trim() ? new Date(taskForm.due_date).toISOString() : undefined
       };
 
-      console.log('📤 Sending task data:', taskData);
-
       const response = await taskService.createTask(projectId, taskData);
-      
-      console.log('✅ Task created successfully:', response.data.task);
-      
-      // Add the new task to the local state
       setTasks(prevTasks => [response.data.task, ...prevTasks]);
-      
-      // Close modal and reset form
       setShowCreateModal(false);
       resetForm();
       setError(null);
       showSuccessMessage('Task created successfully');
     } catch (error) {
-      console.error('💥 Create task error:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create task';
       setError(errorMessage);
     }
   };
 
-  // Edit existing task - IMPROVED VERSION
   const editTask = (task) => {
-    console.log('✏️ Starting edit for task:', task);
-    
     setEditingTask(task);
     setTaskForm({
       title: task.title || '',
@@ -400,36 +504,28 @@ function ProjectTasks() {
       status: task.status || 'todo',
       assigned_to: task.assigned_to || '',
       estimated_hours: task.estimated_hours || '',
-      due_date: task.due_date ? 
-        new Date(task.due_date).toISOString().split('T')[0] : ''
+      due_date: task.due_date ? new Date(task.due_date).toISOString().split('T')[0] : ''
     });
-    setError(null); // Clear any previous errors
+    setError(null);
     setShowCreateModal(true);
   };
 
-  // Delete task
   const deleteTask = async (taskId) => {
-    if (!window.confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
 
     try {
       await taskService.deleteTask(projectId, taskId);
       setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-      console.log('✅ Task deleted successfully');
       showSuccessMessage('Task deleted successfully');
     } catch (error) {
-      console.error('💥 Delete task error:', error);
       setError('Failed to delete task');
     }
   };
 
-  // Navigate to task detail page
   const viewTaskDetail = (taskId) => {
     navigate(`/project/${projectId}/tasks/${taskId}`);
   };
 
-  // Reset form
   const resetForm = () => {
     setTaskForm({
       title: '',
@@ -443,16 +539,11 @@ function ProjectTasks() {
     });
   };
 
-  // Handle form input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setTaskForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setTaskForm(prev => ({ ...prev, [name]: value }));
   };
 
-  // Handle form submission (create or update) - IMPROVED ERROR HANDLING
   const handleSaveTask = async (e) => {
     e.preventDefault();
     
@@ -462,68 +553,34 @@ function ProjectTasks() {
     }
 
     try {
-      setError(null); // Clear any previous errors
+      setError(null);
       
       if (editingTask) {
-        // Update existing task
-        console.log('🔄 Updating task:', editingTask.id);
-        console.log('🔄 Form data:', taskForm);
-        
-        // Prepare task data with proper validation - only send changed fields
         const taskData = {};
         
-        // Always include title if it's changed
-        if (taskForm.title.trim() !== editingTask.title) {
-          taskData.title = taskForm.title.trim();
-        }
+        if (taskForm.title.trim() !== editingTask.title) taskData.title = taskForm.title.trim();
+        if (taskForm.description !== editingTask.description) taskData.description = taskForm.description.trim() || null;
+        if (taskForm.task_type !== editingTask.task_type) taskData.task_type = taskForm.task_type || 'development';
+        if (taskForm.priority !== editingTask.priority) taskData.priority = taskForm.priority || 'medium';
+        if (taskForm.status !== editingTask.status) taskData.status = taskForm.status || 'todo';
         
-        // Include description if changed (can be empty/null)
-        if (taskForm.description !== editingTask.description) {
-          taskData.description = taskForm.description.trim() || null;
-        }
-        
-        // Include task type if changed
-        if (taskForm.task_type !== editingTask.task_type) {
-          taskData.task_type = taskForm.task_type || 'development';
-        }
-        
-        // Include priority if changed
-        if (taskForm.priority !== editingTask.priority) {
-          taskData.priority = taskForm.priority || 'medium';
-        }
-        
-        // Include status if changed
-        if (taskForm.status !== editingTask.status) {
-          taskData.status = taskForm.status || 'todo';
-        }
-        
-        // Handle assignment changes
         const currentAssignedTo = editingTask.assigned_to || '';
         const newAssignedTo = taskForm.assigned_to?.trim() || '';
-        if (currentAssignedTo !== newAssignedTo) {
-          taskData.assigned_to = newAssignedTo || null;
-        }
+        if (currentAssignedTo !== newAssignedTo) taskData.assigned_to = newAssignedTo || null;
         
-        // Handle estimated hours changes
         const currentEstimatedHours = editingTask.estimated_hours || '';
         const newEstimatedHours = taskForm.estimated_hours?.toString().trim() || '';
         if (currentEstimatedHours.toString() !== newEstimatedHours) {
           taskData.estimated_hours = newEstimatedHours ? parseInt(newEstimatedHours) : null;
         }
         
-        // Handle due date changes
-        const currentDueDate = editingTask.due_date ? 
-          new Date(editingTask.due_date).toISOString().split('T')[0] : '';
+        const currentDueDate = editingTask.due_date ? new Date(editingTask.due_date).toISOString().split('T')[0] : '';
         const newDueDate = taskForm.due_date?.trim() || '';
         if (currentDueDate !== newDueDate) {
           taskData.due_date = newDueDate ? new Date(newDueDate).toISOString() : null;
         }
         
-        console.log('📄 Sending update data:', taskData);
-        
-        // Only proceed if we have changes to make
         if (Object.keys(taskData).length === 0) {
-          console.log('ℹ️ No changes detected, closing modal');
           setShowCreateModal(false);
           setEditingTask(null);
           resetForm();
@@ -533,33 +590,23 @@ function ProjectTasks() {
         const response = await taskService.updateTask(projectId, editingTask.id, taskData);
         
         if (response.success && response.data?.task) {
-          // Update the task in local state
           setTasks(prevTasks => 
             prevTasks.map(task => 
               task.id === editingTask.id ? { ...task, ...response.data.task } : task
             )
           );
           
-          console.log('✅ Task updated successfully');
           showSuccessMessage('Task updated successfully');
-          
-          // Close modal and reset form
           setShowCreateModal(false);
           setEditingTask(null);
           resetForm();
         } else {
-          throw new Error(response.message || 'Update failed - no task data returned');
+          throw new Error(response.message || 'Update failed');
         }
-        
       } else {
-        // Create new task - call the existing createTask function
         await createTask();
       }
-      
     } catch (error) {
-      console.error('💥 Save task error:', error);
-      
-      // Set user-friendly error message
       let errorMessage = 'Failed to save task';
       
       if (error.response?.data?.message) {
@@ -568,13 +615,9 @@ function ProjectTasks() {
         errorMessage = error.message;
       }
       
-      // Handle specific error cases
-      if (error.response?.status === 400) {
-        if (error.response.data?.errors) {
-          // Validation errors
-          const validationErrors = error.response.data.errors.map(err => err.msg).join(', ');
-          errorMessage = `Validation failed: ${validationErrors}`;
-        }
+      if (error.response?.status === 400 && error.response.data?.errors) {
+        const validationErrors = error.response.data.errors.map(err => err.msg).join(', ');
+        errorMessage = `Validation failed: ${validationErrors}`;
       } else if (error.response?.status === 403) {
         errorMessage = 'You do not have permission to update this task';
       } else if (error.response?.status === 404) {
@@ -582,36 +625,23 @@ function ProjectTasks() {
       }
       
       setError(errorMessage);
-      
-      // Don't close modal on error so user can fix issues
-      console.log('⌛ Keeping modal open due to error');
     }
   };
 
-  // Filter tasks based on current filter
   const filteredTasks = tasks.filter(task => {
     switch (filter) {
-      case 'my_tasks':
-        return task.assigned_to === user.id;
-      case 'todo':
-        return task.status === 'todo';
-      case 'in_progress':
-        return task.status === 'in_progress';
-      case 'in_review':
-        return task.status === 'in_review';
-      case 'completed':
-        return task.status === 'completed';
-      case 'blocked':
-        return task.status === 'blocked';
-      default:
-        return true;
+      case 'my_tasks': return task.assigned_to === user.id;
+      case 'todo': return task.status === 'todo';
+      case 'in_progress': return task.status === 'in_progress';
+      case 'in_review': return task.status === 'in_review';
+      case 'completed': return task.status === 'completed';
+      case 'blocked': return task.status === 'blocked';
+      default: return true;
     }
   });
 
-  // Check if user can create tasks (project owner or member)
   const canCreateTasks = project && (project.owner_id === user.id);
 
-  // Helper functions - FIXED member name lookup
   const formatDate = (dateString) => {
     if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString();
@@ -620,12 +650,10 @@ function ProjectTasks() {
   const getMemberName = (userId) => {
     if (!userId) return 'Unassigned';
     
-    // Check if it's the project owner
     if (projectOwner && projectOwner.id === userId) {
       return `${projectOwner.full_name || projectOwner.username} (Owner)`;
     }
     
-    // Check if it's a project member
     const member = projectMembers.find(m => m.users?.id === userId);
     if (member && member.users) {
       return member.users.full_name || member.users.username;
@@ -634,11 +662,9 @@ function ProjectTasks() {
     return 'Unknown';
   };
 
-  // Get all assignable members (owner + members) - FIXED
   const getAllAssignableMembers = () => {
     const assignableMembers = [];
     
-    // Add project owner
     if (projectOwner) {
       assignableMembers.push({
         id: projectOwner.id,
@@ -648,7 +674,6 @@ function ProjectTasks() {
       });
     }
     
-    // Add project members
     projectMembers.forEach(member => {
       if (member.users) {
         assignableMembers.push({
@@ -688,7 +713,6 @@ function ProjectTasks() {
     return colors[priority] || '#6c757d';
   };
 
-  // Success message component
   const renderSuccessMessage = () => {
     if (!showSuccess) return null;
     
@@ -714,7 +738,6 @@ function ProjectTasks() {
     );
   };
 
-  // Error message component
   const renderErrorMessage = () => {
     if (!error) return null;
     
@@ -736,7 +759,6 @@ function ProjectTasks() {
     );
   };
 
-  // Aligned component styles with dashboard theme
   const styles = {
     container: {
       minHeight: 'calc(100vh - 40px)',
@@ -746,8 +768,8 @@ function ProjectTasks() {
       overflow: 'hidden',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       padding: '20px',
-      paddingLeft: '270px', // Match Dashboard.js sidebar spacing
-      marginLeft: '-150px'   // Match Dashboard.js sidebar spacing
+      paddingLeft: '270px',
+      marginLeft: '-150px'
     },
     header: {
       position: 'relative',
@@ -759,13 +781,8 @@ function ProjectTasks() {
       padding: '0 0 20px 0',
       borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
     },
-    headerLeft: {
-      flex: 1
-    },
-    headerRight: {
-      display: 'flex',
-      gap: '12px'
-    },
+    headerLeft: { flex: 1 },
+    headerRight: { display: 'flex', gap: '12px' },
     title: {
       fontSize: '28px',
       fontWeight: 'bold',
@@ -986,7 +1003,11 @@ function ProjectTasks() {
       textAlign: 'center',
       padding: '60px',
       color: '#9ca3af',
-      fontSize: '18px'
+      fontSize: '18px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '15px'
     },
     modal: {
       position: 'fixed',
@@ -1107,30 +1128,41 @@ function ProjectTasks() {
     }
   };
 
-  // Loading state
   if (loading) {
     return (
       <div style={styles.container}>
         <BackgroundSymbols />
         <div style={styles.loadingState}>
-          Loading tasks...
+          <div style={{
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }} className="global-loading-spinner">
+            <img 
+              src="/images/logo/TechSyncLogo.png" 
+              alt="TechSync Logo" 
+              style={{
+                width: '125%',
+                height: '125%',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+          <span>Loading tasks...</span>
         </div>
       </div>
     );
   }
 
-  // Get assignable members for the dropdown
   const assignableMembers = getAllAssignableMembers();
 
   return (
     <div style={styles.container}>
-      {/* Background Code Symbols */}
       <BackgroundSymbols />
-
-      {/* Success Message */}
       {renderSuccessMessage()}
 
-      {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
           <h1 style={styles.title}>Project Tasks</h1>
@@ -1163,7 +1195,6 @@ function ProjectTasks() {
         </div>
       </div>
 
-      {/* Controls */}
       <div style={styles.controls}>
         <div style={styles.filterGroup}>
           <label style={styles.filterLabel}>Filter:</label>
@@ -1199,35 +1230,25 @@ function ProjectTasks() {
           <button
             style={styles.actionButton}
             onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-            }}
+            onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+            onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
           >
-            {sortOrder === 'asc' ? '↓' : '↑'}
+            {sortOrder === 'asc' ? '↑' : '↓'}
           </button>
         </div>
 
         <button
           style={styles.refreshButton}
           onClick={fetchTasks}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'translateY(-1px)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'translateY(0)';
-          }}
+          onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+          onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
         >
           Refresh
         </button>
       </div>
 
-      {/* Error Message */}
       {renderErrorMessage()}
 
-      {/* Tasks Grid */}
       {filteredTasks.length === 0 ? (
         <div style={styles.emptyState}>
           <h2 style={styles.emptyTitle}>No tasks found</h2>
@@ -1253,119 +1274,104 @@ function ProjectTasks() {
         </div>
       ) : (
         <div style={styles.tasksGrid}>
-          {filteredTasks.map((task) => {
-            return (
-              <div
-                key={task.id}
-                style={styles.taskCard}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
-                }}
-              >
-                <div style={styles.taskHeader}>
-                  <h3 style={styles.taskTitle}>{task.title}</h3>
+          {filteredTasks.map((task) => (
+            <div
+              key={task.id}
+              style={styles.taskCard}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 0, 0, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.2)';
+              }}
+            >
+              <div style={styles.taskHeader}>
+                <h3 style={styles.taskTitle}>{task.title}</h3>
+              </div>
+
+              <div style={styles.taskMeta}>
+                <span
+                  style={{
+                    ...styles.statusBadge,
+                    backgroundColor: getStatusColor(task.status),
+                    color: getStatusTextColor(task.status)
+                  }}
+                >
+                  {task.status.replace('_', ' ')}
+                </span>
+                <span
+                  style={{
+                    ...styles.priorityBadge,
+                    backgroundColor: getPriorityColor(task.priority)
+                  }}
+                >
+                  {task.priority}
+                </span>
+              </div>
+
+              {task.description && (
+                <p style={styles.taskDescription}>
+                  {task.description.length > 150
+                    ? task.description.substring(0, 150) + '...'
+                    : task.description
+                  }
+                </p>
+              )}
+
+              <div style={styles.taskFooter}>
+                <div style={styles.taskInfo}>
+                  <div>Due: {formatDate(task.due_date)}</div>
+                  <div>Assigned: {getMemberName(task.assigned_to)}</div>
                 </div>
-
-                <div style={styles.taskMeta}>
-                  <span
-                    style={{
-                      ...styles.statusBadge,
-                      backgroundColor: getStatusColor(task.status),
-                      color: getStatusTextColor(task.status)
+                
+                <div style={styles.taskActions}>
+                  <button
+                    style={styles.viewButton}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      viewTaskDetail(task.id);
                     }}
+                    onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+                    onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                   >
-                    {task.status.replace('_', ' ')}
-                  </span>
-                  <span
-                    style={{
-                      ...styles.priorityBadge,
-                      backgroundColor: getPriorityColor(task.priority)
-                    }}
-                  >
-                    {task.priority}
-                  </span>
-                </div>
-
-                {task.description && (
-                  <p style={styles.taskDescription}>
-                    {task.description.length > 150
-                      ? task.description.substring(0, 150) + '...'
-                      : task.description
-                    }
-                  </p>
-                )}
-
-                <div style={styles.taskFooter}>
-                  <div style={styles.taskInfo}>
-                    <div>Due: {formatDate(task.due_date)}</div>
-                    <div>Assigned: {getMemberName(task.assigned_to)}</div>
-                  </div>
+                    View
+                  </button>
                   
-                  <div style={styles.taskActions}>
-                    <button
-                      style={styles.viewButton}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        viewTaskDetail(task.id);
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'translateY(0)';
-                      }}
-                    >
-                      View
-                    </button>
-                    
-                    {canCreateTasks && (
-                      <>
-                        <button
-                          style={styles.editButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            editTask(task);
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.transform = 'translateY(-1px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'translateY(0)';
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          style={styles.deleteButton}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteTask(task.id);
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.transform = 'translateY(-1px)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.transform = 'translateY(0)';
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  {canCreateTasks && (
+                    <>
+                      <button
+                        style={styles.editButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          editTask(task);
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        style={styles.deleteButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteTask(task.id);
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Create/Edit Task Modal */}
       {showCreateModal && (
         <div style={styles.modal} onClick={() => {
           setShowCreateModal(false);
@@ -1380,14 +1386,11 @@ function ProjectTasks() {
               </h2>
             </div>
 
-            {/* Error Message in Modal */}
             {renderErrorMessage()}
 
             <form onSubmit={handleSaveTask}>
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="title">
-                  Title *
-                </label>
+                <label style={styles.label} htmlFor="title">Title *</label>
                 <input
                   id="title"
                   type="text"
@@ -1401,9 +1404,7 @@ function ProjectTasks() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="description">
-                  Description
-                </label>
+                <label style={styles.label} htmlFor="description">Description</label>
                 <textarea
                   id="description"
                   name="description"
@@ -1415,9 +1416,7 @@ function ProjectTasks() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="task_type">
-                  Task Type
-                </label>
+                <label style={styles.label} htmlFor="task_type">Task Type</label>
                 <select
                   id="task_type"
                   name="task_type"
@@ -1436,9 +1435,7 @@ function ProjectTasks() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="priority">
-                  Priority
-                </label>
+                <label style={styles.label} htmlFor="priority">Priority</label>
                 <select
                   id="priority"
                   name="priority"
@@ -1454,9 +1451,7 @@ function ProjectTasks() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="status">
-                  Status
-                </label>
+                <label style={styles.label} htmlFor="status">Status</label>
                 <select
                   id="status"
                   name="status"
@@ -1473,9 +1468,7 @@ function ProjectTasks() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="assigned_to">
-                  Assigned To
-                </label>
+                <label style={styles.label} htmlFor="assigned_to">Assigned To</label>
                 <select
                   id="assigned_to"
                   name="assigned_to"
@@ -1498,9 +1491,7 @@ function ProjectTasks() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="estimated_hours">
-                  Estimated Hours
-                </label>
+                <label style={styles.label} htmlFor="estimated_hours">Estimated Hours</label>
                 <input
                   id="estimated_hours"
                   type="number"
@@ -1515,9 +1506,7 @@ function ProjectTasks() {
               </div>
 
               <div style={styles.formGroup}>
-                <label style={styles.label} htmlFor="due_date">
-                  Due Date
-                </label>
+                <label style={styles.label} htmlFor="due_date">Due Date</label>
                 <input
                   id="due_date"
                   type="date"
@@ -1538,12 +1527,8 @@ function ProjectTasks() {
                     resetForm();
                     setError(null);
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+                  onMouseEnter={(e) => e.target.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                 >
                   Cancel
                 </button>

@@ -1,9 +1,170 @@
-// frontend/src/pages/AdminDashboard.js - ALIGNED WITH DASHBOARD THEME
+// frontend/src/pages/AdminDashboard.js - ENHANCED WITH FLOATING ANIMATIONS
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AdminAPI from '../services/adminAPI';
 import { Shield, Users, Folder, Puzzle, UserPlus, Settings, BarChart3, FileText } from 'lucide-react';
+
+// Floating animation styles
+const floatingAnimationStyles = `
+  @keyframes floatAround1 {
+    0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+    25% { transform: translate(30px, -20px) rotate(-5deg); }
+    50% { transform: translate(-15px, 25px) rotate(-15deg); }
+    75% { transform: translate(20px, 10px) rotate(-8deg); }
+  }
+
+  @keyframes floatAround2 {
+    0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+    33% { transform: translate(-25px, 15px) rotate(-30deg); }
+    66% { transform: translate(35px, -10px) rotate(-45deg); }
+  }
+
+  @keyframes floatAround3 {
+    0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+    20% { transform: translate(-20px, -30px) rotate(40deg); }
+    40% { transform: translate(25px, 20px) rotate(28deg); }
+    60% { transform: translate(-10px, -15px) rotate(38deg); }
+    80% { transform: translate(15px, 25px) rotate(30deg); }
+  }
+
+  @keyframes floatAround4 {
+    0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+    50% { transform: translate(-40px, 30px) rotate(35deg); }
+  }
+
+  @keyframes floatAround5 {
+    0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+    25% { transform: translate(20px, -25px) rotate(30deg); }
+    50% { transform: translate(-30px, 20px) rotate(18deg); }
+    75% { transform: translate(25px, 15px) rotate(28deg); }
+  }
+
+  @keyframes floatAround6 {
+    0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+    33% { transform: translate(-15px, -20px) rotate(30deg); }
+    66% { transform: translate(30px, 25px) rotate(20deg); }
+  }
+
+  @keyframes driftSlow {
+    0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+    25% { transform: translate(-35px, 20px) rotate(-25deg); }
+    50% { transform: translate(20px, -30px) rotate(-15deg); }
+    75% { transform: translate(-10px, 35px) rotate(-22deg); }
+  }
+
+  @keyframes gentleDrift {
+    0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+    50% { transform: translate(25px, -40px) rotate(-2deg); }
+  }
+
+  @keyframes spiralFloat {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(20px, -20px) rotate(5deg); }
+    50% { transform: translate(0px, -40px) rotate(10deg); }
+    75% { transform: translate(-20px, -20px) rotate(5deg); }
+  }
+
+  @keyframes waveMotion {
+    0%, 100% { transform: translate(0, 0) rotate(15deg); }
+    25% { transform: translate(30px, 10px) rotate(20deg); }
+    50% { transform: translate(15px, -25px) rotate(10deg); }
+    75% { transform: translate(-15px, 10px) rotate(18deg); }
+  }
+
+  @keyframes circularDrift {
+    0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+    25% { transform: translate(25px, 0px) rotate(-40deg); }
+    50% { transform: translate(25px, 25px) rotate(-50deg); }
+    75% { transform: translate(0px, 25px) rotate(-42deg); }
+  }
+  @keyframes globalLogoRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .global-loading-spinner {
+    animation: globalLogoRotate 2s linear infinite;
+  }
+  .floating-symbol {
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+  }
+
+  .floating-symbol:nth-child(1) { animation: floatAround1 15s infinite; }
+  .floating-symbol:nth-child(2) { animation: floatAround2 18s infinite; animation-delay: -2s; }
+  .floating-symbol:nth-child(3) { animation: floatAround3 12s infinite; animation-delay: -5s; }
+  .floating-symbol:nth-child(4) { animation: floatAround4 20s infinite; animation-delay: -8s; }
+  .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -3s; }
+  .floating-symbol:nth-child(6) { animation: floatAround6 14s infinite; animation-delay: -7s; }
+  .floating-symbol:nth-child(7) { animation: driftSlow 22s infinite; animation-delay: -10s; }
+  .floating-symbol:nth-child(8) { animation: gentleDrift 19s infinite; animation-delay: -1s; }
+  .floating-symbol:nth-child(9) { animation: spiralFloat 17s infinite; animation-delay: -6s; }
+  .floating-symbol:nth-child(10) { animation: waveMotion 13s infinite; animation-delay: -4s; }
+  .floating-symbol:nth-child(11) { animation: circularDrift 21s infinite; animation-delay: -9s; }
+  .floating-symbol:nth-child(12) { animation: floatAround1 16s infinite; animation-delay: -2s; }
+  .floating-symbol:nth-child(13) { animation: floatAround2 18s infinite; animation-delay: -11s; }
+  .floating-symbol:nth-child(14) { animation: floatAround3 14s infinite; animation-delay: -5s; }
+  .floating-symbol:nth-child(15) { animation: floatAround4 19s infinite; animation-delay: -7s; }
+  .floating-symbol:nth-child(16) { animation: floatAround5 23s infinite; animation-delay: -3s; }
+  .floating-symbol:nth-child(17) { animation: driftSlow 15s infinite; animation-delay: -8s; }
+  .floating-symbol:nth-child(18) { animation: gentleDrift 17s infinite; animation-delay: -1s; }
+  .floating-symbol:nth-child(19) { animation: spiralFloat 20s infinite; animation-delay: -12s; }
+  .floating-symbol:nth-child(20) { animation: waveMotion 18s infinite; animation-delay: -6s; }
+  .floating-symbol:nth-child(21) { animation: circularDrift 16s infinite; animation-delay: -4s; }
+`;
+
+// Background symbols component
+const BackgroundSymbols = () => {
+  const symbolStyle = {
+    position: 'absolute',
+    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontStyle: 'normal',
+    fontWeight: 900,
+    fontSize: '24px',
+    lineHeight: '29px',
+    userSelect: 'none',
+    pointerEvents: 'none',
+    opacity: 0.6
+  };
+
+  return (
+    <>
+      <style>{floatingAnimationStyles}</style>
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 1,
+        pointerEvents: 'none'
+      }}>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '52.81%', top: '48.12%', color: '#2E3344' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '28.19%', top: '71.22%', color: '#292A2E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '95.09%', top: '48.12%', color: '#ABB5CE' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '86.46%', top: '15.33%', color: '#2E3344' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '7.11%', top: '80.91%', color: '#ABB5CE' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '48.06%', top: '8.5%', color: '#ABB5CE' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '72.84%', top: '4.42%', color: '#2E3344' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '9.6%', top: '0%', color: '#1F232E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '31.54%', top: '54.31%', color: '#6C758E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '25.28%', top: '15.89%', color: '#1F232E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '48.55%', top: '82.45%', color: '#292A2E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '24.41%', top: '92.02%', color: '#2E3344' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '0%', top: '12.8%', color: '#ABB5CE' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '81.02%', top: '94.27%', color: '#6C758E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '96.02%', top: '0%', color: '#2E3344' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '0.07%', top: '41.2%', color: '#6C758E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '15%', top: '35%', color: '#3A4158' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '65%', top: '25%', color: '#5A6B8C' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '85%', top: '65%', color: '#2B2F3E' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '42%', top: '35%', color: '#4F5A7A' }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{ ...symbolStyle, left: '12%', top: '60%', color: '#8A94B8' }}>&#60;/&#62;</div>
+      </div>
+    </>
+  );
+};
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -13,9 +174,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Always call hooks first - before any conditional returns
   useEffect(() => {
-    // Only fetch data if user is admin/moderator
     if (user?.role === 'admin' || user?.role === 'moderator') {
       fetchDashboardData();
     } else {
@@ -26,9 +185,8 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setError(''); // Clear any previous errors
+      setError('');
       
-      // Use AdminAPI service instead of direct fetch
       const response = await AdminAPI.getDashboardStats();
       
       if (response.success) {
@@ -40,7 +198,6 @@ const AdminDashboard = () => {
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       
-      // Provide more specific error messages
       if (error.response?.status === 403) {
         setError('Access denied. You need admin privileges to view this data.');
       } else if (error.response?.status === 401) {
@@ -64,12 +221,12 @@ const AdminDashboard = () => {
         borderLeft: `4px solid ${color}` 
       }}
       onMouseEnter={(e) => {
-        e.target.style.transform = 'translateY(-2px)';
-        e.target.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.3)';
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 8px 25px rgba(59, 130, 246, 0.3)';
       }}
       onMouseLeave={(e) => {
-        e.target.style.transform = 'translateY(0)';
-        e.target.style.boxShadow = 'none';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
       }}
     >
       <div style={styles.statHeader}>
@@ -112,25 +269,6 @@ const AdminDashboard = () => {
       padding: '20px',
       paddingLeft: '270px',
       marginLeft: '-150px'
-    },
-    backgroundSymbols: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      zIndex: 1,
-      pointerEvents: 'none'
-    },
-    codeSymbol: {
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none'
     },
     header: {
       position: 'relative',
@@ -263,9 +401,11 @@ const AdminDashboard = () => {
     loading: {
       position: 'relative',
       zIndex: 10,
-      textAlign: 'center',
-      padding: '60px',
-      fontSize: '18px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '400px',
+      fontSize: '16px',
       color: '#9ca3af'
     },
     errorContainer: {
@@ -336,98 +476,10 @@ const AdminDashboard = () => {
     }
   };
 
-  // Check authorization after hooks are called
   if (user?.role !== 'admin' && user?.role !== 'moderator') {
     return (
       <div style={styles.container}>
-        {/* Background Code Symbols - identical to Dashboard */}
-        <div style={styles.backgroundSymbols}>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
-          }}>&#60;/&#62;</div>
-        </div>
-
+        <BackgroundSymbols />
         <div style={styles.unauthorized}>
           <h2>Unauthorized Access</h2>
           <p>You don't have permission to access this page.</p>
@@ -439,190 +491,35 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div style={styles.container}>
-        {/* Background Code Symbols - identical to Dashboard */}
-        <div style={styles.backgroundSymbols}>
+        <BackgroundSymbols />
+        <div style={styles.loading}>
           <div style={{
-            ...styles.codeSymbol,
-            left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
-          }}>&#60;/&#62;</div>
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }} className="global-loading-spinner">
+            <img 
+              src="/images/logo/TechSyncLogo.png" 
+              alt="TechSync Logo" 
+              style={{
+                width: '125%',
+                height: '125%',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+          <span>Loading admin dashboard...</span>
         </div>
-
-        <div style={styles.loading}>Loading admin dashboard...</div>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
-      {/* Background Code Symbols - identical to Dashboard */}
-      <div style={styles.backgroundSymbols}>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
-        }}>&#60;/&#62;</div>
-      </div>
+      <BackgroundSymbols />
 
-      {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>
           <Shield size={28} style={{ color: '#3b82f6' }} />
@@ -633,7 +530,6 @@ const AdminDashboard = () => {
         </p>
       </div>
 
-      {/* Error Message */}
       {error && (
         <div style={styles.errorContainer}>
           {error}
@@ -642,12 +538,12 @@ const AdminDashboard = () => {
             style={styles.retryButton}
             onClick={fetchDashboardData}
             onMouseEnter={(e) => {
-              e.target.style.backgroundColor = '#2563eb';
-              e.target.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.backgroundColor = '#2563eb';
+              e.currentTarget.style.transform = 'translateY(-2px)';
             }}
             onMouseLeave={(e) => {
-              e.target.style.backgroundColor = '#3b82f6';
-              e.target.style.transform = 'translateY(0)';
+              e.currentTarget.style.backgroundColor = '#3b82f6';
+              e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
             Retry
@@ -655,7 +551,6 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Stats Grid */}
       {stats && (
         <div style={styles.statsGrid}>
           <StatCard
@@ -697,7 +592,6 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* Content Grid */}
       <div style={styles.contentGrid}>
         <div style={styles.section}>
           <h2 style={styles.sectionTitle}>Quick Actions</h2>
@@ -706,12 +600,12 @@ const AdminDashboard = () => {
               style={styles.actionButton}
               onClick={() => navigate('/admin/users')}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-                e.target.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#3b82f6';
-                e.target.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <Users size={16} />
@@ -720,12 +614,12 @@ const AdminDashboard = () => {
             <button 
               style={styles.actionButton}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-                e.target.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#3b82f6';
-                e.target.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <Folder size={16} />
@@ -733,13 +627,14 @@ const AdminDashboard = () => {
             </button>
             <button 
               style={styles.actionButton}
+              onClick={() => navigate('/challenges')}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-                e.target.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#3b82f6';
-                e.target.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <Puzzle size={16} />
@@ -748,12 +643,12 @@ const AdminDashboard = () => {
             <button 
               style={styles.actionButton}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-                e.target.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#3b82f6';
-                e.target.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <Settings size={16} />
@@ -762,12 +657,12 @@ const AdminDashboard = () => {
             <button 
               style={styles.actionButton}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-                e.target.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#3b82f6';
-                e.target.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <BarChart3 size={16} />
@@ -776,12 +671,12 @@ const AdminDashboard = () => {
             <button 
               style={styles.actionButton}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#2563eb';
-                e.target.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#3b82f6';
-                e.target.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#3b82f6';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <FileText size={16} />

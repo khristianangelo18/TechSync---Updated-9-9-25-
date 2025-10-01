@@ -1,4 +1,4 @@
-// frontend/src/pages/ManageUsers.js - ALIGNED WITH DASHBOARD THEME
+// frontend/src/pages/ManageUsers.js - WITH ANIMATED BACKGROUND
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AdminAPI from '../services/adminAPI';
@@ -13,13 +13,12 @@ const ManageUsers = () => {
   const [showModal, setShowModal] = useState(false);
   const [actionType, setActionType] = useState('');
   const [suspensionReason, setSuspensionReason] = useState('');
-  const [suspensionDuration, setSuspensionDuration] = useState(60); // minutes
+  const [suspensionDuration, setSuspensionDuration] = useState(60);
   const [newRole, setNewRole] = useState('');
-  const [deleteConfirmation, setDeleteConfirmation] = useState(''); // For delete confirmation
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [processing, setProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
-  // Filters
   const [filters, setFilters] = useState({
     search: '',
     role: '',
@@ -29,7 +28,6 @@ const ManageUsers = () => {
     limit: 20
   });
 
-  // Color variants for user cards - matching dashboard
   const colorVariants = ['slate', 'zinc', 'neutral', 'stone', 'gray', 'blue'];
 
   const fetchUsers = async () => {
@@ -67,7 +65,6 @@ const ManageUsers = () => {
       setNewRole(user.role);
     }
     
-    // Reset delete confirmation when opening modal
     if (action === 'delete') {
       setDeleteConfirmation('');
     }
@@ -82,7 +79,6 @@ const ManageUsers = () => {
       setProcessing(true);
       setError('');
       
-      // Validate user ID format (should be UUID)
       if (!selectedUser.id || typeof selectedUser.id !== 'string') {
         setError('Invalid user ID format');
         return;
@@ -142,24 +138,21 @@ const ManageUsers = () => {
           break;
           
         case 'delete':
-          // Validate delete confirmation
           if (deleteConfirmation !== selectedUser.username) {
             setError(`Please type "${selectedUser.username}" to confirm deletion`);
             return;
           }
           
-          // Call delete API endpoint
           const deleteResponse = await AdminAPI.deleteUser(selectedUser.id);
           
           if (deleteResponse.success) {
             setSuccessMessage(`User ${selectedUser.username} has been permanently deleted`);
             setShowModal(false);
             resetModal();
-            fetchUsers(); // Refresh the users list
+            fetchUsers();
             
-            // Clear success message after 5 seconds
             setTimeout(() => setSuccessMessage(''), 5000);
-            return; // Exit early since delete doesn't use updateUser
+            return;
           } else {
             setError(deleteResponse.message || 'Failed to delete user');
             return;
@@ -170,9 +163,7 @@ const ManageUsers = () => {
           return;
       }
       
-      // For non-delete actions, use updateUser
       if (actionType !== 'delete') {
-        // Log the data being sent for debugging
         console.log('Sending update data:', {
           userId: selectedUser.id,
           updateData: updateData
@@ -184,9 +175,8 @@ const ManageUsers = () => {
           setSuccessMessage(successMsg);
           setShowModal(false);
           resetModal();
-          fetchUsers(); // Refresh the users list
+          fetchUsers();
           
-          // Clear success message after 3 seconds
           setTimeout(() => setSuccessMessage(''), 3000);
         } else {
           setError(response.message || 'Action failed');
@@ -195,7 +185,6 @@ const ManageUsers = () => {
     } catch (error) {
       console.error('Error executing action:', error);
       
-      // Handle validation errors specifically
       if (error.response?.status === 400 && error.response?.data?.errors) {
         const validationErrors = error.response.data.errors.map(err => `${err.param}: ${err.msg}`).join(', ');
         setError(`Validation failed: ${validationErrors}`);
@@ -234,20 +223,18 @@ const ManageUsers = () => {
     setFilters(prev => ({
       ...prev,
       [key]: value,
-      page: 1 // Reset to first page when filtering
+      page: 1
     }));
   };
 
   const canModifyUser = (user) => {
-    // Prevent admin from modifying their own account or other admins (unless they're super admin)
     return user.id !== currentUser.id && (user.role !== 'admin' || currentUser.role === 'super_admin');
   };
 
   const canDeleteUser = (user) => {
-    // Only allow deletion if user is not admin, not current user, and not the last admin
     return user.id !== currentUser.id && 
            user.role !== 'admin' && 
-           !user.is_active; // Only allow deletion of inactive users for safety
+           !user.is_active;
   };
 
   const formatDate = (dateString) => {
@@ -418,7 +405,6 @@ const ManageUsers = () => {
                 Role
               </button>
               
-              {/* Delete Button - Only show for inactive users */}
               {canDeleteUser(user) && (
                 <button
                   style={styles.deleteButton}
@@ -776,7 +762,6 @@ const ManageUsers = () => {
       transition: 'all 0.3s ease',
       position: 'relative'
     },
-    // User card variants matching dashboard
     userCardVariants: {
       slate: {
         base: {
@@ -908,10 +893,6 @@ const ManageUsers = () => {
       gap: '6px',
       alignItems: 'flex-end'
     },
-    statusOnlyBadge: {
-      display: 'flex',
-      alignItems: 'flex-end'
-    },
     roleBadge: {
       display: 'inline-block',
       padding: '4px 10px',
@@ -936,14 +917,6 @@ const ManageUsers = () => {
       borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
       display: 'flex',
       justifyContent: 'flex-end',
-      alignItems: 'center'
-    },
-    roleSection: {
-      display: 'flex',
-      alignItems: 'center'
-    },
-    joinedSection: {
-      display: 'flex',
       alignItems: 'center'
     },
     metaItem: {
@@ -1055,9 +1028,11 @@ const ManageUsers = () => {
     loading: {
       position: 'relative',
       zIndex: 10,
-      textAlign: 'center',
-      padding: '60px',
-      fontSize: '18px',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '400px',
+      fontSize: '16px',
       color: '#9ca3af'
     },
     emptyState: {
@@ -1209,92 +1184,119 @@ const ManageUsers = () => {
   if (currentUser?.role !== 'admin') {
     return (
       <div style={styles.container}>
-        {/* Background Code Symbols - identical to Dashboard */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes floatAround1 {
+              0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+              25% { transform: translate(30px, -20px) rotate(-5deg); }
+              50% { transform: translate(-15px, 25px) rotate(-15deg); }
+              75% { transform: translate(20px, 10px) rotate(-8deg); }
+            }
+            @keyframes floatAround2 {
+              0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+              33% { transform: translate(-25px, 15px) rotate(-30deg); }
+              66% { transform: translate(35px, -10px) rotate(-45deg); }
+            }
+            @keyframes floatAround3 {
+              0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+              20% { transform: translate(-20px, -30px) rotate(40deg); }
+              40% { transform: translate(25px, 20px) rotate(28deg); }
+              60% { transform: translate(-10px, -15px) rotate(38deg); }
+              80% { transform: translate(15px, 25px) rotate(30deg); }
+            }
+            @keyframes floatAround4 {
+              0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+              50% { transform: translate(-40px, 30px) rotate(35deg); }
+            }
+            @keyframes floatAround5 {
+              0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+              25% { transform: translate(20px, -25px) rotate(30deg); }
+              50% { transform: translate(-30px, 20px) rotate(18deg); }
+              75% { transform: translate(25px, 15px) rotate(28deg); }
+            }
+            @keyframes floatAround6 {
+              0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+              33% { transform: translate(-15px, -20px) rotate(30deg); }
+              66% { transform: translate(30px, 25px) rotate(20deg); }
+            }
+            @keyframes driftSlow {
+              0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+              25% { transform: translate(-35px, 20px) rotate(-25deg); }
+              50% { transform: translate(20px, -30px) rotate(-15deg); }
+              75% { transform: translate(-10px, 35px) rotate(-22deg); }
+            }
+            @keyframes gentleDrift {
+              0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+              50% { transform: translate(25px, -40px) rotate(-2deg); }
+            }
+            @keyframes spiralFloat {
+              0%, 100% { transform: translate(0, 0) rotate(0deg); }
+              25% { transform: translate(20px, -20px) rotate(5deg); }
+              50% { transform: translate(0px, -40px) rotate(10deg); }
+              75% { transform: translate(-20px, -20px) rotate(5deg); }
+            }
+            @keyframes waveMotion {
+              0%, 100% { transform: translate(0, 0) rotate(15deg); }
+              25% { transform: translate(30px, 10px) rotate(20deg); }
+              50% { transform: translate(15px, -25px) rotate(10deg); }
+              75% { transform: translate(-15px, 10px) rotate(18deg); }
+            }
+            @keyframes circularDrift {
+              0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+              25% { transform: translate(25px, 0px) rotate(-40deg); }
+              50% { transform: translate(25px, 25px) rotate(-50deg); }
+              75% { transform: translate(0px, 25px) rotate(-42deg); }
+            }
+            .floating-symbol {
+              animation-timing-function: ease-in-out;
+              animation-iteration-count: infinite;
+            }
+            .floating-symbol:nth-child(1) { animation: floatAround1 15s infinite; }
+            .floating-symbol:nth-child(2) { animation: floatAround2 18s infinite; animation-delay: -2s; }
+            .floating-symbol:nth-child(3) { animation: floatAround3 12s infinite; animation-delay: -5s; }
+            .floating-symbol:nth-child(4) { animation: floatAround4 20s infinite; animation-delay: -8s; }
+            .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -3s; }
+            .floating-symbol:nth-child(6) { animation: floatAround6 14s infinite; animation-delay: -7s; }
+            .floating-symbol:nth-child(7) { animation: driftSlow 22s infinite; animation-delay: -10s; }
+            .floating-symbol:nth-child(8) { animation: gentleDrift 19s infinite; animation-delay: -1s; }
+            .floating-symbol:nth-child(9) { animation: spiralFloat 17s infinite; animation-delay: -6s; }
+            .floating-symbol:nth-child(10) { animation: waveMotion 13s infinite; animation-delay: -4s; }
+            .floating-symbol:nth-child(11) { animation: circularDrift 21s infinite; animation-delay: -9s; }
+            .floating-symbol:nth-child(12) { animation: floatAround1 16s infinite; animation-delay: -2s; }
+            .floating-symbol:nth-child(13) { animation: floatAround2 18s infinite; animation-delay: -11s; }
+            .floating-symbol:nth-child(14) { animation: floatAround3 14s infinite; animation-delay: -5s; }
+            .floating-symbol:nth-child(15) { animation: floatAround4 19s infinite; animation-delay: -7s; }
+            .floating-symbol:nth-child(16) { animation: floatAround5 23s infinite; animation-delay: -3s; }
+            .floating-symbol:nth-child(17) { animation: driftSlow 15s infinite; animation-delay: -8s; }
+            .floating-symbol:nth-child(18) { animation: gentleDrift 17s infinite; animation-delay: -1s; }
+            .floating-symbol:nth-child(19) { animation: spiralFloat 20s infinite; animation-delay: -12s; }
+            .floating-symbol:nth-child(20) { animation: waveMotion 18s infinite; animation-delay: -6s; }
+            .floating-symbol:nth-child(21) { animation: circularDrift 16s infinite; animation-delay: -4s; }
+          `
+        }} />
+        
         <div style={styles.backgroundSymbols}>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
-          }}>&#60;/&#62;</div>
-          <div style={{
-            ...styles.codeSymbol,
-            left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
-          }}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '52.81%', top: '48.12%', color: '#2E3344'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '28.19%', top: '71.22%', color: '#292A2E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '95.09%', top: '48.12%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '86.46%', top: '15.33%', color: '#2E3344'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '7.11%', top: '80.91%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '48.06%', top: '8.5%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '72.84%', top: '4.42%', color: '#2E3344'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '9.6%', top: '0%', color: '#1F232E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '31.54%', top: '54.31%', color: '#6C758E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '25.28%', top: '15.89%', color: '#1F232E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '48.55%', top: '82.45%', color: '#292A2E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '24.41%', top: '92.02%', color: '#2E3344'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '0%', top: '12.8%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '81.02%', top: '94.27%', color: '#6C758E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '96.02%', top: '0%', color: '#2E3344'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '0.07%', top: '41.2%', color: '#6C758E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '15%', top: '35%', color: '#3A4158'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '65%', top: '25%', color: '#5A6B8C'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '85%', top: '65%', color: '#2B2F3E'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '42%', top: '35%', color: '#4F5A7A'}}>&#60;/&#62;</div>
+          <div className="floating-symbol" style={{...styles.codeSymbol, left: '12%', top: '60%', color: '#8A94B8'}}>&#60;/&#62;</div>
         </div>
 
         <div style={styles.emptyState}>
@@ -1307,137 +1309,135 @@ const ManageUsers = () => {
 
   return (
     <div style={styles.container}>
-      {/* Inject global styles for select dropdowns */}
       <style dangerouslySetInnerHTML={{
         __html: `
+          @keyframes floatAround1 {
+            0%, 100% { transform: translate(0, 0) rotate(-10.79deg); }
+            25% { transform: translate(30px, -20px) rotate(-5deg); }
+            50% { transform: translate(-15px, 25px) rotate(-15deg); }
+            75% { transform: translate(20px, 10px) rotate(-8deg); }
+          }
+          @keyframes floatAround2 {
+            0%, 100% { transform: translate(0, 0) rotate(-37.99deg); }
+            33% { transform: translate(-25px, 15px) rotate(-30deg); }
+            66% { transform: translate(35px, -10px) rotate(-45deg); }
+          }
+          @keyframes floatAround3 {
+            0%, 100% { transform: translate(0, 0) rotate(34.77deg); }
+            20% { transform: translate(-20px, -30px) rotate(40deg); }
+            40% { transform: translate(25px, 20px) rotate(28deg); }
+            60% { transform: translate(-10px, -15px) rotate(38deg); }
+            80% { transform: translate(15px, 25px) rotate(30deg); }
+          }
+          @keyframes floatAround4 {
+            0%, 100% { transform: translate(0, 0) rotate(28.16deg); }
+            50% { transform: translate(-40px, 30px) rotate(35deg); }
+          }
+          @keyframes floatAround5 {
+            0%, 100% { transform: translate(0, 0) rotate(24.5deg); }
+            25% { transform: translate(20px, -25px) rotate(30deg); }
+            50% { transform: translate(-30px, 20px) rotate(18deg); }
+            75% { transform: translate(25px, 15px) rotate(28deg); }
+          }
+          @keyframes floatAround6 {
+            0%, 100% { transform: translate(0, 0) rotate(25.29deg); }
+            33% { transform: translate(-15px, -20px) rotate(30deg); }
+            66% { transform: translate(30px, 25px) rotate(20deg); }
+          }
+          @keyframes driftSlow {
+            0%, 100% { transform: translate(0, 0) rotate(-19.68deg); }
+            25% { transform: translate(-35px, 20px) rotate(-25deg); }
+            50% { transform: translate(20px, -30px) rotate(-15deg); }
+            75% { transform: translate(-10px, 35px) rotate(-22deg); }
+          }
+          @keyframes gentleDrift {
+            0%, 100% { transform: translate(0, 0) rotate(-6.83deg); }
+            50% { transform: translate(25px, -40px) rotate(-2deg); }
+          }
+          @keyframes spiralFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -20px) rotate(5deg); }
+            50% { transform: translate(0px, -40px) rotate(10deg); }
+            75% { transform: translate(-20px, -20px) rotate(5deg); }
+          }
+          @keyframes waveMotion {
+            0%, 100% { transform: translate(0, 0) rotate(15deg); }
+            25% { transform: translate(30px, 10px) rotate(20deg); }
+            50% { transform: translate(15px, -25px) rotate(10deg); }
+            75% { transform: translate(-15px, 10px) rotate(18deg); }
+          }
+          @keyframes circularDrift {
+            0%, 100% { transform: translate(0, 0) rotate(-45deg); }
+            25% { transform: translate(25px, 0px) rotate(-40deg); }
+            50% { transform: translate(25px, 25px) rotate(-50deg); }
+            75% { transform: translate(0px, 25px) rotate(-42deg); }
+          }
+          @keyframes globalLogoRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+
+          .global-loading-spinner {
+            animation: globalLogoRotate 2s linear infinite;
+          }
+          .floating-symbol {
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+          }
+          .floating-symbol:nth-child(1) { animation: floatAround1 15s infinite; }
+          .floating-symbol:nth-child(2) { animation: floatAround2 18s infinite; animation-delay: -2s; }
+          .floating-symbol:nth-child(3) { animation: floatAround3 12s infinite; animation-delay: -5s; }
+          .floating-symbol:nth-child(4) { animation: floatAround4 20s infinite; animation-delay: -8s; }
+          .floating-symbol:nth-child(5) { animation: floatAround5 16s infinite; animation-delay: -3s; }
+          .floating-symbol:nth-child(6) { animation: floatAround6 14s infinite; animation-delay: -7s; }
+          .floating-symbol:nth-child(7) { animation: driftSlow 22s infinite; animation-delay: -10s; }
+          .floating-symbol:nth-child(8) { animation: gentleDrift 19s infinite; animation-delay: -1s; }
+          .floating-symbol:nth-child(9) { animation: spiralFloat 17s infinite; animation-delay: -6s; }
+          .floating-symbol:nth-child(10) { animation: waveMotion 13s infinite; animation-delay: -4s; }
+          .floating-symbol:nth-child(11) { animation: circularDrift 21s infinite; animation-delay: -9s; }
+          .floating-symbol:nth-child(12) { animation: floatAround1 16s infinite; animation-delay: -2s; }
+          .floating-symbol:nth-child(13) { animation: floatAround2 18s infinite; animation-delay: -11s; }
+          .floating-symbol:nth-child(14) { animation: floatAround3 14s infinite; animation-delay: -5s; }
+          .floating-symbol:nth-child(15) { animation: floatAround4 19s infinite; animation-delay: -7s; }
+          .floating-symbol:nth-child(16) { animation: floatAround5 23s infinite; animation-delay: -3s; }
+          .floating-symbol:nth-child(17) { animation: driftSlow 15s infinite; animation-delay: -8s; }
+          .floating-symbol:nth-child(18) { animation: gentleDrift 17s infinite; animation-delay: -1s; }
+          .floating-symbol:nth-child(19) { animation: spiralFloat 20s infinite; animation-delay: -12s; }
+          .floating-symbol:nth-child(20) { animation: waveMotion 18s infinite; animation-delay: -6s; }
+          .floating-symbol:nth-child(21) { animation: circularDrift 16s infinite; animation-delay: -4s; }
+          
           select option {
             background-color: #1a1c20 !important;
             color: white !important;
             padding: 8px 12px !important;
-            border: none !important;
-            font-size: 14px !important;
-          }
-          
-          select option:hover {
-            background-color: #2563eb !important;
-            color: white !important;
-          }
-          
-          select option:checked {
-            background-color: #3b82f6 !important;
-            color: white !important;
-          }
-          
-          select:focus {
-            border-color: #3b82f6 !important;
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
-          }
-
-          /* Custom scrollbar for select dropdowns */
-          select::-webkit-scrollbar {
-            width: 8px;
-          }
-          
-          select::-webkit-scrollbar-track {
-            background: #1a1c20;
-          }
-          
-          select::-webkit-scrollbar-thumb {
-            background: #3b82f6;
-            border-radius: 4px;
           }
         `
       }} />
       
-      {/* Background Code Symbols - identical to Dashboard */}
       <div style={styles.backgroundSymbols}>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
-        }}>&#60;/&#62;</div>
-        <div style={{
-          ...styles.codeSymbol,
-          left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
-        }}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '52.81%', top: '48.12%', color: '#2E3344'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '28.19%', top: '71.22%', color: '#292A2E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '95.09%', top: '48.12%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '86.46%', top: '15.33%', color: '#2E3344'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '7.11%', top: '80.91%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '48.06%', top: '8.5%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '72.84%', top: '4.42%', color: '#2E3344'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '9.6%', top: '0%', color: '#1F232E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '31.54%', top: '54.31%', color: '#6C758E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '25.28%', top: '15.89%', color: '#1F232E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '48.55%', top: '82.45%', color: '#292A2E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '24.41%', top: '92.02%', color: '#2E3344'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '0%', top: '12.8%', color: '#ABB5CE'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '81.02%', top: '94.27%', color: '#6C758E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '96.02%', top: '0%', color: '#2E3344'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '0.07%', top: '41.2%', color: '#6C758E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '15%', top: '35%', color: '#3A4158'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '65%', top: '25%', color: '#5A6B8C'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '85%', top: '65%', color: '#2B2F3E'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '42%', top: '35%', color: '#4F5A7A'}}>&#60;/&#62;</div>
+        <div className="floating-symbol" style={{...styles.codeSymbol, left: '12%', top: '60%', color: '#8A94B8'}}>&#60;/&#62;</div>
       </div>
 
-      {/* Header */}
       <div style={styles.header}>
         <h1 style={styles.title}>
           <Users size={28} style={{ color: '#3b82f6' }} />
@@ -1446,21 +1446,18 @@ const ManageUsers = () => {
         <p style={styles.subtitle}>View and manage user accounts, roles, and permissions</p>
       </div>
 
-      {/* Success Message */}
       {successMessage && (
         <div style={styles.successMessage}>
           {successMessage}
         </div>
       )}
 
-      {/* Error Message */}
       {error && !showModal && (
         <div style={styles.errorMessage}>
           {error}
         </div>
       )}
 
-      {/* Filters */}
       <div style={styles.filtersContainer}>
         <div style={styles.filtersGrid}>
           <div style={styles.filterGroup}>
@@ -1538,9 +1535,27 @@ const ManageUsers = () => {
         </div>
       </div>
 
-      {/* Users Grid */}
       {loading ? (
-        <div style={styles.loading}>Loading users...</div>
+        <div style={styles.loading}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }} className="global-loading-spinner">
+            <img 
+               src="/images/logo/TechSyncLogo.png" 
+               alt="TechSync Logo" 
+               style={{
+               width: '125%',
+               height: '125%',
+               objectFit: 'contain'
+            }}
+          />
+          </div>
+          <span>Loading users...</span>
+        </div>
       ) : users.length === 0 ? (
         <div style={styles.emptyState}>
           <p>No users found matching your criteria.</p>
@@ -1551,7 +1566,6 @@ const ManageUsers = () => {
         </div>
       )}
 
-      {/* Action Modal */}
       <ActionModal />
     </div>
   );

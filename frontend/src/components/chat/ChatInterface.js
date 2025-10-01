@@ -158,28 +158,53 @@ const ChatInterface = ({ projectId }) => {
 
   if (loading) {
     return (
-      <div style={{   
-        flex: 1, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        backgroundColor: '#0F1116',
-        height: '100vh',
-        maxHeight: '100vh',
-        overflow: 'hidden'}}>
-        <div style={{ textAlign: 'center' }}>
+      <>
+        <style>{`
+          @keyframes globalLogoRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          
+          .global-loading-spinner {
+            animation: globalLogoRotate 2s linear infinite;
+          }
+        `}</style>
+        
+        <div style={{   
+          flex: 1, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          backgroundColor: '#0F1116',
+          height: '100vh',
+          maxHeight: '100vh',
+          overflow: 'hidden'}}>
           <div style={{ 
-            width: '32px', 
-            height: '32px', 
-            border: '2px solid rgba(255, 255, 255, 0.1)', 
-            borderTop: '2px solid #3b82f6', 
-            borderRadius: '50%', 
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto'
-          }}></div>
-          <p style={{ marginTop: '8px', color: '#9ca3af' }}>Loading chat...</p>
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '15px' 
+          }}>
+            <div className="global-loading-spinner" style={{
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <img 
+                src="/images/logo/TechSyncLogo.png" 
+                alt="TechSync Logo" 
+                style={{
+                  width: '125%',
+                  height: '125%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+            <span style={{ color: '#9ca3af', fontSize: '18px' }}>Loading chat...</span>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -943,6 +968,15 @@ const ChatInterface = ({ projectId }) => {
       
       {/* CSS animations */}
       <style>{`
+        @keyframes globalLogoRotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        
+        .global-loading-spinner {
+          animation: globalLogoRotate 2s linear infinite;
+        }
+        
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }

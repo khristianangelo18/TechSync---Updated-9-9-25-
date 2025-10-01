@@ -1,6 +1,6 @@
-// backend/routes/aiChat.js - COMPLETE FIXED VERSION
+// backend/routes/aiChat.js - UPDATED WITH CORRECT API
 const express = require('express');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai'); // Updated import
 const auth = require('../middleware/auth');
 
 // Import your existing database configuration
@@ -8,17 +8,70 @@ const db = require('../config/database');
 
 const router = express.Router();
 
-// Initialize Gemini AI
+// Initialize Gemini AI with better error handling
 let genAI = null;
-try {
-  if (process.env.GEMINI_API_KEY) {
-    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  } else {
-    console.warn('GEMINI_API_KEY not found. AI features will be disabled.');
+let availableModels = [];
+
+const initializeGeminiAI = async () => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn('GEMINI_API_KEY not found. AI features will be disabled.');
+      return;
+    }
+
+    console.log('Initializing Gemini AI...');
+    genAI = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY
+    });
+    
+    // Test the connection with a simple request
+    try {
+      const testResponse = await genAI.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: "Hello"
+      });
+      
+      console.log('✅ Gemini AI initialized successfully');
+      availableModels = ['gemini-2.5-flash', 'gemini-1.5-pro', 'gemini-1.5-flash']; // Common models
+      
+    } catch (testError) {
+      console.error('❌ Error testing Gemini AI:', testError.message);
+      
+      // Try alternative models
+      const alternativeModels = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'];
+      for (const model of alternativeModels) {
+        try {
+          await genAI.models.generateContent({
+            model: model,
+            contents: "Hello"
+          });
+          console.log(`✅ Using alternative model: ${model}`);
+          availableModels = [model];
+          break;
+        } catch (altError) {
+          console.log(`❌ Model ${model} not available`);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ Error initializing Gemini AI:', error.message);
+    genAI = null;
   }
-} catch (error) {
-  console.error('Error initializing Gemini AI:', error);
-}
+};
+
+// Initialize on startup
+initializeGeminiAI();
+
+// Helper function to get the best available model
+const getBestAvailableModel = () => {
+  if (!genAI || availableModels.length === 0) {
+    return null;
+  }
+
+  // Return the first available model
+  return availableModels[0];
+};
 
 // FIXED: Programming language mapping - EXACT match to your database
 const normalizeProgrammingLanguage = (langName) => {
@@ -31,7 +84,7 @@ const normalizeProgrammingLanguage = (langName) => {
     .replace(/^\*\*\s*/, '')        // Remove ** from start  
     .replace(/\s*\*\*$/, '')        // Remove ** from end
     .replace(/\*\*/g, '')           // Remove any remaining **
-    .replace(/[()[\]{}]/g, '')      // Remove brackets
+    .replace(/[()[```{}]/g, '')      // Remove brackets
     .replace(/\s+/g, ' ')           // Normalize whitespace
     .trim();
 
@@ -99,6 +152,38 @@ const normalizeProgrammingLanguage = (langName) => {
   return LANGUAGE_MAPPING[cleaned] || cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
 };
 
+// Test endpoint to check API key and models
+router.get('/test-api', async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({ error: 'No API key found' });
+    }
+
+    if (!genAI) {
+      return res.json({ error: 'Gemini AI not initialized' });
+    }
+
+    // Test with a simple request
+    const testResponse = await genAI.models.generateContent({
+      model: getBestAvailableModel() || "gemini-2.5-flash",
+      contents: "Hello"
+    });
+    
+    res.json({
+      success: true,
+      apiKeyLength: process.env.GEMINI_API_KEY.length,
+      modelsFound: availableModels.length,
+      models: availableModels,
+      testResponse: testResponse.text
+    });
+  } catch (error) {
+    res.json({
+      error: error.message,
+      apiKeyExists: !!process.env.GEMINI_API_KEY,
+      apiKeyLength: process.env.GEMINI_API_KEY?.length || 0
+    });
+  }
+});
 
 // AI Chat endpoint
 router.post('/', auth, async (req, res) => {
@@ -111,10 +196,17 @@ router.post('/', auth, async (req, res) => {
       });
     }
 
+    const modelName = getBestAvailableModel();
+    if (!modelName) {
+      return res.status(500).json({
+        success: false,
+        message: 'No available AI models',
+        error: 'No compatible models found'
+      });
+    }
+
     const { message, conversationHistory = [] } = req.body;
     const userId = req.user.id;
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const systemPrompt = `You are a helpful coding project assistant. When suggesting project ideas, format them clearly with:
 - **Project Name** as a bold header
@@ -130,24 +222,16 @@ CRITICAL: For Technologies, only list ONE core programming language without any 
 - Use "Java" (NOT Spring)
 - Use "C++" (NOT specific libraries)
 
-User's context: ${conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n')}`;
+User's context: ${conversationHistory.slice(-3).map(msg => `${msg.role}: ${msg.content}`).join('\n')}
 
-    const chat = model.startChat({
-      history: [
-        {
-          role: 'user',
-          parts: [{ text: systemPrompt }]
-        },
-        {
-          role: 'model', 
-          parts: [{ text: 'I understand. I will suggest projects with only core programming languages and clear formatting.' }]
-        }
-      ]
+User message: ${message}`;
+
+    const response = await genAI.models.generateContent({
+      model: modelName,
+      contents: systemPrompt
     });
 
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    const aiMessage = response.text();
+    const aiMessage = response.text;
 
     res.json({
       success: true,
@@ -243,7 +327,7 @@ router.post('/create-project', auth, async (req, res) => {
           .replace(/^\*\*\s*/, '')        // Remove ** prefix
           .replace(/\s*\*\*$/, '')        // Remove ** suffix  
           .replace(/\*\*/g, '')           // Remove all **
-          .replace(/[()[\]{}]/g, '')      // Remove brackets
+          .replace(/[()[```{}]/g, '')      // Remove brackets
           .trim();
 
         console.log(`Cleaning language: "${rawLangName}" -> "${cleanedName}"`);
@@ -297,7 +381,6 @@ router.post('/create-project', auth, async (req, res) => {
       }
     }
 
-
     // Ensure at least one language (default to JavaScript)
     if (languagesAdded.length === 0) {
       console.log('⚠️ No languages added, adding default JavaScript...');
@@ -334,7 +417,7 @@ router.post('/create-project', auth, async (req, res) => {
         let topicId;
         if (topicResult.rows.length === 0) {
           const newTopicResult = await client.query(
-            'INSERT INTO topics (name, is_predefined, created_by, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
+                        'INSERT INTO topics (name, is_predefined, created_by, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id',
             [topicName.trim(), false, userId]
           );
           topicId = newTopicResult.rows[0].id;
@@ -438,8 +521,16 @@ router.post('/generate-project', auth, async (req, res) => {
       });
     }
 
+    const modelName = getBestAvailableModel();
+    if (!modelName) {
+      return res.status(500).json({
+        success: false,
+        message: 'No available AI models',
+        error: 'No compatible models found'
+      });
+    }
+
     const { skills = [], interests = [], difficulty = 'easy', projectType = 'web' } = req.body;
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const projectPrompt = `Generate 1 ${difficulty} ${projectType} project idea for a beginner:
 
@@ -462,9 +553,12 @@ Difficulty: Easy
 Focus on: ${skills.join(', ') || 'general web development'}
 Interest: ${interests.join(', ') || 'learning programming'}`;
 
-    const result = await model.generateContent(projectPrompt);
-    const response = await result.response;
-    const aiResponse = response.text();
+    const response = await genAI.models.generateContent({
+      model: modelName,
+      contents: projectPrompt
+    });
+
+    const aiResponse = response.text;
 
     // Parse the AI response
     let projects = [];

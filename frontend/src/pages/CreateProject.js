@@ -1,4 +1,4 @@
-// frontend/src/pages/CreateProject.js - UPDATED WITH DASHBOARD THEME ALIGNMENT
+// frontend/src/pages/CreateProject.js - WITH STYLED SCROLLBAR AND GRADIENT CONTAINER
 import React, { useState, useEffect } from 'react';
 import { projectService } from '../services/projectService';
 import { suggestionsService } from '../services/suggestionsService';
@@ -203,7 +203,7 @@ function MultiSelectInput({ label, selectedItems, onSelectionChange, suggestions
         />
         
         {showSuggestions && filteredSuggestions.length > 0 && (
-          <div style={styles.suggestions}>
+          <div style={styles.suggestions} className="custom-scrollbar">
             {filteredSuggestions.map((suggestion, index) => (
               <div
                 key={suggestion.id || index}
@@ -353,14 +353,16 @@ function CreateProject({ onClose }) {
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.35)', /* darker since no blur */
+      backgroundColor: 'rgba(0, 0, 0, 0.35)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 2000
     },
     modal: {
-      backgroundColor: '#1a1c20', /* solid background */
+      // GRADIENT CONTAINER - matching Login.js
+      background: 'linear-gradient(135deg, rgba(42, 46, 57, 0.95) 0%, rgba(28, 31, 38, 0.98) 50%, rgba(20, 22, 28, 1) 100%)',
+      backdropFilter: 'blur(20px)',
       borderRadius: '16px',
       padding: '32px',
       width: '90%',
@@ -369,7 +371,7 @@ function CreateProject({ onClose }) {
       overflowY: 'auto',
       position: 'relative',
       border: '1px solid rgba(255, 255, 255, 0.1)',
-      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)'
+      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05)'
     },
     closeButton: {
       position: 'absolute',
@@ -625,679 +627,718 @@ function CreateProject({ onClose }) {
     }
   };
 
+  // CUSTOM SCROLLBAR STYLES - BLACK/GRAYISH
+  const scrollbarStyles = `
+    /* Custom Scrollbar - Black/Grayish theme */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #1f2937, #111827);
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #374151, #1f2937);
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    /* Firefox scrollbar */
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #1f2937 rgba(0, 0, 0, 0.2);
+    }
+  `;
+
   // Step 1: Basic Information
   if (currentStep === 1) {
     return (
-      <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-        <div style={styles.modal}>
-          <button 
-            style={styles.closeButton} 
-            onClick={onClose}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-              e.target.style.color = '#E8EDF9';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              e.target.style.color = '#9ca3af';
-            }}
-          >
-            ×
-          </button>
-          
-          <div style={styles.header}>
-            <div style={styles.progressBar}>
-              <div style={styles.progressFill}></div>
-            </div>
-            
-            <div style={styles.stepIndicator}>
-              <div style={styles.stepItem}>
-                <div style={{...styles.stepNumber, ...styles.stepNumberActive}}>1</div>
-                Basic Info
-              </div>
-              <div style={styles.stepItem}>
-                <div style={styles.stepNumber}>2</div>
-                Details
-              </div>
-              <div style={styles.stepItem}>
-                <div style={styles.stepNumber}>3</div>
-                Review
-              </div>
-            </div>
-            
-            <h2 style={styles.title}>Create New Project</h2>
-          </div>
-
-          {errors.length > 0 && (
-            <div style={styles.errorContainer}>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div style={styles.form}>
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Project Title *</label>
-              <input
-                type="text"
-                style={{
-                  ...styles.input,
-                  ':focus': {
-                    borderColor: '#3b82f6',
-                    boxShadow: '0 0 0 3px rgba(59, 130, 246, 0.1)'
-                  }
-                }}
-                value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                placeholder="Enter a compelling project title"
-                maxLength="100"
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Short Description *</label>
-              <textarea
-                style={styles.textarea}
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Provide a brief overview of your project (2-3 sentences)"
-                maxLength="500"
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-              <div style={styles.characterCount}>
-                {formData.description.length}/500 characters
-              </div>
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Detailed Description</label>
-              <textarea
-                style={{...styles.textarea, minHeight: '150px'}}
-                value={formData.detailed_description}
-                onChange={(e) => handleInputChange('detailed_description', e.target.value)}
-                placeholder="Provide more details about your project goals, features, and requirements"
-                maxLength="2000"
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-              <div style={styles.characterCount}>
-                {formData.detailed_description.length}/2000 characters
-              </div>
-            </div>
-          </div>
-
-          <div style={styles.buttonContainer}>
+      <>
+        <style>{scrollbarStyles}</style>
+        <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+          <div style={styles.modal} className="custom-scrollbar">
             <button 
-              style={styles.secondaryButton} 
+              style={styles.closeButton} 
               onClick={onClose}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.target.style.color = '#E8EDF9';
               }}
               onMouseLeave={(e) => {
                 e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.target.style.transform = 'translateY(0)';
+                e.target.style.color = '#9ca3af';
               }}
             >
-              Cancel
+              ×
             </button>
-            <button
-              style={{
-                ...styles.button,
-                ...styles.primaryButton,
-                ...((!formData.title.trim() || !formData.description.trim()) ? styles.disabledButton : {})
-              }}
-              onClick={handleNext}
-              disabled={!formData.title.trim() || !formData.description.trim()}
-              onMouseEnter={(e) => {
-                if (!e.target.disabled) {
+            
+            <div style={styles.header}>
+              <div style={styles.progressBar}>
+                <div style={styles.progressFill}></div>
+              </div>
+              
+              <div style={styles.stepIndicator}>
+                <div style={styles.stepItem}>
+                  <div style={{...styles.stepNumber, ...styles.stepNumberActive}}>1</div>
+                  Basic Info
+                </div>
+                <div style={styles.stepItem}>
+                  <div style={styles.stepNumber}>2</div>
+                  Details
+                </div>
+                <div style={styles.stepItem}>
+                  <div style={styles.stepNumber}>3</div>
+                  Review
+                </div>
+              </div>
+              
+              <h2 style={styles.title}>Create New Project</h2>
+            </div>
+
+            {errors.length > 0 && (
+              <div style={styles.errorContainer}>
+                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                  {errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div style={styles.form}>
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Project Title *</label>
+                <input
+                  type="text"
+                  style={styles.input}
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  placeholder="Enter a compelling project title"
+                  maxLength="100"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Short Description *</label>
+                <textarea
+                  style={styles.textarea}
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Provide a brief overview of your project (2-3 sentences)"
+                  maxLength="500"
+                  className="custom-scrollbar"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+                <div style={styles.characterCount}>
+                  {formData.description.length}/500 characters
+                </div>
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Detailed Description</label>
+                <textarea
+                  style={{...styles.textarea, minHeight: '150px'}}
+                  value={formData.detailed_description}
+                  onChange={(e) => handleInputChange('detailed_description', e.target.value)}
+                  placeholder="Provide more details about your project goals, features, and requirements"
+                  maxLength="2000"
+                  className="custom-scrollbar"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+                <div style={styles.characterCount}>
+                  {formData.detailed_description.length}/2000 characters
+                </div>
+              </div>
+            </div>
+
+            <div style={styles.buttonContainer}>
+              <button 
+                style={styles.secondaryButton} 
+                onClick={onClose}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
                   e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!e.target.disabled) {
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                   e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-                }
-              }}
-            >
-              Continue
-            </button>
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                style={{
+                  ...styles.button,
+                  ...styles.primaryButton,
+                  ...((!formData.title.trim() || !formData.description.trim()) ? styles.disabledButton : {})
+                }}
+                onClick={handleNext}
+                disabled={!formData.title.trim() || !formData.description.trim()}
+                onMouseEnter={(e) => {
+                  if (!e.target.disabled) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.target.disabled) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                  }
+                }}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Step 2: Project Details
   if (currentStep === 2) {
     return (
-      <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-        <div style={styles.modal}>
-          <button 
-            style={styles.closeButton} 
-            onClick={onClose}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-              e.target.style.color = '#E8EDF9';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              e.target.style.color = '#9ca3af';
-            }}
-          >
-            ×
-          </button>
-          
-          <div style={styles.header}>
-            <div style={styles.progressBar}>
-              <div style={styles.progressFill}></div>
-            </div>
-            
-            <div style={styles.stepIndicator}>
-              <div style={styles.stepItem}>
-                <div style={{...styles.stepNumber, ...styles.stepNumberCompleted}}>✓</div>
-                Basic Info
-              </div>
-              <div style={styles.stepItem}>
-                <div style={{...styles.stepNumber, ...styles.stepNumberActive}}>2</div>
-                Details
-              </div>
-              <div style={styles.stepItem}>
-                <div style={styles.stepNumber}>3</div>
-                Review
-              </div>
-            </div>
-            
-            <h2 style={styles.title}>Project Details</h2>
-          </div>
-
-          {errors.length > 0 && (
-            <div style={styles.errorContainer}>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div style={styles.form}>
-            <MultiSelectInput
-              label="Topics *"
-              selectedItems={formData.selectedTopics}
-              onSelectionChange={(topics) => handleInputChange('selectedTopics', topics)}
-              suggestions={topicSuggestions}
-              placeholder="e.g., Web Development, Mobile App, Data Science"
-            />
-
-            <MultiSelectInput
-              label="Programming Languages *"
-              selectedItems={formData.selectedLanguages}
-              onSelectionChange={(languages) => handleInputChange('selectedLanguages', languages)}
-              suggestions={languageSuggestions}
-              placeholder="e.g., JavaScript, Python, Java"
-            />
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Required Experience Level</label>
-              <select
-                style={styles.select}
-                value={formData.required_experience_level}
-                onChange={(e) => handleInputChange('required_experience_level', e.target.value)}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              >
-                <option value="">Select experience level</option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-                <option value="expert">Expert</option>
-              </select>
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Maximum Members</label>
-              <input
-                type="number"
-                style={styles.input}
-                min="1"
-                max="50"
-                value={formData.maximum_members}
-                onChange={(e) => handleInputChange('maximum_members', e.target.value)}
-                placeholder="Maximum team size (1-50)"
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Estimated Duration (weeks)</label>
-              <input
-                type="number"
-                style={styles.input}
-                min="1"
-                max="104"
-                value={formData.estimated_duration_weeks}
-                onChange={(e) => handleInputChange('estimated_duration_weeks', e.target.value)}
-                placeholder="How many weeks will this project take?"
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Difficulty Level</label>
-              <select
-                style={styles.select}
-                value={formData.difficulty_level}
-                onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              >
-                <option value="">Select difficulty</option>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-                <option value="expert">Expert</option>
-              </select>
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>GitHub Repository (optional)</label>
-              <input
-                type="url"
-                style={styles.input}
-                value={formData.github_repo_url}
-                onChange={(e) => handleInputChange('github_repo_url', e.target.value)}
-                placeholder="https://github.com/username/repository"
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Project Deadline (optional)</label>
-              <input
-                type="date"
-                style={styles.input}
-                value={formData.deadline}
-                onChange={(e) => handleInputChange('deadline', e.target.value)}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-            </div>
-          </div>
-
-          <div style={styles.buttonContainer}>
+      <>
+        <style>{scrollbarStyles}</style>
+        <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+          <div style={styles.modal} className="custom-scrollbar">
             <button 
-              style={styles.secondaryButton} 
-              onClick={handleBack}
+              style={styles.closeButton} 
+              onClick={onClose}
               onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.target.style.color = '#E8EDF9';
               }}
               onMouseLeave={(e) => {
                 e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                e.target.style.transform = 'translateY(0)';
+                e.target.style.color = '#9ca3af';
               }}
             >
-              Back
+              ×
             </button>
-            <button
-              style={{
-                ...styles.button,
-                ...styles.primaryButton,
-                ...(formData.selectedTopics.length === 0 || formData.selectedLanguages.length === 0 ? styles.disabledButton : {})
-              }}
-              onClick={handleNext}
-              disabled={formData.selectedTopics.length === 0 || formData.selectedLanguages.length === 0}
-              onMouseEnter={(e) => {
-                if (!e.target.disabled) {
+            
+            <div style={styles.header}>
+              <div style={styles.progressBar}>
+                <div style={styles.progressFill}></div>
+              </div>
+              
+              <div style={styles.stepIndicator}>
+                <div style={styles.stepItem}>
+                  <div style={{...styles.stepNumber, ...styles.stepNumberCompleted}}>✓</div>
+                  Basic Info
+                </div>
+                <div style={styles.stepItem}>
+                  <div style={{...styles.stepNumber, ...styles.stepNumberActive}}>2</div>
+                  Details
+                </div>
+                <div style={styles.stepItem}>
+                  <div style={styles.stepNumber}>3</div>
+                  Review
+                </div>
+              </div>
+              
+              <h2 style={styles.title}>Project Details</h2>
+            </div>
+
+            {errors.length > 0 && (
+              <div style={styles.errorContainer}>
+                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                  {errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div style={styles.form}>
+              <MultiSelectInput
+                label="Topics *"
+                selectedItems={formData.selectedTopics}
+                onSelectionChange={(topics) => handleInputChange('selectedTopics', topics)}
+                suggestions={topicSuggestions}
+                placeholder="e.g., Web Development, Mobile App, Data Science"
+              />
+
+              <MultiSelectInput
+                label="Programming Languages *"
+                selectedItems={formData.selectedLanguages}
+                onSelectionChange={(languages) => handleInputChange('selectedLanguages', languages)}
+                suggestions={languageSuggestions}
+                placeholder="e.g., JavaScript, Python, Java"
+              />
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Required Experience Level</label>
+                <select
+                  style={styles.select}
+                  value={formData.required_experience_level}
+                  onChange={(e) => handleInputChange('required_experience_level', e.target.value)}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="">Select experience level</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Maximum Members</label>
+                <input
+                  type="number"
+                  style={styles.input}
+                  min="1"
+                  max="50"
+                  value={formData.maximum_members}
+                  onChange={(e) => handleInputChange('maximum_members', e.target.value)}
+                  placeholder="Maximum team size (1-50)"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Estimated Duration (weeks)</label>
+                <input
+                  type="number"
+                  style={styles.input}
+                  min="1"
+                  max="104"
+                  value={formData.estimated_duration_weeks}
+                  onChange={(e) => handleInputChange('estimated_duration_weeks', e.target.value)}
+                  placeholder="How many weeks will this project take?"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Difficulty Level</label>
+                <select
+                  style={styles.select}
+                  value={formData.difficulty_level}
+                  onChange={(e) => handleInputChange('difficulty_level', e.target.value)}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="">Select difficulty</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>GitHub Repository (optional)</label>
+                <input
+                  type="url"
+                  style={styles.input}
+                  value={formData.github_repo_url}
+                  onChange={(e) => handleInputChange('github_repo_url', e.target.value)}
+                  placeholder="https://github.com/username/repository"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Project Deadline (optional)</label>
+                <input
+                  type="date"
+                  style={styles.input}
+                  value={formData.deadline}
+                  onChange={(e) => handleInputChange('deadline', e.target.value)}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={styles.buttonContainer}>
+              <button 
+                style={styles.secondaryButton} 
+                onClick={handleBack}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
                   e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!e.target.disabled) {
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                   e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-                }
-              }}
-            >
-              Continue
-            </button>
+                }}
+              >
+                Back
+              </button>
+              <button
+                style={{
+                  ...styles.button,
+                  ...styles.primaryButton,
+                  ...(formData.selectedTopics.length === 0 || formData.selectedLanguages.length === 0 ? styles.disabledButton : {})
+                }}
+                onClick={handleNext}
+                disabled={formData.selectedTopics.length === 0 || formData.selectedLanguages.length === 0}
+                onMouseEnter={(e) => {
+                  if (!e.target.disabled) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.target.disabled) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                  }
+                }}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Step 3: Review and Terms
   if (currentStep === 3) {
     return (
-      <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-        <div style={styles.modal}>
-          <button 
-            style={styles.closeButton} 
-            onClick={onClose}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-              e.target.style.color = '#E8EDF9';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              e.target.style.color = '#9ca3af';
-            }}
-          >
-            ×
-          </button>
-          
-          <div style={styles.header}>
-            <div style={styles.progressBar}>
-              <div style={styles.progressFill}></div>
-            </div>
-            
-            <div style={styles.stepIndicator}>
-              <div style={styles.stepItem}>
-                <div style={{...styles.stepNumber, ...styles.stepNumberCompleted}}>✓</div>
-                Basic Info
-              </div>
-              <div style={styles.stepItem}>
-                <div style={{...styles.stepNumber, ...styles.stepNumberCompleted}}>✓</div>
-                Details
-              </div>
-              <div style={styles.stepItem}>
-                <div style={{...styles.stepNumber, ...styles.stepNumberActive}}>3</div>
-                Review
-              </div>
-            </div>
-            
-            <h2 style={styles.title}>Review & Confirm</h2>
-          </div>
-
-          {errors.length > 0 && (
-            <div style={styles.errorContainer}>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                {errors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div style={styles.form}>
-            <div style={styles.summaryContainer}>
-              <h3 style={styles.summaryTitle}>Project Summary</h3>
-              
-              <div style={styles.summaryItem}>
-                <div style={styles.summaryLabel}>Title:</div>
-                <div style={styles.summaryValue}>{formData.title}</div>
-              </div>
-              
-              <div style={styles.summaryItem}>
-                <div style={styles.summaryLabel}>Description:</div>
-                <div style={styles.summaryValue}>{formData.description}</div>
-              </div>
-              
-              {formData.detailed_description && (
-                <div style={styles.summaryItem}>
-                  <div style={styles.summaryLabel}>Detailed Description:</div>
-                  <div style={styles.summaryValue}>{formData.detailed_description}</div>
-                </div>
-              )}
-              
-              <div style={styles.summaryItem}>
-                <div style={styles.summaryLabel}>Topics:</div>
-                <div style={styles.summaryValue}>{formData.selectedTopics.map(t => t.name).join(', ')}</div>
-              </div>
-              
-              <div style={styles.summaryItem}>
-                <div style={styles.summaryLabel}>Programming Languages:</div>
-                <div style={styles.summaryValue}>{formData.selectedLanguages.map(l => l.name).join(', ')}</div>
-              </div>
-              
-              {formData.required_experience_level && (
-                <div style={styles.summaryItem}>
-                  <div style={styles.summaryLabel}>Required Experience:</div>
-                  <div style={styles.summaryValue}>{formData.required_experience_level}</div>
-                </div>
-              )}
-              
-              {formData.maximum_members && (
-                <div style={styles.summaryItem}>
-                  <div style={styles.summaryLabel}>Maximum Members:</div>
-                  <div style={styles.summaryValue}>{formData.maximum_members}</div>
-                </div>
-              )}
-              
-              {formData.estimated_duration_weeks && (
-                <div style={styles.summaryItem}>
-                  <div style={styles.summaryLabel}>Estimated Duration:</div>
-                  <div style={styles.summaryValue}>{formData.estimated_duration_weeks} weeks</div>
-                </div>
-              )}
-              
-              {formData.difficulty_level && (
-                <div style={styles.summaryItem}>
-                  <div style={styles.summaryLabel}>Difficulty Level:</div>
-                  <div style={styles.summaryValue}>{formData.difficulty_level}</div>
-                </div>
-              )}
-              
-              {formData.github_repo_url && (
-                <div style={styles.summaryItem}>
-                  <div style={styles.summaryLabel}>GitHub Repository:</div>
-                  <div style={styles.summaryValue}>{formData.github_repo_url}</div>
-                </div>
-              )}
-              
-              {formData.deadline && (
-                <div style={styles.summaryItem}>
-                  <div style={styles.summaryLabel}>Deadline:</div>
-                  <div style={styles.summaryValue}>{new Date(formData.deadline).toLocaleDateString()}</div>
-                </div>
-              )}
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>Project Terms *</label>
-              <div style={styles.termsContainer}>
-                <div 
-                  style={{
-                    ...styles.termsItem,
-                    ...(formData.termsAccepted === 'open' ? styles.termsItemSelected : {})
-                  }}
-                  onClick={() => handleInputChange('termsAccepted', 'open')}
-                >
-                  <input
-                    type="radio"
-                    name="terms"
-                    value="open"
-                    checked={formData.termsAccepted === 'open'}
-                    onChange={() => handleInputChange('termsAccepted', 'open')}
-                    style={styles.radio}
-                  />
-                  <div style={styles.termsText}>
-                    <div style={styles.termsTitle}>Open Collaboration</div>
-                    <div style={styles.termsDescription}>
-                      This project is open for anyone to join. Team members can contribute 
-                      according to their availability and skill level. Perfect for learning 
-                      and networking.
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  style={{
-                    ...styles.termsItem,
-                    ...(formData.termsAccepted === 'committed' ? styles.termsItemSelected : {})
-                  }}
-                  onClick={() => handleInputChange('termsAccepted', 'committed')}
-                >
-                  <input
-                    type="radio"
-                    name="terms"
-                    value="committed"
-                    checked={formData.termsAccepted === 'committed'}
-                    onChange={() => handleInputChange('termsAccepted', 'committed')}
-                    style={styles.radio}
-                  />
-                  <div style={styles.termsText}>
-                    <div style={styles.termsTitle}>Committed Team</div>
-                    <div style={styles.termsDescription}>
-                      This project requires dedicated team members who can commit to regular 
-                      participation and meeting deadlines. Ideal for serious development work.
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  style={{
-                    ...styles.termsItem,
-                    ...(formData.termsAccepted === 'commercial' ? styles.termsItemSelected : {})
-                  }}
-                  onClick={() => handleInputChange('termsAccepted', 'commercial')}
-                >
-                  <input
-                    type="radio"
-                    name="terms"
-                    value="commercial"
-                    checked={formData.termsAccepted === 'commercial'}
-                    onChange={() => handleInputChange('termsAccepted', 'commercial')}
-                    style={styles.radio}
-                  />
-                  <div style={styles.termsText}>
-                    <div style={styles.termsTitle}>Commercial Project</div>
-                    <div style={styles.termsDescription}>
-                      This project has commercial potential. Team members may be eligible 
-                      for revenue sharing or equity based on contribution and agreement.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={styles.agreementContainer}>
-              <p style={{ margin: '0 0 12px 0' }}>
-                By creating this project, you agree to:
-              </p>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                <li>Maintain respectful and professional communication with team members</li>
-                <li>Provide clear project requirements and expectations</li>
-                <li>Respect intellectual property rights and open-source licenses</li>
-                <li>Follow TechSync's community guidelines and code of conduct</li>
-              </ul>
-            </div>
-          </div>
-
-          <div style={styles.buttonContainer}>
-            <button
-              style={styles.secondaryButton}
-              onClick={handleBack}
-              disabled={isSubmitting}
+      <>
+        <style>{scrollbarStyles}</style>
+        <div style={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+          <div style={styles.modal} className="custom-scrollbar">
+            <button 
+              style={styles.closeButton} 
+              onClick={onClose}
               onMouseEnter={(e) => {
-                if (!isSubmitting) {
-                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                  e.target.style.transform = 'translateY(-2px)';
-                }
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                e.target.style.color = '#E8EDF9';
               }}
               onMouseLeave={(e) => {
-                if (!isSubmitting) {
-                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                  e.target.style.transform = 'translateY(0)';
-                }
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                e.target.style.color = '#9ca3af';
               }}
             >
-              Back
+              ×
             </button>
-            <button
-              style={{
-                ...styles.button,
-                ...styles.primaryButton,
-                ...((!formData.termsAccepted || isSubmitting) ? styles.disabledButton : {})
-              }}
-              onClick={handleSubmit}
-              disabled={!formData.termsAccepted || isSubmitting}
-              onMouseEnter={(e) => {
-                if (!e.target.disabled) {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!e.target.disabled) {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
-                }
-              }}
-            >
-              {isSubmitting ? 'Creating Project...' : 'Create Project'}
-            </button>
+            
+            <div style={styles.header}>
+              <div style={styles.progressBar}>
+                <div style={styles.progressFill}></div>
+              </div>
+              
+              <div style={styles.stepIndicator}>
+                <div style={styles.stepItem}>
+                  <div style={{...styles.stepNumber, ...styles.stepNumberCompleted}}>✓</div>
+                  Basic Info
+                </div>
+                <div style={styles.stepItem}>
+                  <div style={{...styles.stepNumber, ...styles.stepNumberCompleted}}>✓</div>
+                  Details
+                </div>
+                <div style={styles.stepItem}>
+                  <div style={{...styles.stepNumber, ...styles.stepNumberActive}}>3</div>
+                  Review
+                </div>
+              </div>
+              
+              <h2 style={styles.title}>Review & Confirm</h2>
+            </div>
+
+            {errors.length > 0 && (
+              <div style={styles.errorContainer}>
+                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                  {errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div style={styles.form}>
+              <div style={styles.summaryContainer}>
+                <h3 style={styles.summaryTitle}>Project Summary</h3>
+                
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Title:</div>
+                  <div style={styles.summaryValue}>{formData.title}</div>
+                </div>
+                
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Description:</div>
+                  <div style={styles.summaryValue}>{formData.description}</div>
+                </div>
+                
+                {formData.detailed_description && (
+                  <div style={styles.summaryItem}>
+                    <div style={styles.summaryLabel}>Detailed Description:</div>
+                    <div style={styles.summaryValue}>{formData.detailed_description}</div>
+                  </div>
+                )}
+                
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Topics:</div>
+                  <div style={styles.summaryValue}>{formData.selectedTopics.map(t => t.name).join(', ')}</div>
+                </div>
+                
+                <div style={styles.summaryItem}>
+                  <div style={styles.summaryLabel}>Programming Languages:</div>
+                  <div style={styles.summaryValue}>{formData.selectedLanguages.map(l => l.name).join(', ')}</div>
+                </div>
+                
+                {formData.required_experience_level && (
+                  <div style={styles.summaryItem}>
+                    <div style={styles.summaryLabel}>Required Experience:</div>
+                    <div style={styles.summaryValue}>{formData.required_experience_level}</div>
+                  </div>
+                )}
+                
+                {formData.maximum_members && (
+                  <div style={styles.summaryItem}>
+                    <div style={styles.summaryLabel}>Maximum Members:</div>
+                    <div style={styles.summaryValue}>{formData.maximum_members}</div>
+                  </div>
+                )}
+                
+                {formData.estimated_duration_weeks && (
+                  <div style={styles.summaryItem}>
+                    <div style={styles.summaryLabel}>Estimated Duration:</div>
+                    <div style={styles.summaryValue}>{formData.estimated_duration_weeks} weeks</div>
+                  </div>
+                )}
+                
+                {formData.difficulty_level && (
+                  <div style={styles.summaryItem}>
+                    <div style={styles.summaryLabel}>Difficulty Level:</div>
+                    <div style={styles.summaryValue}>{formData.difficulty_level}</div>
+                  </div>
+                )}
+                
+                {formData.github_repo_url && (
+                  <div style={styles.summaryItem}>
+                    <div style={styles.summaryLabel}>GitHub Repository:</div>
+                    <div style={styles.summaryValue}>{formData.github_repo_url}</div>
+                  </div>
+                )}
+                
+                {formData.deadline && (
+                  <div style={styles.summaryItem}>
+                    <div style={styles.summaryLabel}>Deadline:</div>
+                    <div style={styles.summaryValue}>{new Date(formData.deadline).toLocaleDateString()}</div>
+                  </div>
+                )}
+              </div>
+
+              <div style={styles.inputGroup}>
+                <label style={styles.label}>Project Terms *</label>
+                <div style={styles.termsContainer}>
+                  <div 
+                    style={{
+                      ...styles.termsItem,
+                      ...(formData.termsAccepted === 'open' ? styles.termsItemSelected : {})
+                    }}
+                    onClick={() => handleInputChange('termsAccepted', 'open')}
+                  >
+                    <input
+                      type="radio"
+                      name="terms"
+                      value="open"
+                      checked={formData.termsAccepted === 'open'}
+                      onChange={() => handleInputChange('termsAccepted', 'open')}
+                      style={styles.radio}
+                    />
+                    <div style={styles.termsText}>
+                      <div style={styles.termsTitle}>Open Collaboration</div>
+                      <div style={styles.termsDescription}>
+                        This project is open for anyone to join. Team members can contribute 
+                        according to their availability and skill level. Perfect for learning 
+                        and networking.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div 
+                    style={{
+                      ...styles.termsItem,
+                      ...(formData.termsAccepted === 'committed' ? styles.termsItemSelected : {})
+                    }}
+                    onClick={() => handleInputChange('termsAccepted', 'committed')}
+                  >
+                    <input
+                      type="radio"
+                      name="terms"
+                      value="committed"
+                      checked={formData.termsAccepted === 'committed'}
+                      onChange={() => handleInputChange('termsAccepted', 'committed')}
+                      style={styles.radio}
+                    />
+                    <div style={styles.termsText}>
+                      <div style={styles.termsTitle}>Committed Team</div>
+                      <div style={styles.termsDescription}>
+                        This project requires dedicated team members who can commit to regular 
+                        participation and meeting deadlines. Ideal for serious development work.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div 
+                    style={{
+                      ...styles.termsItem,
+                      ...(formData.termsAccepted === 'commercial' ? styles.termsItemSelected : {})
+                    }}
+                    onClick={() => handleInputChange('termsAccepted', 'commercial')}
+                  >
+                    <input
+                      type="radio"
+                      name="terms"
+                      value="commercial"
+                      checked={formData.termsAccepted === 'commercial'}
+                      onChange={() => handleInputChange('termsAccepted', 'commercial')}
+                      style={styles.radio}
+                    />
+                    <div style={styles.termsText}>
+                      <div style={styles.termsTitle}>Commercial Project</div>
+                      <div style={styles.termsDescription}>
+                        This project has commercial potential. Team members may be eligible 
+                        for revenue sharing or equity based on contribution and agreement.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.agreementContainer}>
+                <p style={{ margin: '0 0 12px 0' }}>
+                  By creating this project, you agree to:
+                </p>
+                <ul style={{ margin: 0, paddingLeft: '20px' }}>
+                  <li>Maintain respectful and professional communication with team members</li>
+                  <li>Provide clear project requirements and expectations</li>
+                  <li>Respect intellectual property rights and open-source licenses</li>
+                  <li>Follow TechSync's community guidelines and code of conduct</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={styles.buttonContainer}>
+              <button
+                style={styles.secondaryButton}
+                onClick={handleBack}
+                disabled={isSubmitting}
+                onMouseEnter={(e) => {
+                  if (!isSubmitting) {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                    e.target.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSubmitting) {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                Back
+              </button>
+              <button
+                style={{
+                  ...styles.button,
+                  ...styles.primaryButton,
+                  ...((!formData.termsAccepted || isSubmitting) ? styles.disabledButton : {})
+                }}
+                onClick={handleSubmit}
+                disabled={!formData.termsAccepted || isSubmitting}
+                onMouseEnter={(e) => {
+                  if (!e.target.disabled) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.target.disabled) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                  }
+                }}
+              >
+                {isSubmitting ? 'Creating Project...' : 'Create Project'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
