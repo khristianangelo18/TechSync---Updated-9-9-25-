@@ -652,12 +652,14 @@ function Friends() {
       margin: '0',
       lineHeight: '1.6'
     },
-    loadingMessage: {
+    loading: {
       position: 'relative',
       zIndex: 10,
       display: 'flex',
+      flexDirection: 'row', 
       justifyContent: 'center',
       alignItems: 'center',
+      gap: '15px', 
       minHeight: '400px',
       fontSize: '16px',
       color: '#9ca3af'
@@ -1115,7 +1117,7 @@ function Friends() {
     return (
       <div style={styles.container}>
         <BackgroundSymbols />
-        <div style={styles.loadingMessage}>
+        <div style={styles.loading}>
           <div style={{
             width: '48px',
             height: '48px',

@@ -709,8 +709,10 @@ const ChallengeManagement = () => {
       position: 'relative',
       zIndex: 10,
       display: 'flex',
+      flexDirection: 'row',
       justifyContent: 'center',
       alignItems: 'center',
+      gap: '15px',  
       minHeight: '400px',
       fontSize: '16px',
       color: '#9ca3af'
