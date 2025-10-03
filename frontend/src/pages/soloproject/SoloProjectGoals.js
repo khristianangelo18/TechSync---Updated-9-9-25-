@@ -1,4 +1,4 @@
-// frontend/src/pages/soloproject/SoloProjectGoals.js - ALIGNED WITH DASHBOARD STYLING
+// frontend/src/pages/soloproject/SoloProjectGoals.js - WITH ANIMATED SYMBOLS
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { 
@@ -26,249 +26,399 @@ import {
 } from 'lucide-react';
 import SoloProjectService from '../../services/soloProjectService';
 
-// Background symbols component - SAME AS DASHBOARD
+// Background symbols component - WITH FLOATING ANIMATIONS
 const BackgroundSymbols = () => (
-  <div style={{
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100vw',
-    height: '100vh',
-    zIndex: 1,
-    pointerEvents: 'none'
-  }}>
+  <>
+    {/* Floating Animation CSS */}
+    <style>
+      {`
+        @keyframes floatAround1 {
+          0%, 100% { transform: translate(0, 0) rotate(-15deg); }
+          25% { transform: translate(20px, -15px) rotate(-10deg); }
+          50% { transform: translate(-10px, 20px) rotate(-20deg); }
+          75% { transform: translate(15px, 5px) rotate(-12deg); }
+        }
+        @keyframes floatAround2 {
+          0%, 100% { transform: translate(0, 0) rotate(20deg); }
+          33% { transform: translate(-20px, 10px) rotate(25deg); }
+          66% { transform: translate(25px, -8px) rotate(15deg); }
+        }
+        @keyframes floatAround3 {
+          0%, 100% { transform: translate(0, 0) rotate(-25deg); }
+          20% { transform: translate(-15px, -20px) rotate(-20deg); }
+          40% { transform: translate(20px, 15px) rotate(-30deg); }
+          60% { transform: translate(-8px, -10px) rotate(-22deg); }
+          80% { transform: translate(12px, 18px) rotate(-28deg); }
+        }
+        @keyframes floatAround4 {
+          0%, 100% { transform: translate(0, 0) rotate(30deg); }
+          50% { transform: translate(-30px, 25px) rotate(35deg); }
+        }
+        @keyframes floatAround5 {
+          0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+          25% { transform: translate(15px, -20px) rotate(-5deg); }
+          50% { transform: translate(-25px, 15px) rotate(-15deg); }
+          75% { transform: translate(20px, 10px) rotate(-8deg); }
+        }
+        @keyframes floatAround6 {
+          0%, 100% { transform: translate(0, 0) rotate(15deg); }
+          33% { transform: translate(-12px, -15px) rotate(20deg); }
+          66% { transform: translate(25px, 20px) rotate(10deg); }
+        }
+        @keyframes driftSlow {
+          0%, 100% { transform: translate(0, 0) rotate(35deg); }
+          25% { transform: translate(-25px, 15px) rotate(40deg); }
+          50% { transform: translate(15px, -25px) rotate(30deg); }
+          75% { transform: translate(-8px, 30px) rotate(38deg); }
+        }
+        @keyframes gentleDrift {
+          0%, 100% { transform: translate(0, 0) rotate(-20deg); }
+          50% { transform: translate(20px, -30px) rotate(-15deg); }
+        }
+        @keyframes floatExtra1 {
+          0%, 100% { transform: translate(0, 0) rotate(18deg); }
+          33% { transform: translate(-18px, 20px) rotate(23deg); }
+          66% { transform: translate(22px, -15px) rotate(13deg); }
+        }
+        @keyframes floatExtra2 {
+          0%, 100% { transform: translate(0, 0) rotate(-37deg); }
+          25% { transform: translate(25px, 18px) rotate(-32deg); }
+          50% { transform: translate(-20px, -22px) rotate(-42deg); }
+          75% { transform: translate(15px, -10px) rotate(-35deg); }
+        }
+        @keyframes floatExtra3 {
+          0%, 100% { transform: translate(0, 0) rotate(28deg); }
+          50% { transform: translate(-28px, 30px) rotate(33deg); }
+        }
+        @keyframes floatExtra4 {
+          0%, 100% { transform: translate(0, 0) rotate(24deg); }
+          40% { transform: translate(20px, -25px) rotate(29deg); }
+          80% { transform: translate(-15px, 20px) rotate(19deg); }
+        }
+        @keyframes floatExtra5 {
+          0%, 100% { transform: translate(0, 0) rotate(25deg); }
+          35% { transform: translate(-22px, -18px) rotate(30deg); }
+          70% { transform: translate(18px, 25px) rotate(20deg); }
+        }
+        @keyframes floatExtra6 {
+          0%, 100% { transform: translate(0, 0) rotate(-19deg); }
+          50% { transform: translate(25px, -20px) rotate(-14deg); }
+        }
+        @keyframes floatExtra7 {
+          0%, 100% { transform: translate(0, 0) rotate(-6deg); }
+          25% { transform: translate(-15px, 22px) rotate(-1deg); }
+          50% { transform: translate(20px, -18px) rotate(-11deg); }
+          75% { transform: translate(-10px, 15px) rotate(-4deg); }
+        }
+        @keyframes floatExtra8 {
+          0%, 100% { transform: translate(0, 0) rotate(25deg); }
+          33% { transform: translate(18px, 20px) rotate(30deg); }
+          66% { transform: translate(-20px, -15px) rotate(20deg); }
+        }
+        @keyframes floatExtra9 {
+          0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+          50% { transform: translate(-25px, 28px) rotate(-5deg); }
+        }
+        @keyframes floatExtra10 {
+          0%, 100% { transform: translate(0, 0) rotate(37deg); }
+          40% { transform: translate(22px, -20px) rotate(42deg); }
+          80% { transform: translate(-18px, 25px) rotate(32deg); }
+        }
+        @keyframes floatExtra11 {
+          0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+          30% { transform: translate(-20px, 15px) rotate(-5deg); }
+          60% { transform: translate(25px, -20px) rotate(-15deg); }
+          90% { transform: translate(-12px, 20px) rotate(-8deg); }
+        }
+        @keyframes floatExtra12 {
+          0%, 100% { transform: translate(0, 0) rotate(18deg); }
+          50% { transform: translate(20px, -25px) rotate(23deg); }
+        }
+        @keyframes floatExtra13 {
+          0%, 100% { transform: translate(0, 0) rotate(15deg); }
+          25% { transform: translate(-18px, -20px) rotate(20deg); }
+          50% { transform: translate(22px, 18px) rotate(10deg); }
+          75% { transform: translate(-15px, 22px) rotate(17deg); }
+        }
+        @keyframes globalLogoRotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        .global-loading-spinner {
+          animation: globalLogoRotate 2s linear infinite;
+        }
+        .floating-symbol {
+          animation-timing-function: ease-in-out;
+          animation-iteration-count: infinite;
+        }
+        
+        .floating-symbol:nth-child(1) { animation: floatAround1 12s infinite; }
+        .floating-symbol:nth-child(2) { animation: floatAround2 15s infinite; animation-delay: -2s; }
+        .floating-symbol:nth-child(3) { animation: floatAround3 10s infinite; animation-delay: -4s; }
+        .floating-symbol:nth-child(4) { animation: floatAround4 18s infinite; animation-delay: -6s; }
+        .floating-symbol:nth-child(5) { animation: floatAround5 14s infinite; animation-delay: -1s; }
+        .floating-symbol:nth-child(6) { animation: floatAround6 11s infinite; animation-delay: -5s; }
+        .floating-symbol:nth-child(7) { animation: driftSlow 20s infinite; animation-delay: -8s; }
+        .floating-symbol:nth-child(8) { animation: gentleDrift 16s infinite; animation-delay: -3s; }
+        .floating-symbol:nth-child(9) { animation: floatExtra1 13s infinite; animation-delay: -7s; }
+        .floating-symbol:nth-child(10) { animation: floatExtra2 17s infinite; animation-delay: -9s; }
+        .floating-symbol:nth-child(11) { animation: floatExtra3 14s infinite; animation-delay: -4s; }
+        .floating-symbol:nth-child(12) { animation: floatExtra4 19s infinite; animation-delay: -10s; }
+        .floating-symbol:nth-child(13) { animation: floatExtra5 11s infinite; animation-delay: -2s; }
+        .floating-symbol:nth-child(14) { animation: floatExtra6 15s infinite; animation-delay: -6s; }
+        .floating-symbol:nth-child(15) { animation: floatExtra7 13s infinite; animation-delay: -5s; }
+        .floating-symbol:nth-child(16) { animation: floatExtra8 16s infinite; animation-delay: -8s; }
+        .floating-symbol:nth-child(17) { animation: floatExtra9 12s infinite; animation-delay: -3s; }
+        .floating-symbol:nth-child(18) { animation: floatExtra10 18s infinite; animation-delay: -7s; }
+        .floating-symbol:nth-child(19) { animation: floatExtra11 14s infinite; animation-delay: -4s; }
+        .floating-symbol:nth-child(20) { animation: floatExtra12 17s infinite; animation-delay: -9s; }
+        .floating-symbol:nth-child(21) { animation: floatExtra13 15s infinite; animation-delay: -6s; }
+      `}
+    </style>
+    
     <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
-    }}>&#60;/&#62;</div>
-    <div style={{
-      position: 'absolute',
-      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      fontStyle: 'normal',
-      fontWeight: 900,
-      fontSize: '24px',
-      lineHeight: '29px',
-      userSelect: 'none',
-      pointerEvents: 'none',
-      left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
-    }}>&#60;/&#62;</div>
-  </div>
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      zIndex: 1,
+      pointerEvents: 'none'
+    }}>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '52.81%', top: '48.12%', color: '#2E3344', transform: 'rotate(-10.79deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '28.19%', top: '71.22%', color: '#292A2E', transform: 'rotate(-37.99deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '95.09%', top: '48.12%', color: '#ABB5CE', transform: 'rotate(34.77deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '86.46%', top: '15.33%', color: '#2E3344', transform: 'rotate(28.16deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '7.11%', top: '80.91%', color: '#ABB5CE', transform: 'rotate(24.5deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '48.06%', top: '8.5%', color: '#ABB5CE', transform: 'rotate(25.29deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '72.84%', top: '4.42%', color: '#2E3344', transform: 'rotate(-19.68deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '9.6%', top: '0%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '31.54%', top: '54.31%', color: '#6C758E', transform: 'rotate(25.29deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '25.28%', top: '15.89%', color: '#1F232E', transform: 'rotate(-6.83deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '48.55%', top: '82.45%', color: '#292A2E', transform: 'rotate(-10.79deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '24.41%', top: '92.02%', color: '#2E3344', transform: 'rotate(18.2deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '0%', top: '12.8%', color: '#ABB5CE', transform: 'rotate(37.85deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '81.02%', top: '94.27%', color: '#6C758E', transform: 'rotate(-37.99deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '96.02%', top: '0%', color: '#2E3344', transform: 'rotate(-37.99deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '0.07%', top: '41.2%', color: '#6C758E', transform: 'rotate(-10.79deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '15%', top: '35%', color: '#3A4158', transform: 'rotate(15deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '65%', top: '25%', color: '#5A6B8C', transform: 'rotate(-45deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '85%', top: '65%', color: '#2B2F3E', transform: 'rotate(30deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '42%', top: '35%', color: '#4F5A7A', transform: 'rotate(-20deg)'
+      }}>&#60;/&#62;</div>
+      <div className="floating-symbol" style={{
+        position: 'absolute',
+        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        fontStyle: 'normal',
+        fontWeight: 900,
+        fontSize: '24px',
+        lineHeight: '29px',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        left: '12%', top: '60%', color: '#8A94B8', transform: 'rotate(40deg)'
+      }}>&#60;/&#62;</div>
+    </div>
+  </>
 );
 
 function SoloProjectGoals() {
@@ -674,8 +824,25 @@ function SoloProjectGoals() {
     return (
       <div style={styles.container}>
         <BackgroundSymbols />
-        <div style={styles.loadingState}>
-          <h2>Loading tasks & goals...</h2>
+        <div style={styles.loading}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }} className="global-loading-spinner">
+            <img 
+              src="/images/logo/TechSyncLogo.png" 
+              alt="TechSync Logo" 
+              style={{
+                width: '125%',
+                height: '125%',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+          <span>Loading tasks & goals...</span>
         </div>
       </div>
     );
@@ -1113,8 +1280,20 @@ const styles = {
     overflow: 'hidden',
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     padding: '20px',
-    paddingLeft: '270px', // Match dashboard sidebar spacing
-    marginLeft: '-150px'   // Match dashboard sidebar spacing
+    paddingLeft: '270px',
+    marginLeft: '-150px'
+  },
+  loading: {
+    position: 'relative',
+    zIndex: 10,
+    display: 'flex',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: '15px',
+    minHeight: '400px',
+    fontSize: '18px',
+    color: '#9ca3af'
   },
   header: {
     position: 'relative',
@@ -1270,132 +1449,6 @@ const styles = {
   kanbanCard: {
     margin: 0
   },
-  itemHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '12px'
-  },
-  itemTypeIndicator: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px'
-  },
-  itemTypeIcon: {
-    display: 'flex',
-    alignItems: 'center'
-  },
-  itemTypeText: {
-    fontSize: '12px',
-    fontWeight: '500',
-    color: '#9ca3af',
-    textTransform: 'uppercase'
-  },
-  priorityBadge: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    color: 'white',
-    padding: '4px 8px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500',
-    textTransform: 'capitalize'
-  },
-  itemTitle: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: 'white',
-    margin: '0 0 12px 0'
-  },
-  itemDescription: {
-    fontSize: '14px',
-    color: '#9ca3af',
-    margin: '0 0 16px 0',
-    lineHeight: '1.5'
-  },
-  progressSection: {
-    marginBottom: '16px'
-  },
-  progressBar: {
-    height: '8px',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: '4px',
-    overflow: 'hidden',
-    marginBottom: '10px'
-  },
-  progressFill: {
-    height: '100%',
-    background: 'linear-gradient(90deg, #a855f7, #7c3aed)',
-    borderRadius: '4px',
-    transition: 'width 0.3s ease'
-  },
-  progressControls: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginBottom: '10px'
-  },
-  progressSlider: {
-    flex: 1,
-    height: '6px',
-    appearance: 'none',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: '3px',
-    outline: 'none',
-    cursor: 'pointer'
-  },
-  progressText: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#9ca3af',
-    minWidth: '40px'
-  },
-  quickProgress: {
-    display: 'flex',
-    gap: '6px',
-    flexWrap: 'wrap'
-  },
-  progressButton: {
-    backgroundColor: 'rgba(26, 28, 32, 0.95)',
-    color: '#9ca3af',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    padding: '4px 8px',
-    borderRadius: '4px',
-    fontSize: '11px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease'
-  },
-  progressButtonActive: {
-    backgroundColor: '#a855f7',
-    color: 'white',
-    borderColor: '#a855f7'
-  },
-  itemMeta: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '16px'
-  },
-  itemDetails: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px'
-  },
-  itemMetaItem: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '12px',
-    color: '#9ca3af'
-  },
-  itemCategory: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: '12px',
-    color: '#9ca3af',
-    fontWeight: '500'
-  },
   itemFooter: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1472,16 +1525,6 @@ const styles = {
     cursor: 'pointer',
     margin: '0 auto'
   },
-  loadingState: {
-    position: 'relative',
-    zIndex: 10,
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '400px',
-    fontSize: '18px',
-    color: '#9ca3af'
-  },
   errorMessage: {
     position: 'relative',
     zIndex: 10,
@@ -1498,7 +1541,7 @@ const styles = {
     backdropFilter: 'blur(8px)'
   },
   
-  // MODAL STYLES - ALIGNED WITH DASHBOARD THEME
+  // MODAL STYLES
   modal: {
     position: 'fixed',
     top: 0,
