@@ -1,4 +1,4 @@
-// frontend/src/pages/soloproject/SoloProjectGoals.js - WITH ANIMATED SYMBOLS
+// frontend/src/pages/soloproject/SoloProjectGoals.js - WITH ANIMATED SYMBOLS & SIDEBAR TOGGLE
 import React, { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { 
@@ -22,7 +22,8 @@ import {
   Search,
   BookOpen,
   TestTube,
-  Zap
+  Zap,
+  PanelLeft
 } from 'lucide-react';
 import SoloProjectService from '../../services/soloProjectService';
 
@@ -447,6 +448,33 @@ function SoloProjectGoals() {
   const [activeTab, setActiveTab] = useState('all');
   const [editingItem, setEditingItem] = useState(null);
 
+  // NEW STATE: Track sidebar collapsed state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('soloProjectSidebarCollapsed');
+    return saved === 'true';
+  });
+
+  // NEW: Function to toggle sidebar
+  const toggleSidebar = () => {
+    const newCollapsedState = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newCollapsedState);
+    localStorage.setItem('soloProjectSidebarCollapsed', newCollapsedState.toString());
+
+    window.dispatchEvent(new CustomEvent('soloProjectSidebarToggle', {
+      detail: { collapsed: newCollapsedState }
+    }));
+  };
+
+  // NEW: Sync with sidebar toggle events
+  useEffect(() => {
+    const handleSidebarToggle = (event) => {
+      setIsSidebarCollapsed(event.detail.collapsed);
+    };
+
+    window.addEventListener('soloProjectSidebarToggle', handleSidebarToggle);
+    return () => window.removeEventListener('soloProjectSidebarToggle', handleSidebarToggle);
+  }, []);
+
   // Enhanced data fetching with proper progress tracking
   useEffect(() => {
     let isMounted = true;
@@ -822,36 +850,83 @@ function SoloProjectGoals() {
 
   if (loading) {
     return (
-      <div style={styles.container}>
-        <BackgroundSymbols />
-        <div style={styles.loading}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }} className="global-loading-spinner">
-            <img 
-              src="/images/logo/TechSyncLogo.png" 
-              alt="TechSync Logo" 
-              style={{
-                width: '125%',
-                height: '125%',
-                objectFit: 'contain'
-              }}
-            />
+      <>
+        {/* Sidebar Toggle Button - OUTSIDE CONTAINER */}
+        <button
+          style={{ ...styles.toggleButton, left: isSidebarCollapsed ? '100px' : '290px' }}
+          onClick={toggleSidebar}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+            e.currentTarget.style.color = '#3b82f6';
+            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(26, 28, 32, 0.95)';
+            e.currentTarget.style.color = '#9ca3af';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <PanelLeft size={20} />
+        </button>
+
+        <div style={styles.container}>
+          <BackgroundSymbols />
+          <div style={styles.loading}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }} className="global-loading-spinner">
+              <img 
+                src="/images/logo/TechSyncLogo.png" 
+                alt="TechSync Logo" 
+                style={{
+                  width: '125%',
+                  height: '125%',
+                  objectFit: 'contain'
+                }}
+              />
+            </div>
+            <span>Loading tasks & goals...</span>
           </div>
-          <span>Loading tasks & goals...</span>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div style={styles.container}>
-      {/* Background Code Symbols */}
-      <BackgroundSymbols />
+    <>
+      {/* Sidebar Toggle Button - OUTSIDE CONTAINER */}
+      <button
+        style={{ ...styles.toggleButton, left: isSidebarCollapsed ? '100px' : '290px' }}
+        onClick={toggleSidebar}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+          e.currentTarget.style.color = '#3b82f6';
+          e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+          e.currentTarget.style.transform = 'scale(1.05)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(26, 28, 32, 0.95)';
+          e.currentTarget.style.color = '#9ca3af';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+          e.currentTarget.style.transform = 'scale(1)';
+        }}
+        aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        <PanelLeft size={20} />
+      </button>
+
+      <div style={styles.container}>
+        {/* Background Code Symbols */}
+        <BackgroundSymbols />
 
       {/* Header */}
       <div style={styles.header}>
@@ -1266,12 +1341,32 @@ function SoloProjectGoals() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
 // COMPLETE STYLES ALIGNED WITH DASHBOARD
 const styles = {
+  // Toggle button styles (dynamic left applied inline)
+  toggleButton: {
+    position: 'fixed',
+    top: '20px',
+    zIndex: 1100,
+    width: '40px',
+    height: '40px',
+    borderRadius: '10px',
+    backgroundColor: 'rgba(26, 28, 32, 0.95)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.3s ease',
+    backdropFilter: 'blur(20px)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+  },
   container: {
     minHeight: 'calc(100vh - 40px)',
     backgroundColor: '#0F1116',
